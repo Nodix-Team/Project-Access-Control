@@ -1,0 +1,6 @@
+.pio
+.vscode
+.ipack
+*.pyc
+__pycache__
+*.log
