@@ -19,7 +19,7 @@
 // ============================================================
 #define WIFI_SSID       "REDMI"
 #define WIFI_PASSWORD   "Danas123"
-#define MQTT_BROKER     "10.227.215.153"   // IP laptop yang menjalankan EMQX
+#define MQTT_BROKER     "10.212.228.153"   // IP laptop yang menjalankan EMQX
 #define MQTT_PORT       1883
 #define DEVICE_ID       "esp32-ac-001"
 

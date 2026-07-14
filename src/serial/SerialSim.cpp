@@ -21,10 +21,8 @@ void SerialSim::loop() {
     while (Serial.available()) {
         char c = (char)Serial.read();
 
-        if (c == '\r') continue;  // Abaikan carriage return
-
-        if (c == '\n') {
-            // Baris selesai
+        if (c == '\r' || c == '\n') {
+            // Baris selesai jika ada Carriage Return atau Newline
             String line = _inputBuffer;
             _inputBuffer = "";
             line.trim();
