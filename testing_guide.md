@@ -1,26 +1,28 @@
-# 🧪 Panduan Praktis Pengujian dengan MQTT Explorer & Serial Monitor
+# 🧪 Panduan Praktis Pengujian (ESP32 Access Control)
 
-Dokumen ini berisi panduan langkah-demi-langkah beserta format payload JSON yang siap di-copy-paste untuk menguji sistem akses kontrol ESP32 Anda.
+Dokumen ini berisi panduan langkah-demi-langkah beserta format payload JSON yang siap di-copy-paste untuk menguji sistem akses kontrol ESP32 Anda menggunakan **MQTT Explorer** dan **PuTTY**.
 
 ---
 
-## 💻 1. Penggunaan di MQTT Explorer
+## 💻 BAGIAN 1: PENGUJIAN VIA MQTT EXPLORER
 
 ### A. Pengaturan Koneksi MQTT Explorer
-1. Klik **`+`** (New Connection) untuk membuat profil baru.
+1. Klik **`+`** (New Connection) untuk membuat profil koneksi baru.
 2. Atur parameter koneksi berikut:
-   - **Name**: ESP32 Access Control (bebas)
+   - **Name**: `ESP32 Access Control` (atau bebas)
    - **Protocol**: `mqtt://`
-   - **Host**: `10.212.228.153`
+   - **Host**: `10.212.228.153` (IP Laptop Anda)
    - **Port**: `1883`
 3. Klik **`Connect`**. Setelah terhubung, amati topic tree `access/` di sisi kiri.
 
 ---
 
-### B. Tambah User Baru (`access/users/add`)
+### B. Daftar Perintah MQTT (Publish Payload)
+
+#### 1. Tambah User Baru
+Kirim data satu user baru ke ESP32.
 * **Topic**: `access/users/add`
-* **Format**: JSON (Raw)
-* **Payload**:
+* **Payload JSON**:
 ```json
 {
   "kartu": "AABBCCDD",
@@ -28,14 +30,12 @@ Dokumen ini berisi panduan langkah-demi-langkah beserta format payload JSON yang
   "doors": [1, 3]
 }
 ```
-*(John Doe hanya memiliki akses ke Pintu 1 dan Pintu 3)*
+> *John Doe hanya memiliki akses ke Pintu 1 dan Pintu 3.*
 
----
-
-### C. Update Data User (`access/users/update`)
+#### 2. Update Data User
+Perbarui informasi user berdasarkan User ID (`uid`).
 * **Topic**: `access/users/update`
-* **Format**: JSON (Raw)
-* **Payload**:
+* **Payload JSON**:
 ```json
 {
   "uid": 1,
@@ -44,27 +44,22 @@ Dokumen ini berisi panduan langkah-demi-langkah beserta format payload JSON yang
   "doors": [1, 2, 3, 4]
 }
 ```
-*(Memperbarui User ID `1` agar memiliki hak akses ke semua pintu [1, 2, 3, 4])*
+> *Memperbarui User ID `1` agar memiliki hak akses ke semua pintu [1, 2, 3, 4].*
 
----
-
-### D. Hapus User (`access/users/delete`)
+#### 3. Hapus User
+Hapus data user dari memori ESP32 menggunakan User ID (`uid`).
 * **Topic**: `access/users/delete`
-* **Format**: JSON (Raw)
-* **Payload**:
+* **Payload JSON**:
 ```json
 {
   "uid": 1
 }
 ```
-*(Menghapus user dengan ID `1`)*
 
----
-
-### E. Bulk Sync / Menambah Banyak User Sekaligus (`access/users/sync`)
+#### 4. Bulk Sync (Tambah Banyak User Sekaligus)
+Mengirimkan banyak daftar user sekaligus ke database lokal ESP32.
 * **Topic**: `access/users/sync`
-* **Format**: JSON (Raw)
-* **Payload** (Bisa diisi lebih dari 2 user, cukup tambahkan objek baru di dalam array `[...]`):
+* **Payload JSON**:
 ```json
 [
   { "uid": 1, "kartu": "AABBCCDD", "nama": "John Doe", "doors": [1, 3] },
@@ -72,54 +67,52 @@ Dokumen ini berisi panduan langkah-demi-langkah beserta format payload JSON yang
   { "uid": 3, "kartu": "55667788", "nama": "David Miller", "doors": [2, 3] }
 ]
 ```
-> [!IMPORTANT]
-> Payload ini berbentuk Array `[...]` dan digunakan untuk memasukkan banyak user sekaligus. Perintah ini akan menghapus seluruh database user lama di flash memory ESP32, lalu menggantikannya dengan daftar user baru di atas.
+> [!WARNING]
+> Perintah `sync` ini berbentuk Array `[...]`. Perintah ini akan menghapus seluruh database user lama di memori ESP32, lalu menggantikannya secara total dengan daftar baru di atas.
 
 ---
 
-## 🖥️ 2. Penggunaan Serial Monitor (PuTTY / Arduino IDE / PlatformIO CLI)
+## 🖥️ BAGIAN 2: PENGUJIAN VIA SERIAL MONITOR (PUTTY)
 
-Agar input ketikan Anda dapat dikirimkan dengan benar dan tulisan Anda terlihat di layar, kami merekomendasikan penggunaan **PuTTY** dengan konfigurasi berikut:
+Agar input ketikan Anda dapat dikirimkan dengan benar dan tulisan Anda terlihat di layar terminal, lakukan konfigurasi PuTTY berikut ini.
 
-### A. Pengaturan Konfigurasi PuTTY (Paling Nyaman)
+### A. Pengaturan Koneksi PuTTY
 1. **Connection Type**: Pilih **`Serial`**.
-2. **Serial Line**: Isi dengan **`COM6`** (sesuaikan dengan port ESP32 Anda).
+2. **Serial Line**: Isi dengan **`COM6`** (sesuaikan dengan port USB ESP32 Anda).
 3. **Speed (Baudrate)**: Isi dengan **`115200`**.
-4. **Flow Control** (berada di menu `Connection` -> `Serial`): Ubah dari `XON/XOFF` menjadi **`None`**.
-5. **Local Echo & Line Newline** (berada di menu `Terminal`):
+4. **Flow Control** (di menu `Connection` -> `Serial` di panel kiri): Ubah dari `XON/XOFF` menjadi **`None`**.
+5. **Terminal Options** (di menu `Terminal` di panel kiri):
    - Centang **`Implicit CR in every LF`** (supaya baris teks tidak bergeser miring ke kanan).
-   - Pada bagian **Local echo**, pilih **`Force on`** (supaya tulisan yang Anda ketik terlihat di layar).
+   - Pada bagian **Local echo**, pilih **`Force on`** (supaya tulisan yang Anda ketik langsung muncul di layar).
    - Pada bagian **Local line editing**, pilih **`Force on`**.
-6. Klik **`Open`** untuk masuk ke terminal. Tekan tombol fisik **`RST/EN`** di ESP32 satu kali untuk melihat proses boot.
+6. Klik **`Open`**.
+7. Tekan tombol fisik **`RST/EN`** di ESP32 satu kali untuk melihat proses inisialisasi boot.
 
 ---
 
 ### B. Simulasi Scan Kartu RFID
-1. Ketik UID Kartu yang ingin disimulasikan (misal: `AABBCCDD`), lalu tekan **Enter**.
-2. Serial Monitor akan merespon dengan nama user (jika terdaftar) dan bertanya:
+1. Ketik **UID Kartu** (misal: `AABBCCDD`) di jendela PuTTY, lalu tekan **Enter**.
+2. Serial Monitor akan membalas dengan nama user dan bertanya:
    `Masuk pintu mana? (1-4):`
-3. Masukkan nomor pintu (misal: `1`), lalu tekan **Enter**.
-4. Sistem akan menampilkan apakah akses **GRANTED** (Diterima) atau **DENIED** (Ditolak).
+3. Masukkan **Nomor Pintu** (misal: `1`), lalu tekan **Enter**.
+4. Sistem akan menampilkan status akses **GRANTED** atau **DENIED**.
 
 ---
 
-### C. Perintah Khusus (Ketik langsung di Serial Monitor)
-
-* **`LIST`**
-  Menampilkan semua user terdaftar beserta UID, Nomor Kartu, Nama, dan Pintu yang dapat mereka akses.
-* **`STATUS`**
-  Menampilkan informasi sistem saat ini (Device ID, Uptime, Jumlah User terdaftar, Heap Memory kosong).
-* **`RESTART`**
-  Memaksa ESP32 melakukan reboot / restart.
+### C. Perintah Konsol Khusus
+Ketik perintah berikut (menggunakan huruf kapital) di terminal PuTTY lalu tekan **Enter**:
+* **`LIST`** : Menampilkan seluruh database user terdaftar beserta hak akses pintunya.
+* **`STATUS`** : Menampilkan kesehatan ESP32 (Uptime, User count, Free memory heap).
+* **`RESTART`** : Memaksa modul ESP32 melakukan reboot.
 
 ---
 
-## 📡 3. Memantau Status & Log Transaksi
+## 📡 BAGIAN 3: MEMANTAU TRANSMIT DATA (LOGS & STATUS)
 
-Di MQTT Explorer, amati panel kiri (Topic Tree) untuk melihat pesan masuk dari ESP32:
+Anda dapat memantau pesan keluaran dari ESP32 di panel kiri **MQTT Explorer**:
 
 ### A. Heartbeat (`access/status`)
-Otomatis dikirim oleh ESP32 setiap 30 detik. Berisi data kesehatan hardware:
+Otomatis dipublish oleh ESP32 setiap 30 detik:
 ```json
 {
   "device_id": "esp32-ac-001",
@@ -131,8 +124,8 @@ Otomatis dikirim oleh ESP32 setiap 30 detik. Berisi data kesehatan hardware:
 }
 ```
 
-### B. Log Akses Pintu (`access/logs`)
-Otomatis terbit setiap kali ada simulasi scan kartu di Serial Monitor:
+### B. Log Transaksi Akses (`access/logs`)
+Otomatis terkirim setiap kali scan kartu disimulasikan:
 ```json
 {
   "timestamp": 45120,
