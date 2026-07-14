@@ -6,9 +6,18 @@ Dokumen ini berisi panduan langkah-demi-langkah beserta format payload JSON yang
 
 ## 💻 1. Penggunaan di MQTT Explorer
 
-Gunakan bagian **Publish** di MQTT Explorer (berada di pojok kanan bawah atau panel samping) untuk mengirim perintah ke ESP32.
+### A. Pengaturan Koneksi MQTT Explorer
+1. Klik **`+`** (New Connection) untuk membuat profil baru.
+2. Atur parameter koneksi berikut:
+   - **Name**: ESP32 Access Control (bebas)
+   - **Protocol**: `mqtt://`
+   - **Host**: `10.212.228.153`
+   - **Port**: `1883`
+3. Klik **`Connect`**. Setelah terhubung, amati topic tree `access/` di sisi kiri.
 
-### A. Tambah User Baru (`access/users/add`)
+---
+
+### B. Tambah User Baru (`access/users/add`)
 * **Topic**: `access/users/add`
 * **Format**: JSON (Raw)
 * **Payload**:
@@ -68,11 +77,24 @@ Gunakan bagian **Publish** di MQTT Explorer (berada di pojok kanan bawah atau pa
 
 ---
 
-## 🖥️ 2. Penggunaan di Serial Monitor
+## 🖥️ 2. Penggunaan Serial Monitor (PuTTY / Arduino IDE / PlatformIO CLI)
 
-Buka Serial Monitor di PlatformIO (Baud rate: `115200`). Di sini Anda dapat mensimulasikan scan kartu dan menjalankan perintah khusus.
+Agar input ketikan Anda dapat dikirimkan dengan benar dan tulisan Anda terlihat di layar, kami merekomendasikan penggunaan **PuTTY** dengan konfigurasi berikut:
 
-### A. Simulasi Scan Kartu RFID
+### A. Pengaturan Konfigurasi PuTTY (Paling Nyaman)
+1. **Connection Type**: Pilih **`Serial`**.
+2. **Serial Line**: Isi dengan **`COM6`** (sesuaikan dengan port ESP32 Anda).
+3. **Speed (Baudrate)**: Isi dengan **`115200`**.
+4. **Flow Control** (berada di menu `Connection` -> `Serial`): Ubah dari `XON/XOFF` menjadi **`None`**.
+5. **Local Echo & Line Newline** (berada di menu `Terminal`):
+   - Centang **`Implicit CR in every LF`** (supaya baris teks tidak bergeser miring ke kanan).
+   - Pada bagian **Local echo**, pilih **`Force on`** (supaya tulisan yang Anda ketik terlihat di layar).
+   - Pada bagian **Local line editing**, pilih **`Force on`**.
+6. Klik **`Open`** untuk masuk ke terminal. Tekan tombol fisik **`RST/EN`** di ESP32 satu kali untuk melihat proses boot.
+
+---
+
+### B. Simulasi Scan Kartu RFID
 1. Ketik UID Kartu yang ingin disimulasikan (misal: `AABBCCDD`), lalu tekan **Enter**.
 2. Serial Monitor akan merespon dengan nama user (jika terdaftar) dan bertanya:
    `Masuk pintu mana? (1-4):`
