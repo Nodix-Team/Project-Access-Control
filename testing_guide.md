@@ -32,7 +32,7 @@ Dokumen ini berisi panduan langkah-demi-langkah beserta format payload JSON yang
 
 ---
 
-### B. Update Data User (`access/users/update`)
+### C. Update Data User (`access/users/update`)
 * **Topic**: `access/users/update`
 * **Format**: JSON (Raw)
 * **Payload**:
@@ -48,7 +48,7 @@ Dokumen ini berisi panduan langkah-demi-langkah beserta format payload JSON yang
 
 ---
 
-### C. Hapus User (`access/users/delete`)
+### D. Hapus User (`access/users/delete`)
 * **Topic**: `access/users/delete`
 * **Format**: JSON (Raw)
 * **Payload**:
@@ -61,7 +61,7 @@ Dokumen ini berisi panduan langkah-demi-langkah beserta format payload JSON yang
 
 ---
 
-### D. Bulk Sync / Menambah Banyak User Sekaligus (`access/users/sync`)
+### E. Bulk Sync / Menambah Banyak User Sekaligus (`access/users/sync`)
 * **Topic**: `access/users/sync`
 * **Format**: JSON (Raw)
 * **Payload** (Bisa diisi lebih dari 2 user, cukup tambahkan objek baru di dalam array `[...]`):
@@ -103,7 +103,7 @@ Agar input ketikan Anda dapat dikirimkan dengan benar dan tulisan Anda terlihat 
 
 ---
 
-### B. Perintah Khusus (Ketik langsung di Serial Monitor)
+### C. Perintah Khusus (Ketik langsung di Serial Monitor)
 
 * **`LIST`**
   Menampilkan semua user terdaftar beserta UID, Nomor Kartu, Nama, dan Pintu yang dapat mereka akses.
