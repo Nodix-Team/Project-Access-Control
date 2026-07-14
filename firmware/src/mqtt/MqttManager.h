@@ -25,7 +25,7 @@
 // ─── Interval ────────────────────────────────────────────────
 #define MQTT_RECONNECT_INTERVAL_MS  5000
 #define MQTT_STATUS_INTERVAL_MS     30000
-#define MQTT_BUFFER_SIZE            4096   // Untuk payload sync besar
+#define MQTT_BUFFER_SIZE            8192   // Untuk payload sync besar (menampung hingga ~120 user)
 
 // ============================================================
 //  Class MqttManager
