@@ -23,10 +23,9 @@
 #include "../storage/UserStorage.h"
 #include "../config/ConfigManager.h"
 
-// Callback type untuk mengirim log ke MQTT
+// Callback type untuk mengirim log ke MQTT (format ringkas v0.2)
 using LogCallback = std::function<void(
-    int uid, const String& kartu, const String& nama,
-    int door, bool granted, const String& doorName
+    const String& kartu, int door, bool granted, const String& resultReason
 )>;
 
 // ============================================================

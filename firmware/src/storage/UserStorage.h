@@ -1,7 +1,7 @@
 // ============================================================
 //  UserStorage.h
 //  Menyimpan dan mengelola data user di LittleFS (users.json)
-//  ESP32 Access Control System — v0.1.0
+//  ESP32 Access Control System — v0.2.0
 // ============================================================
 #pragma once
 
@@ -10,20 +10,18 @@
 #include <vector>
 
 // ============================================================
-//  Struct data user
+//  Struct data user (Ringkas tanpa nama dan UID)
 // ============================================================
 struct User {
-    int    uid;    // Auto-increment, unik per user
-    String kartu;  // UID kartu RFID (string hex, misal "AABBCCDD")
-    String nama;   // Nama user
-    std::vector<int> doors;  // Daftar pintu yang bisa diakses (1-4)
+    String kartu;            // UID kartu RFID (string hex, misal "AABBCCDD")
+    std::vector<int> doors;  // Daftar pintu lokal yang bisa diakses (1-4)
 };
 
 // ============================================================
 //  Class UserStorage
 //  - Load user dari LittleFS saat boot (persisten)
-//  - CRUD operasi dengan auto-save ke LittleFS
-//  - Auto-increment uid
+//  - CRUD operasi dengan auto-save ke LittleFS (Upsert based on kartu)
+//  - Mendukung sinkronisasi atomik dengan RAM staging
 // ============================================================
 class UserStorage {
 public:
@@ -32,35 +30,51 @@ public:
     /**
      * Inisialisasi storage. Harus dipanggil setelah LittleFS.begin().
      * Load semua user dari users.json jika ada.
-     * @return true jika berhasil (termasuk jika file belum ada)
+     * @return true jika berhasil
      */
     bool begin();
 
     /**
-     * Tambah user baru.
-     * uid akan di-auto-increment oleh sistem.
-     * @return true jika berhasil (false jika kartu sudah terdaftar)
-     */
-    bool addUser(const String& kartu, const String& nama, const std::vector<int>& doors);
-
-    /**
-     * Hapus user berdasarkan uid.
-     * @return true jika ditemukan dan berhasil dihapus
-     */
-    bool deleteUser(int uid);
-
-    /**
-     * Update data user berdasarkan uid.
-     * @return true jika ditemukan dan berhasil diupdate
-     */
-    bool updateUser(int uid, const String& kartu, const String& nama, const std::vector<int>& doors);
-
-    /**
-     * Sync semua user dari JSON array string (menggantikan semua data lama).
-     * Digunakan untuk operasi bulk sync dari MQTT.
+     * Set User (Upsert): jika kartu sudah ada, replace doors.
+     * Jika belum ada, tambahkan baru.
      * @return true jika berhasil
      */
-    bool syncUsers(const String& jsonArrayStr);
+    bool setUser(const String& kartu, const std::vector<int>& doors);
+
+    /**
+     * Hapus user berdasarkan nomor kartu.
+     * @return true jika ditemukan dan berhasil dihapus
+     */
+    bool deleteUser(const String& kartu);
+
+    /**
+     * Memulai transaksi sinkronisasi massal (Atomic Sync).
+     * @param syncId ID unik transaksi sinkronisasi dari server
+     * @return true jika berhasil masuk ke mode sync
+     */
+    bool startSync(const String& syncId);
+
+    /**
+     * Tambahkan user ke RAM staging (saat mode sync berjalan).
+     */
+    bool addStagingUser(const String& kartu, const std::vector<int>& doors);
+
+    /**
+     * Akhiri transaksi sinkronisasi massal.
+     * Melakukan validasi count dan swap atomik ke LittleFS jika cocok.
+     * @return true jika sync sukses diterapkan (OK)
+     */
+    bool endSync(const String& syncId, int count);
+
+    /**
+     * Cek apakah status sinkronisasi sedang berjalan.
+     */
+    bool isSyncInProgress() const;
+
+    /**
+     * Ambil sync ID yang sedang aktif berjalan.
+     */
+    String getCurrentSyncId() const;
 
     /**
      * Cari user berdasarkan UID kartu (case-insensitive).
@@ -69,13 +83,7 @@ public:
     User* findByKartu(const String& kartu);
 
     /**
-     * Cari user berdasarkan uid integer.
-     * @return pointer ke User, atau nullptr jika tidak ditemukan
-     */
-    User* findByUid(int uid);
-
-    /**
-     * Jumlah user yang terdaftar.
+     * Jumlah user aktif terdaftar.
      */
     int getUserCount() const;
 
@@ -86,9 +94,12 @@ public:
 
 private:
     std::vector<User> _users;
-    int _nextUid;  // Auto-increment counter
+    
+    // RAM Staging untuk sinkronisasi atomik
+    bool              _syncInProgress;
+    String            _currentSyncId;
+    std::vector<User> _stagingUsers;
 
     bool _loadFromFile();
     bool _saveToFile();
-    void _rebuildNextUid();
 };

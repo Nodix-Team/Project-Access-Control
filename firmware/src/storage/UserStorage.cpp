@@ -1,13 +1,13 @@
 // ============================================================
 //  UserStorage.cpp
-//  ESP32 Access Control System — v0.1.0
+//  ESP32 Access Control System — v0.2.0
 // ============================================================
 #include "UserStorage.h"
 #include <LittleFS.h>
 
 #define USERS_FILE "/users.json"
 
-UserStorage::UserStorage() : _nextUid(1) {}
+UserStorage::UserStorage() : _syncInProgress(false), _currentSyncId("") {}
 
 bool UserStorage::begin() {
     return _loadFromFile();
@@ -16,16 +16,13 @@ bool UserStorage::begin() {
 // ─── Private: Load dari LittleFS ─────────────────────────────
 bool UserStorage::_loadFromFile() {
     _users.clear();
-    _nextUid = 1;
 
     File f = LittleFS.open(USERS_FILE, "r");
     if (!f) {
-        // File belum ada adalah kondisi normal (user pertama kali)
         Serial.println("[UserStorage] users.json belum ada, mulai dari kosong");
         return true;
     }
 
-    // Cek ukuran file
     size_t fileSize = f.size();
     if (fileSize == 0) {
         f.close();
@@ -50,9 +47,7 @@ bool UserStorage::_loadFromFile() {
 
     for (JsonObject obj : arr) {
         User u;
-        u.uid   = obj["uid"]   | 0;
         u.kartu = obj["kartu"] | "";
-        u.nama  = obj["nama"]  | "";
 
         JsonArray doorsArr = obj["doors"].as<JsonArray>();
         for (int d : doorsArr) {
@@ -61,12 +56,11 @@ bool UserStorage::_loadFromFile() {
             }
         }
 
-        if (u.uid > 0 && u.kartu.length() > 0) {
+        if (u.kartu.length() > 0) {
             _users.push_back(u);
         }
     }
 
-    _rebuildNextUid();
     Serial.printf("[UserStorage] %d user berhasil dimuat dari LittleFS\n", (int)_users.size());
     return true;
 }
@@ -84,9 +78,7 @@ bool UserStorage::_saveToFile() {
 
     for (const User& u : _users) {
         JsonObject obj = arr.add<JsonObject>();
-        obj["uid"]   = u.uid;
         obj["kartu"] = u.kartu;
-        obj["nama"]  = u.nama;
 
         JsonArray doorsArr = obj["doors"].to<JsonArray>();
         for (int d : u.doors) {
@@ -107,128 +99,104 @@ bool UserStorage::_saveToFile() {
     return true;
 }
 
-// ─── Private: Rebuild uid counter ────────────────────────────
-void UserStorage::_rebuildNextUid() {
-    _nextUid = 1;
-    for (const User& u : _users) {
-        if (u.uid >= _nextUid) {
-            _nextUid = u.uid + 1;
-        }
+// ─── Public: Set User (Upsert) ────────────────────────────────
+bool UserStorage::setUser(const String& kartu, const std::vector<int>& doors) {
+    User* u = findByKartu(kartu);
+    if (u != nullptr) {
+        u->doors = doors;
+        Serial.printf("[UserStorage] User diupdate → kartu=%s\n", kartu.c_str());
+    } else {
+        User newUser;
+        newUser.kartu = kartu;
+        newUser.doors = doors;
+        _users.push_back(newUser);
+        Serial.printf("[UserStorage] User ditambahkan → kartu=%s\n", kartu.c_str());
     }
-}
-
-// ─── Public: Add User ─────────────────────────────────────────
-bool UserStorage::addUser(const String& kartu, const String& nama, const std::vector<int>& doors) {
-    // Cek duplikasi kartu
-    if (findByKartu(kartu) != nullptr) {
-        Serial.printf("[UserStorage] ERROR: Kartu '%s' sudah terdaftar\n", kartu.c_str());
-        return false;
-    }
-
-    User u;
-    u.uid   = _nextUid++;
-    u.kartu = kartu;
-    u.nama  = nama;
-    u.doors = doors;
-
-    _users.push_back(u);
-    Serial.printf("[UserStorage] User ditambahkan → uid=%d | nama=%s | kartu=%s | pintu=[",
-                  u.uid, u.nama.c_str(), u.kartu.c_str());
-    for (int i = 0; i < (int)u.doors.size(); i++) {
-        Serial.print(u.doors[i]);
-        if (i < (int)u.doors.size() - 1) Serial.print(",");
-    }
-    Serial.println("]");
 
     return _saveToFile();
 }
 
 // ─── Public: Delete User ──────────────────────────────────────
-bool UserStorage::deleteUser(int uid) {
+bool UserStorage::deleteUser(const String& kartu) {
     for (auto it = _users.begin(); it != _users.end(); ++it) {
-        if (it->uid == uid) {
-            Serial.printf("[UserStorage] User dihapus → uid=%d | nama=%s\n",
-                          uid, it->nama.c_str());
+        if (it->kartu.equalsIgnoreCase(kartu)) {
+            Serial.printf("[UserStorage] User dihapus → kartu=%s\n", it->kartu.c_str());
             _users.erase(it);
             return _saveToFile();
         }
     }
-    Serial.printf("[UserStorage] ERROR: User uid=%d tidak ditemukan\n", uid);
+    Serial.printf("[UserStorage] ERROR: User kartu=%s tidak ditemukan\n", kartu.c_str());
     return false;
 }
 
-// ─── Public: Update User ─────────────────────────────────────
-bool UserStorage::updateUser(int uid, const String& kartu, const String& nama, const std::vector<int>& doors) {
-    User* u = findByUid(uid);
-    if (!u) {
-        Serial.printf("[UserStorage] ERROR: User uid=%d tidak ditemukan\n", uid);
+// ─── Public: Sync Transaction ─────────────────────────────────
+bool UserStorage::startSync(const String& syncId) {
+    _syncInProgress = true;
+    _currentSyncId = syncId;
+    _stagingUsers.clear();
+    Serial.printf("[UserStorage] Memulai sync dengan ID: %s\n", syncId.c_str());
+    return true;
+}
+
+bool UserStorage::addStagingUser(const String& kartu, const std::vector<int>& doors) {
+    if (!_syncInProgress) return false;
+
+    // Cek duplikasi di RAM staging, jika ada lakukan update
+    bool found = false;
+    for (auto& u : _stagingUsers) {
+        if (u.kartu.equalsIgnoreCase(kartu)) {
+            u.doors = doors;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        User u;
+        u.kartu = kartu;
+        u.doors = doors;
+        _stagingUsers.push_back(u);
+    }
+    return true;
+}
+
+bool UserStorage::endSync(const String& syncId, int count) {
+    if (!_syncInProgress || _currentSyncId != syncId) {
+        Serial.println("[UserStorage] Sync End ditolak: ID tidak sesuai atau sync tidak aktif");
+        _syncInProgress = false;
+        _stagingUsers.clear();
         return false;
     }
 
-    u->kartu = kartu;
-    u->nama  = nama;
-    u->doors = doors;
+    if ((int)_stagingUsers.size() != count) {
+        Serial.printf("[UserStorage] Sync GAGAL (Mismatch): Diterima %d, Ekspektasi %d\n",
+                      (int)_stagingUsers.size(), count);
+        _syncInProgress = false;
+        _stagingUsers.clear();
+        return false;
+    }
 
-    Serial.printf("[UserStorage] User diupdate → uid=%d | nama=%s\n", uid, nama.c_str());
+    // Atomic Swap
+    _users = _stagingUsers;
+    _syncInProgress = false;
+    _stagingUsers.clear();
+    
+    Serial.printf("[UserStorage] Sync SUKSES (Atomic Swap): %d user disimpan\n", (int)_users.size());
     return _saveToFile();
 }
 
-// ─── Public: Sync All Users ───────────────────────────────────
-bool UserStorage::syncUsers(const String& jsonArrayStr) {
-    JsonDocument doc;
-    DeserializationError err = deserializeJson(doc, jsonArrayStr);
-    if (err) {
-        Serial.printf("[UserStorage] Sync parse error: %s\n", err.c_str());
-        return false;
-    }
+bool UserStorage::isSyncInProgress() const {
+    return _syncInProgress;
+}
 
-    JsonArray arr = doc.as<JsonArray>();
-    if (arr.isNull()) {
-        Serial.println("[UserStorage] Sync: format bukan array JSON");
-        return false;
-    }
-
-    _users.clear();
-
-    for (JsonObject obj : arr) {
-        User u;
-        u.uid   = obj["uid"]   | 0;
-        u.kartu = obj["kartu"] | "";
-        u.nama  = obj["nama"]  | "";
-
-        JsonArray doorsArr = obj["doors"].as<JsonArray>();
-        for (int d : doorsArr) {
-            if (d >= 1 && d <= 4) {
-                u.doors.push_back(d);
-            }
-        }
-
-        if (u.uid > 0 && u.kartu.length() > 0) {
-            _users.push_back(u);
-        }
-    }
-
-    _rebuildNextUid();
-    Serial.printf("[UserStorage] Sync selesai: %d user\n", (int)_users.size());
-    return _saveToFile();
+String UserStorage::getCurrentSyncId() const {
+    return _currentSyncId;
 }
 
 // ─── Public: Find ─────────────────────────────────────────────
 User* UserStorage::findByKartu(const String& kartu) {
     for (User& u : _users) {
-        // Case-insensitive comparison
-        String a = kartu;
-        String b = u.kartu;
-        a.toUpperCase();
-        b.toUpperCase();
-        if (a == b) return &u;
-    }
-    return nullptr;
-}
-
-User* UserStorage::findByUid(int uid) {
-    for (User& u : _users) {
-        if (u.uid == uid) return &u;
+        if (u.kartu.equalsIgnoreCase(kartu)) return &u;
     }
     return nullptr;
 }
@@ -245,12 +213,11 @@ void UserStorage::printAllUsers() const {
         Serial.println("│  (belum ada user terdaftar)               │");
     } else {
         for (const User& u : _users) {
-            Serial.printf("│ uid=%-3d | kartu=%-10s | nama=%-15s│\n",
-                          u.uid, u.kartu.c_str(), u.nama.c_str());
+            Serial.printf("│ kartu=%-35s │\n", u.kartu.c_str());
             Serial.print("│         pintu: [");
-            for (int i = 0; i < (int)u.doors.size(); i++) {
+            for (size_t i = 0; i < u.doors.size(); i++) {
                 Serial.print(u.doors[i]);
-                if (i < (int)u.doors.size() - 1) Serial.print(",");
+                if (i < u.doors.size() - 1) Serial.print(",");
             }
             Serial.println("]");
         }

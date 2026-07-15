@@ -1,0 +1,220 @@
+// ============================================================
+//  WebConfigServer.cpp
+//  ESP32 Access Control System — v0.2.0
+// ============================================================
+#include "WebConfigServer.h"
+#include <LittleFS.h>
+
+WebConfigServer::WebConfigServer(ConfigManager& config, UserStorage& storage)
+    : _config(config),
+      _storage(storage),
+      _server(8081)
+{}
+
+void WebConfigServer::begin() {
+    _server.on("/", HTTP_GET, std::bind(&WebConfigServer::_handleRoot, this));
+    _server.on("/save", HTTP_POST, std::bind(&WebConfigServer::_handleSave, this));
+    _server.onNotFound(std::bind(&WebConfigServer::_handleNotFound, this));
+    
+    _server.begin();
+    Serial.println("[WebServer] Local Web Config Server started on port 8081");
+}
+
+void WebConfigServer::handleClient() {
+    _server.handleClient();
+}
+
+void WebConfigServer::_handleRoot() {
+    _server.send(200, "text/html", _generateHtml());
+}
+
+void WebConfigServer::_handleSave() {
+    SystemConfig& cfg = _config.getConfig();
+    bool dangerousChanged = false;
+
+    // Baca input form
+    if (_server.hasArg("wifi_ssid") && _server.arg("wifi_ssid") != cfg.wifi_ssid) {
+        cfg.wifi_ssid = _server.arg("wifi_ssid");
+        dangerousChanged = true;
+    }
+    
+    // WiFi Password hanya diupdate jika diinputkan (tidak kosong)
+    if (_server.hasArg("wifi_password") && _server.arg("wifi_password").length() > 0) {
+        cfg.wifi_password = _server.arg("wifi_password");
+        dangerousChanged = true;
+    }
+
+    if (_server.hasArg("mqtt_broker") && _server.arg("mqtt_broker") != cfg.mqtt_broker) {
+        cfg.mqtt_broker = _server.arg("mqtt_broker");
+        dangerousChanged = true;
+    }
+
+    if (_server.hasArg("mqtt_port") && _server.arg("mqtt_port").toInt() != cfg.mqtt_port) {
+        cfg.mqtt_port = _server.arg("mqtt_port").toInt();
+        dangerousChanged = true;
+    }
+
+    if (_server.hasArg("mqtt_user") && _server.arg("mqtt_user") != cfg.mqtt_user) {
+        cfg.mqtt_user = _server.arg("mqtt_user");
+        dangerousChanged = true;
+    }
+
+    if (_server.hasArg("mqtt_password") && _server.arg("mqtt_password").length() > 0) {
+        cfg.mqtt_password = _server.arg("mqtt_password");
+        dangerousChanged = true;
+    }
+
+    if (_server.hasArg("heartbeat_s")) {
+        cfg.heartbeat_s = _server.arg("heartbeat_s").toInt();
+    }
+
+    if (_server.hasArg("total_doors")) {
+        cfg.total_doors = _server.arg("total_doors").toInt();
+    }
+
+    if (_server.hasArg("ip_mode") && _server.arg("ip_mode") != cfg.ip_mode) {
+        cfg.ip_mode = _server.arg("ip_mode");
+        dangerousChanged = true;
+    }
+
+    if (_server.hasArg("ip_address") && _server.arg("ip_address") != cfg.ip_address) {
+        cfg.ip_address = _server.arg("ip_address");
+        dangerousChanged = true;
+    }
+
+    if (_server.hasArg("subnet_mask") && _server.arg("subnet_mask") != cfg.subnet_mask) {
+        cfg.subnet_mask = _server.arg("subnet_mask");
+        dangerousChanged = true;
+    }
+
+    if (_server.hasArg("gateway") && _server.arg("gateway") != cfg.gateway) {
+        cfg.gateway = _server.arg("gateway");
+        dangerousChanged = true;
+    }
+
+    // Kirim response HTML pemberitahuan reboot ke browser
+    String rebootHtml = "<html><head><meta http-equiv='refresh' content='10;url=/'></head>"
+                        "<body style='font-family:sans-serif; background:#0b0f19; color:#fff; text-align:center; padding-top:100px;'>"
+                        "<h2>Konfigurasi Disimpan!</h2>"
+                        "<p>ESP32 sedang melakukan reboot untuk mencoba koneksi baru.</p>"
+                        "<p>Halaman ini akan me-load ulang secara otomatis dalam 10 detik...</p>"
+                        "</body></html>";
+    _server.send(200, "text/html", rebootHtml);
+    delay(1000);
+
+    if (dangerousChanged) {
+        Serial.println("[WebServer] Dangerous settings changed! Menyiapkan rollback & reboot...");
+        _config.saveLastKnownGood();
+        _config.setPending(true); // Tandai status pending untuk dibuktikan saat boot
+    } else {
+        _config.saveConfig();
+    }
+
+    ESP.restart();
+}
+
+void WebConfigServer::_handleNotFound() {
+    _server.send(404, "text/plain", "404 Not Found");
+}
+
+String WebConfigServer::_generateHtml() {
+    const SystemConfig& cfg = _config.getConfig();
+    
+    // Status alat
+    String wifiStatus = (WiFi.status() == WL_CONNECTED) ? "TERHUBUNG" : "TERPUTUS";
+    String ipAddress = WiFi.localIP().toString();
+    int rssi = WiFi.RSSI();
+    int userCount = _storage.getUserCount();
+    unsigned long freeHeap = ESP.getFreeHeap();
+    unsigned long uptimeMin = millis() / 60000;
+
+    String html;
+    html.reserve(4096);
+
+    html += "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
+    html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+    html += "<title>ESP32 Access Control Configuration</title>";
+    html += "<link href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap' rel='stylesheet'>";
+    html += "<style>";
+    html += "body { font-family: 'Inter', sans-serif; background: #0b0f19; color: #f3f4f6; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }";
+    html += ".card { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5); box-sizing: border-box; }";
+    html += "h1 { margin-top: 0; font-size: 24px; font-weight: 700; background: linear-gradient(135deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin-bottom: 5px; }";
+    html += ".subtitle { font-size: 12px; color: #9ca3af; text-align: center; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1.5px; }";
+    html += ".status-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 14px; }";
+    html += ".status-val { font-weight: 600; color: #10b981; }";
+    html += ".status-val.error { color: #ef4444; }";
+    html += ".section-title { font-size: 15px; font-weight: 600; color: #3b82f6; margin: 25px 0 12px 0; border-left: 3px solid #3b82f6; padding-left: 8px; text-transform: uppercase; letter-spacing: 1px; }";
+    html += "label { display: block; font-size: 11px; color: #9ca3af; margin-bottom: 5px; text-transform: uppercase; font-weight: 600; }";
+    html += "input, select { width: 100%; padding: 12px; background: #111827; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; font-size: 14px; margin-bottom: 15px; box-sizing: border-box; transition: border-color 0.2s; }";
+    html += "input:focus, select:focus { outline: none; border-color: #3b82f6; }";
+    html += ".btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; border-radius: 8px; color: #fff; font-weight: 600; font-size: 15px; cursor: pointer; transition: opacity 0.2s; margin-top: 15px; }";
+    html += ".btn:hover { opacity: 0.9; }";
+    html += ".alert-box { background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; padding: 12px; margin-bottom: 20px; font-size: 13px; color: #60a5fa; line-height: 1.4; text-align: center; }";
+    html += "</style>";
+    html += "</head><body>";
+    
+    html += "<div class='card'>";
+    html += "<h1>" + cfg.device_id + "</h1>";
+    html += "<div class='subtitle'>Local Configuration Portal</div>";
+    
+    // Panel Status
+    html += "<div class='section-title'>System Status</div>";
+    html += "<div class='status-row'><span>WiFi Status</span><span class='status-val " + String(WiFi.status() == WL_CONNECTED ? "" : "error") + "'>" + wifiStatus + "</span></div>";
+    html += "<div class='status-row'><span>IP Address</span><span class='status-val'>" + ipAddress + "</span></div>";
+    html += "<div class='status-row'><span>RSSI (Sinyal)</span><span class='status-val'>" + String(rssi) + " dBm</span></div>";
+    html += "<div class='status-row'><span>Database Users</span><span class='status-val'>" + String(userCount) + " Users</span></div>";
+    html += "<div class='status-row'><span>Free Memory</span><span class='status-val'>" + String(freeHeap / 1024) + " KB</span></div>";
+    html += "<div class='status-row'><span>Uptime</span><span class='status-val'>" + String(uptimeMin) + " Menit</span></div>";
+    
+    // Alert Box
+    html += "<div class='section-title'>Settings Form</div>";
+    html += "<div class='alert-box'>Peringatan: Mengubah parameter WiFi atau MQTT akan memicu tes koneksi 60 detik. Jika gagal, setting akan di-rollback ke versi sebelumnya.</div>";
+    
+    // Form Config
+    html += "<form action='/save' method='POST'>";
+    
+    // SSID & WiFi Pass
+    html += "<label>WiFi SSID</label>";
+    html += "<input type='text' name='wifi_ssid' value='" + cfg.wifi_ssid + "' required>";
+    html += "<label>WiFi Password (kosongkan jika tidak diganti)</label>";
+    html += "<input type='password' name='wifi_password' placeholder='********'>";
+    
+    // MQTT Broker & Port
+    html += "<label>MQTT Broker Host</label>";
+    html += "<input type='text' name='mqtt_broker' value='" + cfg.mqtt_broker + "' required>";
+    html += "<label>MQTT Port</label>";
+    html += "<input type='number' name='mqtt_port' value='" + String(cfg.mqtt_port) + "' required>";
+    
+    // MQTT Auth
+    html += "<label>MQTT User</label>";
+    html += "<input type='text' name='mqtt_user' value='" + cfg.mqtt_user + "'>";
+    html += "<label>MQTT Password (kosongkan jika tidak diganti)</label>";
+    html += "<input type='password' name='mqtt_password' placeholder='********'>";
+    
+    // General settings
+    html += "<label>Heartbeat (Detik)</label>";
+    html += "<input type='number' name='heartbeat_s' value='" + String(cfg.heartbeat_s) + "' required>";
+    html += "<label>Total Pintu Lokal (1-4)</label>";
+    html += "<input type='number' name='total_doors' min='1' max='4' value='" + String(cfg.total_doors) + "' required>";
+    
+    // IP Address Mode Configuration
+    html += "<label>IP Address Mode</label>";
+    html += "<select name='ip_mode'>";
+    html += "<option value='dhcp'" + String(cfg.ip_mode == "dhcp" ? " selected" : "") + ">DHCP (Otomatis)</option>";
+    html += "<option value='static'" + String(cfg.ip_mode == "static" ? " selected" : "") + ">Static IP</option>";
+    html += "</select>";
+    
+    html += "<label>Static IP Address</label>";
+    html += "<input type='text' name='ip_address' value='" + cfg.ip_address + "' placeholder='e.g., 192.168.1.99'>";
+    html += "<label>Subnet Mask</label>";
+    html += "<input type='text' name='subnet_mask' value='" + cfg.subnet_mask + "' placeholder='e.g., 255.255.255.0'>";
+    html += "<label>Gateway Address</label>";
+    html += "<input type='text' name='gateway' value='" + cfg.gateway + "' placeholder='e.g., 192.168.1.1'>";
+    
+    html += "<button type='submit' class='btn'>Simpan & Reboot Alat</button>";
+    html += "</form>";
+    
+    html += "</div>";
+    html += "</body></html>";
+    return html;
+}
