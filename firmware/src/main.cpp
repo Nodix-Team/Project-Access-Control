@@ -12,6 +12,7 @@
 #include "storage/UserStorage.h"
 #include "storage/OfflineLogBuffer.h"
 #include "web/WebConfigServer.h"
+#include <WiFi.h>
 
 // ============================================================
 //  ★ KONFIGURASI DEFAULT SISTEM — Disimpan ke LittleFS jika kosong ★
@@ -84,6 +85,7 @@ void setup() {
   serialSim.begin();
 
   // 6. Jalankan Local Web Config Server
+  WiFi.mode(WIFI_STA); // Inisialisasi TCP/IP stack agar WebServer tidak crash
   webConfigServer.begin();
 
   // 7. Pengujian Koneksi & Mekanisme Rollback (Anti-Brick)
