@@ -26,7 +26,10 @@ void WebConfigServer::handleClient() {
 
 void WebConfigServer::_handleRoot() {
     if (!_server.authenticate("admin", "p@ssw0rd")) {
-        _server.requestAuthentication(BASIC_AUTH, "ESP32 Config");
+        _server.sendHeader("WWW-Authenticate", "Basic realm=\"ESP32 Config\"");
+        _server.send(401, "text/html", "<html><head><title>Unauthorized</title></head>"
+                                       "<body style='background:#080b11;color:#fff;text-align:center;padding-top:100px;font-family:sans-serif;'>"
+                                       "<h2>401 Unauthorized</h2><p>Login required to access this portal.</p></body></html>");
         return;
     }
     _server.send(200, "text/html", _generateHtml());
@@ -34,7 +37,10 @@ void WebConfigServer::_handleRoot() {
 
 void WebConfigServer::_handleSave() {
     if (!_server.authenticate("admin", "p@ssw0rd")) {
-        _server.requestAuthentication(BASIC_AUTH, "ESP32 Config");
+        _server.sendHeader("WWW-Authenticate", "Basic realm=\"ESP32 Config\"");
+        _server.send(401, "text/html", "<html><head><title>Unauthorized</title></head>"
+                                       "<body style='background:#080b11;color:#fff;text-align:center;padding-top:100px;font-family:sans-serif;'>"
+                                       "<h2>401 Unauthorized</h2><p>Login required to access this portal.</p></body></html>");
         return;
     }
     SystemConfig& cfg = _config.getConfig();
