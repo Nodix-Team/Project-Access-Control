@@ -5,7 +5,7 @@ import sys
 import os
 import paho.mqtt.client as mqtt
 
-MQTT_BROKER = "10.212.228.153"
+MQTT_BROKER = "127.0.0.1"
 MQTT_PORT = 1883
 
 status_received = []
@@ -30,10 +30,11 @@ def on_message(client, userdata, msg):
         print(f"[TESTER] Error parsing JSON: {e}")
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+client.username_pw_set("backend", "backend123")
 client.on_connect = on_connect
 client.on_message = on_message
 
-print(f"[TESTER] Connecting to broker {MQTT_BROKER}...")
+print(f"[TESTER] Connecting to broker {MQTT_BROKER} with user 'backend'...")
 try:
     client.connect(MQTT_BROKER, MQTT_PORT, 60)
 except Exception as e:
