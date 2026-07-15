@@ -1,0 +1,43 @@
+# Loader konfigurasi dari file .env menggunakan pydantic-settings
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    # --- Database MySQL ---
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 3306
+    DB_USER: str = "access_control"
+    DB_PASSWORD: str = ""
+    DB_NAME: str = "access_control"
+
+    # --- JWT Auth ---
+    JWT_SECRET_KEY: str = ""
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 60
+
+    # --- MQTT / EMQX Broker ---
+    MQTT_HOST: str = "localhost"
+    MQTT_PORT: int = 1883
+    MQTT_USERNAME: str = "backend"
+    MQTT_PASSWORD: str = ""
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    @property
+    def database_url(self) -> str:
+        # Format DSN untuk SQLAlchemy + driver PyMySQL
+        return (
+            f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}"
+            f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    # Cache instance Settings agar .env hanya dibaca sekali
+    return Settings()
+
+
+settings = get_settings()
