@@ -333,7 +333,7 @@
 | 1. Database + EMQX | ✅ Lead | Review |
 | 2. Backend Core API | Review | ✅ Lead |
 | 3. Backend MQTT + Sync | Review | ✅ Lead |
-| 4. Firmware v0.2 | ✅ Lead | — |
+| 4. Firmware v0.2 | ✅ Lead | Review |
 | 5. Frontend React | ✅ Berdua | ✅ Berdua |
 | 6. Integrasi & Rilis | ✅ Berdua | ✅ Berdua |
 
