@@ -121,3 +121,24 @@ Mekanisme ini menjaga agar log tap kartu tidak hilang saat jaringan internet put
    - ESP32 akan langsung membaca file `/logs/offline_buffer.csv`.
    - Mengirim semua log tertunda ke topic `access/{device_id}/logs` dengan payload format CSV: `kartu,door_number,status,uptime_ms,REPLAYED`.
    - Setelah sukses terkirim, file buffer offline dibersihkan otomatis.
+
+---
+
+## 🤖 BAGIAN 5: PENGUJIAN OTOMATIS & SIMULATOR MULTI-CONTROLLER (v0.2)
+
+Untuk mempermudah pengembangan Backend tanpa hardware fisik, disediakan dua script Python di folder `tools/`:
+
+### A. Menjalankan Simulator ESP32
+Script ini akan berpura-pura menjadi 2 buah ESP32 (Controller A dan B) secara bersamaan (multi-threading).
+1. Buka terminal di folder project.
+2. Jalankan: `python tools/simulate_esp32.py`
+3. Simulator akan login ke MQTT broker (IP localhost `127.0.0.1`) menggunakan kredensial:
+   - **Controller A**: `ctrl-A` / `ctrlA123` (`esp32-ac-001`)
+   - **Controller B**: `ctrl-B` / `ctrlB123` (`esp32-ac-002`)
+4. Simulator akan mengirim *heartbeat* otomatis setiap 10 detik dan siap menerima perintah *sync* dari backend.
+
+### B. Menjalankan Automated Test
+Script ini akan bertindak sebagai Backend untuk mengirimkan perintah add/update/delete/sync dan membaca heartbeat.
+1. Pastikan EMQX sudah berjalan dan autentikasi aktif (lihat Sprint 1 di Roadmap).
+2. Jalankan: `python tools/test_mqtt.py`
+3. Script akan menggunakan user `backend` / `backend123` dan mengirimkan serangkaian aksi. Jika simulator sedang berjalan, Anda akan melihat simulator bereaksi terhadap perintah tersebut.
