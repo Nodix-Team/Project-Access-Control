@@ -26,7 +26,7 @@ void WebConfigServer::handleClient() {
 
 void WebConfigServer::_handleRoot() {
     if (!_server.authenticate("admin", "p@ssw0rd")) {
-        _server.requestAuthentication();
+        _server.requestAuthentication(BASIC_AUTH, "ESP32 Config");
         return;
     }
     _server.send(200, "text/html", _generateHtml());
@@ -34,7 +34,7 @@ void WebConfigServer::_handleRoot() {
 
 void WebConfigServer::_handleSave() {
     if (!_server.authenticate("admin", "p@ssw0rd")) {
-        _server.requestAuthentication();
+        _server.requestAuthentication(BASIC_AUTH, "ESP32 Config");
         return;
     }
     SystemConfig& cfg = _config.getConfig();
