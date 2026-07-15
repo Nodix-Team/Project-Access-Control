@@ -326,15 +326,15 @@
 
 ---
 
-## Pembagian Kerja (Saran)
+## Pembagian Kerja
 
 | Sprint | @danskiv | @rizzalaulia |
 |--------|----------|--------------|
 | 1. Database + EMQX | ✅ Lead | Review |
-| 2. Backend Core API | ✅ Lead | Bisa bantu routes |
-| 3. Backend MQTT + Sync | ✅ Lead | Review |
+| 2. Backend Core API | Review | ✅ Lead |
+| 3. Backend MQTT + Sync | Review | ✅ Lead |
 | 4. Firmware v0.2 | ✅ Lead | — |
-| 5. Frontend React | Review | ✅ Lead |
+| 5. Frontend React | ✅ Berdua | ✅ Berdua |
 | 6. Integrasi & Rilis | ✅ Berdua | ✅ Berdua |
 
 ---
