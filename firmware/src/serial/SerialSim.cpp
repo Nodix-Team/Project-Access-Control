@@ -43,33 +43,50 @@ void SerialSim::setLogCallback(LogCallback cb) {
 
 // ─── Private: Route input berdasarkan state ──────────────────
 void SerialSim::_processLine(const String& line) {
+    String upper = line;
+    upper.toUpperCase();
+    upper.trim();
+
+    // ─ Cek command global yang bisa dieksekusi kapan saja ──────
+    if (upper == "LIST") {
+        _storage.printAllUsers();
+        if (_state == WAIT_DOOR) {
+            Serial.println("[INFO] Proses scan kartu dibatalkan.");
+            _state = WAIT_CARD;
+        }
+        _printCardPrompt();
+        return;
+    }
+    if (upper == "STATUS") {
+        _printStatus();
+        if (_state == WAIT_DOOR) {
+            Serial.println("[INFO] Proses scan kartu dibatalkan.");
+            _state = WAIT_CARD;
+        }
+        _printCardPrompt();
+        return;
+    }
+    if (upper == "RESTART") {
+        Serial.println("[SYS] Restart dalam 2 detik...");
+        delay(2000);
+        ESP.restart();
+        return;
+    }
+    
+    // Command pembatalan saat sedang menunggu pintu
+    if (_state == WAIT_DOOR && (upper == "CANCEL" || upper == "EXIT" || upper == "BACK")) {
+        Serial.println("[INFO] Proses scan kartu dibatalkan.");
+        _state = WAIT_CARD;
+        _printCardPrompt();
+        return;
+    }
+
     if (_state == WAIT_CARD) {
-        String upper = line;
-        upper.toUpperCase();
-
-        if (upper == "LIST") {
-            _storage.printAllUsers();
-            _printCardPrompt();
-            return;
-        }
-        if (upper == "STATUS") {
-            _printStatus();
-            _printCardPrompt();
-            return;
-        }
-        if (upper == "RESTART") {
-            Serial.println("[SYS] Restart dalam 2 detik...");
-            delay(2000);
-            ESP.restart();
-            return;
-        }
-
         _processCard(line);
-
     } else if (_state == WAIT_DOOR) {
         int door = line.toInt();
         if (door < 1 || door > 4) {
-            Serial.println("[!] Input tidak valid. Masukkan angka 1 sampai 4.");
+            Serial.println("[!] Input tidak valid. Masukkan angka 1 sampai 4, atau ketik CANCEL untuk membatalkan.");
             _printDoorPrompt();
             return;
         }
