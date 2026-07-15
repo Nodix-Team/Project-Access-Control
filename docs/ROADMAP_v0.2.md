@@ -27,16 +27,16 @@
 
 ### Checklist
 
-- [ ] Buat database `access_control` di MySQL
-- [ ] Jalankan `database/schema.sql` — 8 tabel
-- [ ] Jalankan `database/seed.sql` — data dummy
-- [ ] Verifikasi relasi antar tabel via MySQL Workbench
-- [ ] Setup auth EMQX (username/password per controller):
-  - [ ] Tambah user `backend` / `{random_pass}`
-  - [ ] Tambah user `ctrl-A` / `{random_pass}`
-  - [ ] Tambah user `ctrl-B` / `{random_pass}` (opsional, jika punya 2 ESP32)
-- [ ] Verifikasi koneksi MQTT **dengan auth** dari laptop
-- [ ] Catat semua kredensial di `.env.example` (tanpa value asli)
+- [x] Buat database `access_control` di MySQL
+- [x] Jalankan `database/schema.sql` — 8 tabel
+- [x] Jalankan `database/seed.sql` — data dummy
+- [x] Verifikasi relasi antar tabel via MySQL Workbench
+- [x] Setup auth EMQX (username/password per controller):
+  - [x] Tambah user `backend` / `{random_pass}`
+  - [x] Tambah user `ctrl-A` / `{random_pass}`
+  - [x] Tambah user `ctrl-B` / `{random_pass}` (opsional, jika punya 2 ESP32)
+- [x] Verifikasi koneksi MQTT **dengan auth** dari laptop
+- [x] Catat semua kredensial di `.env.example` (tanpa value asli)
 
 ### Deliverable
 ✅ Database MySQL berisi 8 tabel + data dummy
@@ -179,43 +179,43 @@
 ### Checklist
 
 **MQTT Protocol Update:**
-- [ ] Ganti format pesan dari JSON → CSV
-- [ ] Ganti topic dari `access/users/add` → `access/{device_id}/users/set`
-- [ ] Ganti topic `access/users/delete` → pakai nomor kartu (bukan uid)
-- [ ] Tambah QoS 1 untuk semua topic kritis
-- [ ] Tambah MQTT auth (username/password) saat connect
-- [ ] Implementasi LWT (`access/{device_id}/status/lwt`)
-- [ ] Update heartbeat payload ke format CSV: `{total_doors},{user_count},{free_heap},{uptime_ms}`
+- [x] Ganti format pesan dari JSON → CSV
+- [x] Ganti topic dari `access/users/add` → `access/{device_id}/users/set`
+- [x] Ganti topic `access/users/delete` → pakai nomor kartu (bukan uid)
+- [x] Tambah QoS 1 untuk semua topic kritis
+- [x] Tambah MQTT auth (username/password) saat connect
+- [x] Implementasi LWT (`access/{device_id}/status/lwt`)
+- [x] Update heartbeat payload ke format CSV: `{total_doors},{user_count},{free_heap},{uptime_ms}`
 
 **Sync Atomik:**
-- [ ] Handle `sync/start` → buat daftar baru di RAM (jangan hapus yang lama)
-- [ ] Handle `users/set` saat mode sync → tampung di RAM
-- [ ] Handle `sync/end` → verifikasi count:
-  - [ ] Cocok → atomic swap ke LittleFS, publish `sync/result OK`
-  - [ ] Tidak cocok → buang RAM, pertahankan lama, publish `sync/result MISMATCH`
+- [x] Handle `sync/start` → buat daftar baru di RAM (jangan hapus yang lama)
+- [x] Handle `users/set` saat mode sync → tampung di RAM
+- [x] Handle `sync/end` → verifikasi count:
+  - [x] Cocok → atomic swap ke LittleFS, publish `sync/result OK`
+  - [x] Tidak cocok → buang RAM, pertahankan lama, publish `sync/result MISMATCH`
 
 **`users/set` (Upsert):**
-- [ ] Kartu sudah ada → replace daftar pintu
-- [ ] Kartu belum ada → tambah baru
-- [ ] Simpan di LittleFS (hanya `kartu` + `doors`, tanpa nama)
+- [x] Kartu sudah ada → replace daftar pintu
+- [x] Kartu belum ada → tambah baru
+- [x] Simpan di LittleFS (hanya `kartu` + `doors`, tanpa nama)
 
 **Config Management:**
-- [ ] Handle `config/set` via MQTT
-- [ ] Handle `config/request` → respond `config/response` (tanpa `wifi_pass`!)
-- [ ] **Config rollback**: simpan `config_last_known_good.json` sebelum terapkan config berbahaya
-- [ ] Setelah reboot, jika gagal connect MQTT dalam 60 detik → restore config lama
+- [x] Handle `config/set` via MQTT
+- [x] Handle `config/request` → respond `config/response` (tanpa `wifi_pass`!)
+- [x] **Config rollback**: simpan `config_last_known_good.json` sebelum terapkan config berbahaya
+- [x] Setelah reboot, jika gagal connect MQTT dalam 60 detik → restore config lama
 
 **Web Server Lokal:**
-- [ ] Jalankan web server di port `8081` (atau configurable)
-- [ ] Halaman HTML: set IP (static/DHCP), WiFi, MQTT broker, heartbeat
-- [ ] Halaman status: koneksi WiFi, MQTT, jumlah user, free heap
-- [ ] Config via web server juga trigger rollback mechanism
+- [x] Jalankan web server di port `8081` (atau configurable)
+- [x] Halaman HTML: set IP (static/DHCP), WiFi, MQTT broker, heartbeat
+- [x] Halaman status: koneksi WiFi, MQTT, jumlah user, free heap
+- [x] Config via web server juga trigger rollback mechanism
 
 **Buffer Log Offline (Ring Buffer):**
-- [ ] Saat MQTT terputus → simpan log ke `/logs/offline_buffer.csv` di LittleFS
-- [ ] Kapasitas: 500 entri (ring buffer, terlama ditimpa)
-- [ ] Saat reconnect → kirim semua log buffered dengan flag `REPLAYED`
-- [ ] Setelah semua terkirim → kosongkan buffer
+- [x] Saat MQTT terputus → simpan log ke `/logs/offline_buffer.csv` di LittleFS
+- [x] Kapasitas: 500 entri (ring buffer, terlama ditimpa)
+- [x] Saat reconnect → kirim semua log buffered dengan flag `REPLAYED`
+- [x] Setelah semua terkirim → kosongkan buffer
 
 **Hardware (opsional, jika sudah ada):**
 - [ ] Integrasi RFID RC522 (gantikan simulasi Serial)
