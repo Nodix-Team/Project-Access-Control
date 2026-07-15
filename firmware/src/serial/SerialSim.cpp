@@ -1,6 +1,6 @@
 // ============================================================
 //  SerialSim.cpp
-//  ESP32 Access Control System — v0.1.0
+//  ESP32 Access Control System — v0.2.0
 // ============================================================
 #include "SerialSim.h"
 
@@ -22,7 +22,6 @@ void SerialSim::loop() {
         char c = (char)Serial.read();
 
         if (c == '\r' || c == '\n') {
-            // Baris selesai jika ada Carriage Return atau Newline
             String line = _inputBuffer;
             _inputBuffer = "";
             line.trim();
@@ -44,36 +43,50 @@ void SerialSim::setLogCallback(LogCallback cb) {
 
 // ─── Private: Route input berdasarkan state ──────────────────
 void SerialSim::_processLine(const String& line) {
+    String upper = line;
+    upper.toUpperCase();
+    upper.trim();
+
+    // ─ Cek command global yang bisa dieksekusi kapan saja ──────
+    if (upper == "LIST") {
+        _storage.printAllUsers();
+        if (_state == WAIT_DOOR) {
+            Serial.println("[INFO] Proses scan kartu dibatalkan.");
+            _state = WAIT_CARD;
+        }
+        _printCardPrompt();
+        return;
+    }
+    if (upper == "STATUS") {
+        _printStatus();
+        if (_state == WAIT_DOOR) {
+            Serial.println("[INFO] Proses scan kartu dibatalkan.");
+            _state = WAIT_CARD;
+        }
+        _printCardPrompt();
+        return;
+    }
+    if (upper == "RESTART") {
+        Serial.println("[SYS] Restart dalam 2 detik...");
+        delay(2000);
+        ESP.restart();
+        return;
+    }
+    
+    // Command pembatalan saat sedang menunggu pintu
+    if (_state == WAIT_DOOR && (upper == "CANCEL" || upper == "EXIT" || upper == "BACK")) {
+        Serial.println("[INFO] Proses scan kartu dibatalkan.");
+        _state = WAIT_CARD;
+        _printCardPrompt();
+        return;
+    }
+
     if (_state == WAIT_CARD) {
-        // ─ Cek commands khusus ──────────────────────────────
-        String upper = line;
-        upper.toUpperCase();
-
-        if (upper == "LIST") {
-            _storage.printAllUsers();
-            _printCardPrompt();
-            return;
-        }
-        if (upper == "STATUS") {
-            _printStatus();
-            _printCardPrompt();
-            return;
-        }
-        if (upper == "RESTART") {
-            Serial.println("[SYS] Restart dalam 2 detik...");
-            delay(2000);
-            ESP.restart();
-            return;
-        }
-
-        // ─ Proses UID kartu ─────────────────────────────────
         _processCard(line);
-
     } else if (_state == WAIT_DOOR) {
-        // ─ Proses input nomor pintu ─────────────────────────
         int door = line.toInt();
         if (door < 1 || door > 4) {
-            Serial.println("[!] Input tidak valid. Masukkan angka 1 sampai 4.");
+            Serial.println("[!] Input tidak valid. Masukkan angka 1 sampai 4, atau ketik CANCEL untuk membatalkan.");
             _printDoorPrompt();
             return;
         }
@@ -83,15 +96,13 @@ void SerialSim::_processLine(const String& line) {
 
 // ─── Private: Proses UID kartu yang diinput ──────────────────
 void SerialSim::_processCard(const String& kartu) {
-    _currentKartu = kartu;
-    _currentKartu.trim();
+    _currentKartu = UserStorage::normalizeKartu(kartu);
 
-    // Cek apakah kartu terdaftar (preview cepat)
     User* u = _storage.findByKartu(_currentKartu);
     if (u) {
-        Serial.printf("[SCAN] Kartu '%s' → %s\n", kartu.c_str(), u->nama.c_str());
+        Serial.printf("[SCAN] Kartu '%s' → Terdaftar\n", _currentKartu.c_str());
     } else {
-        Serial.printf("[SCAN] Kartu '%s' → tidak terdaftar\n", kartu.c_str());
+        Serial.printf("[SCAN] Kartu '%s' → Tidak terdaftar\n", _currentKartu.c_str());
     }
 
     _state = WAIT_DOOR;
@@ -111,13 +122,11 @@ void SerialSim::_processDoor(int door) {
         // ─ ACCESS GRANTED ────────────────────────────────────
         Serial.printf("  [PINTU %d - %s]\n", door, doorName.c_str());
         Serial.println("  ✓ ACCESS GRANTED");
-        Serial.printf("  User  : %s\n", result.user->nama.c_str());
         Serial.printf("  Kartu : %s\n", _currentKartu.c_str());
-        Serial.printf("  uid   : %d\n", result.user->uid);
 
-        // Trigger callback → MQTT log
+        // Trigger callback → MQTT log (v0.2 format)
         if (_logCb) {
-            _logCb(result.user->uid, _currentKartu, result.user->nama, door, true, doorName);
+            _logCb(_currentKartu, door, true, "OK");
         }
 
     } else {
@@ -127,23 +136,21 @@ void SerialSim::_processDoor(int door) {
         Serial.printf("  Alasan: %s\n", result.reason.c_str());
 
         if (result.user) {
-            // User ada tapi tidak punya akses ke pintu ini
-            Serial.printf("  User  : %s\n", result.user->nama.c_str());
+            // User terdaftar tapi tidak punya akses ke pintu ini
             Serial.print("  Akses ke pintu: [");
-            for (int i = 0; i < (int)result.user->doors.size(); i++) {
+            for (size_t i = 0; i < result.user->doors.size(); i++) {
                 Serial.print(result.user->doors[i]);
-                if (i < (int)result.user->doors.size() - 1) Serial.print(",");
+                if (i < result.user->doors.size() - 1) Serial.print(",");
             }
             Serial.println("]");
 
-            // Trigger callback → MQTT log
             if (_logCb) {
-                _logCb(result.user->uid, _currentKartu, result.user->nama, door, false, doorName);
+                _logCb(_currentKartu, door, false, "NO_ACCESS");
             }
         } else {
-            // User tidak ditemukan
+            // Kartu tidak terdaftar
             if (_logCb) {
-                _logCb(-1, _currentKartu, "UNKNOWN", door, false, doorName);
+                _logCb(_currentKartu, door, false, "UNKNOWN_CARD");
             }
         }
     }
@@ -160,7 +167,7 @@ void SerialSim::_processDoor(int door) {
 void SerialSim::_printBanner() {
     Serial.println();
     Serial.println("╔══════════════════════════════════════════╗");
-    Serial.println("║   ESP32 ACCESS CONTROL SYSTEM  v0.1.0   ║");
+    Serial.println("║   ESP32 ACCESS CONTROL SYSTEM  v0.2.0   ║");
     Serial.println("║   Prototype — Serial Monitor Simulation  ║");
     Serial.println("╚══════════════════════════════════════════╝");
     Serial.println();
@@ -195,6 +202,6 @@ void SerialSim::_printStatus() {
     Serial.printf("│ Device ID  : %s\n", _config.getConfig().device_id.c_str());
     Serial.printf("│ Uptime     : %lu ms\n", millis());
     Serial.printf("│ User count : %d\n", _storage.getUserCount());
-    Serial.printf("│ Free heap  : %d bytes\n", ESP.getFreeHeap());
+    Serial.printf("│ Free heap  : %d bytes\n", (int)ESP.getFreeHeap());
     Serial.println("└───────────────────────────────────────────┘");
 }
