@@ -215,6 +215,7 @@ Backend juga berperan sebagai **NTP server lokal** untuk semua Controller di jar
 > **Perubahan penting dari versi sebelumnya:**
 > - `users/add` → `users/set` **(upsert)**: kartu sudah ada? → replace akses. Belum ada? → buat baru. Tidak ada jendela waktu tanpa akses.
 > - `users/delete` sekarang pakai **nomor kartu** (bukan uid). Idempoten (hapus yang tidak ada = sukses).
+> - **Normalisasi Kartu 10-Digit (Aturan Kritis):** Baik Backend maupun Controller wajib menormalkan ID kartu yang hanya berupa angka (numerik) dan memiliki panjang kurang dari 10 digit dengan menambahkan padding angka `0` di depannya (contoh: `123456` -> `0000123456`). Kartu berbasis hexadecimal/alphanumeric (seperti `AABBCCDD`) tidak diubah dan disimpan apa adanya.
 > - Semua topic `users/#` dan `config/#` wajib **QoS 1** (at least once delivery).
 > - **Timestamp ditentukan oleh Backend** (`server_ts = NOW()` saat menerima log), bukan oleh Controller.
 > - Controller mengirim `uptime_ms` untuk keperluan diagnosa, bukan sebagai waktu resmi.
@@ -657,7 +658,7 @@ FF001122,Alice Brown,,Lobby B
 
 | Kolom | Wajib | Keterangan |
 |-------|-------|------------|
-| `kartu` | ✅ | Nomor kartu RFID |
+| `kartu` | ✅ | Nomor kartu RFID (wajib dinormalisasi menjadi 10 digit jika numerik) |
 | `nama` | ✅ | Nama pemilik kartu |
 | `department` | ❌ | Nama department (kosong = tanpa department) |
 | `doors` | ❌ | **Nama pintu** dipisah `\|` (kosong = ikut department) |
@@ -672,6 +673,7 @@ FF001122,Alice Brown,,Lobby B
 | Nama pintu di `doors` tidak ditemukan di database | **Tolak baris ini**, laporkan error |
 | `kartu` duplikat dalam file | **Tolak baris ini**, laporkan error |
 | `nama` mengandung koma | **Tolak seluruh file** (merusak CSV) |
+| Kolom `kartu` numerik dengan panjang < 10 digit | **Lakukan normalisasi** (tambahkan padding `0` di depan hingga menjadi 10 digit) |
 
 > [!TIP]
 > Jika ada baris yang gagal, Backend tetap memproses baris yang valid dan melaporkan daftar baris yang gagal beserta alasannya ke Frontend.
