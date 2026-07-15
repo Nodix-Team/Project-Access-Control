@@ -1,7 +1,7 @@
-# Route CRUD User (upload CSV: TODO, lihat app/services/csv_service.py)
+# Route CRUD User + upload CSV massal
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -10,7 +10,15 @@ from app.auth.dependencies import get_current_admin
 from app.database import get_db
 from app.models.department import Department
 from app.models.user import User
-from app.schemas.user import UserCreate, UserListOut, UserOut, UserUpdate
+from app.schemas.user import (
+    CsvUploadResponse,
+    CsvUploadRowError,
+    UserCreate,
+    UserListOut,
+    UserOut,
+    UserUpdate,
+)
+from app.services.csv_service import CsvFormatError, process_user_csv
 from app.services.user_service import resolve_user_access
 
 # Semua route di sini wajib JWT (dependencies di level router)
@@ -120,3 +128,29 @@ def delete_user(uid: int, db: Session = Depends(get_db)) -> None:
 
     db.delete(user)
     db.commit()
+
+
+@router.post("/upload-csv", response_model=CsvUploadResponse)
+async def upload_users_csv(
+    file: UploadFile = File(...), db: Session = Depends(get_db)
+) -> CsvUploadResponse:
+    raw = await file.read()
+    try:
+        content = raw.decode("utf-8-sig")  # utf-8-sig -> BOM dari Excel tidak merusak nama kolom header
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File harus teks UTF-8 (.csv)")
+
+    try:
+        result = process_user_csv(db, content)
+    except CsvFormatError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    return CsvUploadResponse(
+        success_count=result.success_count,
+        processed_kartu=result.processed_kartu,
+        error_count=len(result.errors),
+        errors=[
+            CsvUploadRowError(row=err.row_number, kartu=err.kartu, reason=err.reason)
+            for err in result.errors
+        ],
+    )

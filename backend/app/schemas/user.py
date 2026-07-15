@@ -36,3 +36,16 @@ class UserListOut(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class CsvUploadRowError(BaseModel):
+    row: int  # nomor baris fisik di file CSV (baris 1 = header)
+    kartu: str
+    reason: str
+
+
+class CsvUploadResponse(BaseModel):
+    success_count: int
+    processed_kartu: List[str]
+    error_count: int
+    errors: List[CsvUploadRowError]
