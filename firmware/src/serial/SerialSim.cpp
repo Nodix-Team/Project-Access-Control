@@ -96,14 +96,13 @@ void SerialSim::_processLine(const String& line) {
 
 // ─── Private: Proses UID kartu yang diinput ──────────────────
 void SerialSim::_processCard(const String& kartu) {
-    _currentKartu = kartu;
-    _currentKartu.trim();
+    _currentKartu = UserStorage::normalizeKartu(kartu);
 
     User* u = _storage.findByKartu(_currentKartu);
     if (u) {
-        Serial.printf("[SCAN] Kartu '%s' → Terdaftar\n", kartu.c_str());
+        Serial.printf("[SCAN] Kartu '%s' → Terdaftar\n", _currentKartu.c_str());
     } else {
-        Serial.printf("[SCAN] Kartu '%s' → Tidak terdaftar\n", kartu.c_str());
+        Serial.printf("[SCAN] Kartu '%s' → Tidak terdaftar\n", _currentKartu.c_str());
     }
 
     _state = WAIT_DOOR;

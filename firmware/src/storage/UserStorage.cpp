@@ -47,7 +47,7 @@ bool UserStorage::_loadFromFile() {
 
     for (JsonObject obj : arr) {
         User u;
-        u.kartu = obj["kartu"] | "";
+        u.kartu = normalizeKartu(obj["kartu"] | "");
 
         JsonArray doorsArr = obj["doors"].as<JsonArray>();
         for (int d : doorsArr) {
@@ -101,16 +101,17 @@ bool UserStorage::_saveToFile() {
 
 // ─── Public: Set User (Upsert) ────────────────────────────────
 bool UserStorage::setUser(const String& kartu, const std::vector<int>& doors) {
-    User* u = findByKartu(kartu);
+    String norm = normalizeKartu(kartu);
+    User* u = findByKartu(norm);
     if (u != nullptr) {
         u->doors = doors;
-        Serial.printf("[UserStorage] User diupdate → kartu=%s\n", kartu.c_str());
+        Serial.printf("[UserStorage] User diupdate → kartu=%s\n", norm.c_str());
     } else {
         User newUser;
-        newUser.kartu = kartu;
+        newUser.kartu = norm;
         newUser.doors = doors;
         _users.push_back(newUser);
-        Serial.printf("[UserStorage] User ditambahkan → kartu=%s\n", kartu.c_str());
+        Serial.printf("[UserStorage] User ditambahkan → kartu=%s\n", norm.c_str());
     }
 
     return _saveToFile();
@@ -118,14 +119,15 @@ bool UserStorage::setUser(const String& kartu, const std::vector<int>& doors) {
 
 // ─── Public: Delete User ──────────────────────────────────────
 bool UserStorage::deleteUser(const String& kartu) {
+    String norm = normalizeKartu(kartu);
     for (auto it = _users.begin(); it != _users.end(); ++it) {
-        if (it->kartu.equalsIgnoreCase(kartu)) {
+        if (it->kartu.equalsIgnoreCase(norm)) {
             Serial.printf("[UserStorage] User dihapus → kartu=%s\n", it->kartu.c_str());
             _users.erase(it);
             return _saveToFile();
         }
     }
-    Serial.printf("[UserStorage] ERROR: User kartu=%s tidak ditemukan\n", kartu.c_str());
+    Serial.printf("[UserStorage] ERROR: User kartu=%s tidak ditemukan\n", norm.c_str());
     return false;
 }
 
@@ -141,10 +143,10 @@ bool UserStorage::startSync(const String& syncId) {
 bool UserStorage::addStagingUser(const String& kartu, const std::vector<int>& doors) {
     if (!_syncInProgress) return false;
 
-    // Cek duplikasi di RAM staging, jika ada lakukan update
+    String norm = normalizeKartu(kartu);
     bool found = false;
     for (auto& u : _stagingUsers) {
-        if (u.kartu.equalsIgnoreCase(kartu)) {
+        if (u.kartu.equalsIgnoreCase(norm)) {
             u.doors = doors;
             found = true;
             break;
@@ -153,7 +155,7 @@ bool UserStorage::addStagingUser(const String& kartu, const std::vector<int>& do
 
     if (!found) {
         User u;
-        u.kartu = kartu;
+        u.kartu = norm;
         u.doors = doors;
         _stagingUsers.push_back(u);
     }
@@ -195,8 +197,9 @@ String UserStorage::getCurrentSyncId() const {
 
 // ─── Public: Find ─────────────────────────────────────────────
 User* UserStorage::findByKartu(const String& kartu) {
+    String norm = normalizeKartu(kartu);
     for (User& u : _users) {
-        if (u.kartu.equalsIgnoreCase(kartu)) return &u;
+        if (u.kartu.equalsIgnoreCase(norm)) return &u;
     }
     return nullptr;
 }
@@ -224,4 +227,26 @@ void UserStorage::printAllUsers() const {
     }
     Serial.println("└───────────────────────────────────────────┘");
     Serial.println();
+}
+
+// ─── Public Static: Normalize Card ─────────────────────────────
+String UserStorage::normalizeKartu(const String& kartu) {
+    String clean = kartu;
+    clean.trim();
+    if (clean.isEmpty()) return clean;
+
+    bool isNumeric = true;
+    for (unsigned int i = 0; i < clean.length(); i++) {
+        if (!isDigit(clean[i])) {
+            isNumeric = false;
+            break;
+        }
+    }
+
+    if (isNumeric && clean.length() < 10) {
+        while (clean.length() < 10) {
+            clean = "0" + clean;
+        }
+    }
+    return clean;
 }

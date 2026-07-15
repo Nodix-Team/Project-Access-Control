@@ -87,10 +87,13 @@ public:
      */
     int getUserCount() const;
 
-    /**
-     * Cetak semua user ke Serial Monitor.
-     */
     void printAllUsers() const;
+
+    /**
+     * Normalisasi nomor kartu: jika numerik dan kurang dari 10 digit,
+     * konversi menjadi 10 digit dengan menambahkan 0 di depannya.
+     */
+    static String normalizeKartu(const String& kartu);
 
 private:
     std::vector<User> _users;
