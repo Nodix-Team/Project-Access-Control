@@ -12,6 +12,7 @@ from app.models.controller import Controller
 from app.models.door import Door
 from app.models.user import User
 from app.utils.kartu import normalize_kartu
+from app.ws.manager import manager
 
 logger = logging.getLogger(__name__)
 
@@ -50,23 +51,47 @@ def handle_log(device_id: str, payload: str) -> None:
             )
         user = db.scalar(select(User).where(User.kartu == kartu))
 
+        # Snapshot nilai polos SEBELUM commit - expire_on_commit (default SessionLocal) bikin
+        # atribut ORM (log_entry.id, user.nama, door.nama, ...) butuh SELECT ulang kalau diakses
+        # SETELAH commit. Broadcast di bawah jadi pakai variabel ini, bukan objek ORM lagi.
+        user_nama_snapshot = user.nama if user else None
+        door_nama_snapshot = door.nama if door else None
+        result_clean = result.strip()
+        server_ts = datetime.now(timezone.utc)  # BACKEND sumber waktu, bukan device
+
         # Kartu tak dikenal TETAP disimpan (user_id=NULL) - invariant, jangan di-skip.
-        db.add(
-            AccessLog(
-                kartu=kartu,
-                user_id=user.uid if user else None,
-                user_nama=user.nama if user else None,  # SNAPSHOT saat kejadian
-                door_id=door.id if door else None,
-                door_nama=door.nama if door else None,  # SNAPSHOT saat kejadian
-                controller_id=controller.id if controller else None,
-                result=result.strip(),
-                reason=reason,
-                server_ts=datetime.now(timezone.utc),  # BACKEND sumber waktu, bukan device
-                device_uptime_ms=int(uptime_ms),
-                is_replayed=False,
-            )
+        log_entry = AccessLog(
+            kartu=kartu,
+            user_id=user.uid if user else None,
+            user_nama=user_nama_snapshot,  # SNAPSHOT saat kejadian
+            door_id=door.id if door else None,
+            door_nama=door_nama_snapshot,  # SNAPSHOT saat kejadian
+            controller_id=controller.id if controller else None,
+            result=result_clean,
+            reason=reason,
+            server_ts=server_ts,
+            device_uptime_ms=int(uptime_ms),
+            is_replayed=False,
         )
+        db.add(log_entry)
+        db.flush()  # populate log_entry.id sebelum commit, untuk payload broadcast
+        log_id = log_entry.id
         db.commit()
+
+        manager.broadcast_threadsafe(
+            {
+                "id": log_id,
+                "kartu": kartu,
+                "user_nama": user_nama_snapshot,
+                "door_nama": door_nama_snapshot,
+                "controller": device_id,
+                "result": result_clean,
+                "reason": reason,
+                # server_ts sudah timezone-aware (UTC) -> isoformat() keluar "...+00:00", bukan
+                # "...Z". Ganti manual supaya sesuai kontrak frontend (UTC ISO8601 + akhiran Z).
+                "server_ts": server_ts.isoformat().replace("+00:00", "Z"),
+            }
+        )
     finally:
         db.close()
 
