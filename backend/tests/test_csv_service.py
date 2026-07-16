@@ -9,11 +9,21 @@ from app.services.csv_service import CsvFormatError, process_user_csv
 
 HEADER = "kartu,nama,department,doors"
 
+# Kartu numerik hasil normalisasi (10 digit) tidak berawalan "CSVTEST" -> dibersihkan terpisah
+NORMALIZED_TEST_KARTU = ["0000000555"]
+
 
 def _cleanup(db) -> None:
     # Semua kartu test dipakai dengan prefix CSVTEST supaya gampang dibersihkan tanpa
     # menyentuh data seed asli.
     users = db.scalars(select(User).where(User.kartu.like("CSVTEST%"))).all()
+    for user in users:
+        db.delete(user)
+    db.commit()
+
+
+def _cleanup_normalized(db) -> None:
+    users = db.scalars(select(User).where(User.kartu.in_(NORMALIZED_TEST_KARTU))).all()
     for user in users:
         db.delete(user)
     db.commit()
@@ -146,6 +156,43 @@ def test_doors_terisi_artinya_custom_access_dan_translate_ke_door_id():
         assert door_ids == [1, 6], door_ids  # 1=Lobby Utama, 6=Lab Komputer (lihat seed.sql)
 
 
+def test_kartu_numerik_di_pad_jadi_10_digit():
+    with SessionLocal() as db:
+        _cleanup_normalized(db)
+        content = f"{HEADER}\n555,Test User,,\n"
+        result = process_user_csv(db, content)
+
+        assert result.success_count == 1
+        assert result.processed_kartu == ["0000000555"]
+        user = db.scalar(select(User).where(User.kartu == "0000000555"))
+        assert user is not None, "kartu numerik < 10 digit harus di-pad sebelum disimpan"
+        _cleanup_normalized(db)
+
+
+def test_kartu_alphanumeric_hex_tidak_di_pad():
+    with SessionLocal() as db:
+        _cleanup(db)
+        content = f"{HEADER}\nCSVTESTAABBCCDD,Test User,,\n"
+        result = process_user_csv(db, content)
+
+        assert result.success_count == 1
+        assert result.processed_kartu == ["CSVTESTAABBCCDD"]
+
+
+def test_kartu_duplikat_setelah_normalisasi_tolak_baris_kedua():
+    # "555" & "0000000555" adalah kartu yang SAMA setelah normalisasi -> baris kedua harus ditolak
+    with SessionLocal() as db:
+        _cleanup_normalized(db)
+        content = f"{HEADER}\n555,Nama Pertama,,\n0000000555,Nama Kedua,,\n"
+        result = process_user_csv(db, content)
+
+        assert result.success_count == 1
+        assert result.errors[0].reason == "kartu duplikat dalam file"
+        user = db.scalar(select(User).where(User.kartu == "0000000555"))
+        assert user.nama == "Nama Pertama"
+        _cleanup_normalized(db)
+
+
 if __name__ == "__main__":
     tests = [
         test_header_salah_tolak_seluruh_file,
@@ -158,6 +205,9 @@ if __name__ == "__main__":
         test_department_kosong_artinya_tanpa_department,
         test_doors_kosong_artinya_ikut_department,
         test_doors_terisi_artinya_custom_access_dan_translate_ke_door_id,
+        test_kartu_numerik_di_pad_jadi_10_digit,
+        test_kartu_alphanumeric_hex_tidak_di_pad,
+        test_kartu_duplikat_setelah_normalisasi_tolak_baris_kedua,
     ]
     for test in tests:
         test()
@@ -165,4 +215,5 @@ if __name__ == "__main__":
 
     with SessionLocal() as db:
         _cleanup(db)
+        _cleanup_normalized(db)
     print("\nSemua test process_user_csv() lulus. DB test dibersihkan.")

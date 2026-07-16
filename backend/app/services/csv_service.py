@@ -13,6 +13,7 @@ from app.models.department import Department
 from app.models.door import Door
 from app.models.user import User
 from app.models.user_access import UserAccess
+from app.utils.kartu import normalize_kartu
 
 EXPECTED_HEADER = ["kartu", "nama", "department", "doors"]
 
@@ -66,7 +67,8 @@ def process_user_csv(db: Session, content: str) -> CsvUploadResult:
     seen_kartu: Set[str] = set()
 
     for row_number, row in enumerate(rows, start=2):
-        kartu = (row.get("kartu") or "").strip()
+        # Normalisasi SEBELUM dedup/lookup — "123456" & "0000123456" harus dianggap kartu yang sama
+        kartu = normalize_kartu(row.get("kartu") or "")
         nama = (row.get("nama") or "").strip()
         department_nama = (row.get("department") or "").strip()
         doors_raw = (row.get("doors") or "").strip()

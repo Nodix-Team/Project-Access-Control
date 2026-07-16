@@ -2,7 +2,9 @@
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.utils.kartu import normalize_kartu
 
 
 class UserCreate(BaseModel):
@@ -11,6 +13,11 @@ class UserCreate(BaseModel):
     department_id: Optional[int] = None
     is_custom_access: bool = False
 
+    @field_validator("kartu")
+    @classmethod
+    def _normalize_kartu(cls, value: str) -> str:
+        return normalize_kartu(value)
+
 
 class UserUpdate(BaseModel):
     # Semua field opsional -> hanya field yang dikirim yang di-update (lihat exclude_unset di routes/users.py)
@@ -18,6 +25,11 @@ class UserUpdate(BaseModel):
     nama: Optional[str] = Field(default=None, min_length=1, max_length=100)
     department_id: Optional[int] = None
     is_custom_access: Optional[bool] = None
+
+    @field_validator("kartu")
+    @classmethod
+    def _normalize_kartu(cls, value: Optional[str]) -> Optional[str]:
+        return normalize_kartu(value) if value is not None else value
 
 
 class UserOut(BaseModel):
