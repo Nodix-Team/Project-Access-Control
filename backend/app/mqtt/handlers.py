@@ -92,7 +92,12 @@ def handle_lwt(device_id: str, payload: str) -> None:
 
 
 def handle_sync_result(device_id: str, payload: str) -> None:
-    pass  # TODO (04.4): protokol sync atomik (OK/MISMATCH)
+    # Import lokal: sync_service butuh app.mqtt.client (untuk publish), sedangkan client.py ->
+    # subscriber.py -> handlers.py sudah memuat modul ini duluan - import di level modul di sini
+    # akan membentuk lingkaran (client -> ... -> handlers -> sync_service -> client).
+    from app.services import sync_service
+
+    sync_service.on_sync_result(device_id, payload)
 
 
 def handle_config_response(device_id: str, payload: str) -> None:

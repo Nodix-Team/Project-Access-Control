@@ -36,6 +36,13 @@ class ControllerConfigOut(BaseModel):
     web_port: Optional[int]
 
 
+class SyncResultOut(BaseModel):
+    sync_id: str
+    status: Literal["OK", "SYNC_FAILED"]
+    count: int
+    last: Optional[str] = None  # hanya terisi kalau status=SYNC_FAILED (TIMEOUT/MISMATCH terakhir)
+
+
 class ControllerConfigUpdate(BaseModel):
     # Semua field opsional -> partial update (exclude_unset). Sengaja TIDAK ada field wifi_pass —
     # kolom itu memang tidak pernah disimpan di DB (lihat database/schema.sql), konsisten dengan
