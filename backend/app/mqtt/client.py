@@ -6,12 +6,14 @@ import logging
 import paho.mqtt.client as mqtt
 
 from app.config import settings
+from app.mqtt import subscriber
 
 logger = logging.getLogger(__name__)
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="backend")
 client.username_pw_set(settings.MQTT_USERNAME, settings.MQTT_PASSWORD)
 client.reconnect_delay_set(min_delay=1, max_delay=30)
+client.on_message = subscriber.on_message
 
 _connected = False
 
@@ -21,6 +23,7 @@ def _on_connect(client, userdata, flags, reason_code, properties=None):
     _connected = reason_code == 0
     if _connected:
         logger.info("MQTT terhubung ke %s:%s", settings.MQTT_HOST, settings.MQTT_PORT)
+        subscriber.subscribe_all(client)
     else:
         logger.warning("MQTT gagal connect (reason_code=%s)", reason_code)
 
