@@ -5,7 +5,7 @@
 
 -- Admin (password: admin123 — bcrypt hash)
 INSERT INTO admins (username, password, role) VALUES
-('admin', '$2b$12$LJ3m4ys3Lg3do1Wnx0Sn2eTIHRgVPmJxuMmkM7eG.1LHzmXk6gKm', 'admin');
+('admin', '$2b$12$HeO1rUc6yS0xyImfGh60mukBqg8pngtcKXVijOHvwhSaZllcg9f6u', 'admin');
 
 -- Controllers
 INSERT INTO controllers (device_id, nama, lokasi, wifi_ssid, mqtt_broker, mqtt_user, total_doors) VALUES
