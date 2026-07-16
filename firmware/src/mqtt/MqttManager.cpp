@@ -100,18 +100,18 @@ void MqttManager::publishLog(const String& kartu, int door, bool granted, const 
     if (!_mqtt.connected()) {
         // Simpan log secara lokal karena sedang offline
         Serial.println("[MQTT] Offline, menyimpan log transaksi ke LittleFS...");
-        _offlineLog.appendLog(millis(), kartu, door, statusStr);
+        _offlineLog.appendLog(millis(), kartu, door, statusStr, resultReason);
         return;
     }
 
-    // Format: kartu,door_number,status,uptime_ms
-    String payload = kartu + "," + String(door) + "," + statusStr + "," + String(millis());
+    // Format: kartu,door_number,status,reason,uptime_ms
+    String payload = kartu + "," + String(door) + "," + statusStr + "," + resultReason + "," + String(millis());
     String topic = _getTopic("logs");
 
     bool ok = _mqtt.publish(topic.c_str(), payload.c_str(), true); // QoS 1 simulation
     if (!ok) {
         Serial.println("[MQTT] Gagal publish log, menyimpan ke buffer offline");
-        _offlineLog.appendLog(millis(), kartu, door, statusStr);
+        _offlineLog.appendLog(millis(), kartu, door, statusStr, resultReason);
     }
 }
 
@@ -421,9 +421,24 @@ bool MqttManager::_sendOfflineLog(const String& csvLine) {
     int thirdComma = csvLine.indexOf(',', secondComma + 1);
     if (thirdComma == -1) return true;
     String door = csvLine.substring(secondComma + 1, thirdComma);
-    String status = csvLine.substring(thirdComma + 1);
 
-    String payload = kartu + "," + door + "," + status + "," + uptime + ",REPLAYED";
+    int fourthComma = csvLine.indexOf(',', thirdComma + 1);
+    
+    String status;
+    String reason;
+    if (fourthComma == -1) {
+        // Fallback robust untuk file log format 4 kolom lama
+        status = csvLine.substring(thirdComma + 1);
+        status.trim();
+        reason = (status == "GRANTED") ? "OK" : "NO_ACCESS";
+    } else {
+        status = csvLine.substring(thirdComma + 1, fourthComma);
+        reason = csvLine.substring(fourthComma + 1);
+        status.trim();
+        reason.trim();
+    }
+
+    String payload = kartu + "," + door + "," + status + "," + reason + "," + uptime + ",REPLAYED";
     String topic = _getTopic("logs");
 
     return _mqtt.publish(topic.c_str(), payload.c_str(), true);

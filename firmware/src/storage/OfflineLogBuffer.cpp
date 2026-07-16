@@ -7,7 +7,7 @@
 
 #define OFFLINE_LOG_FILE "/logs/offline_buffer.csv"
 #define OFFLINE_LOG_TEMP "/logs/offline_temp.csv"
-#define MAX_LOG_LINES 500
+#define MAX_LOG_LINES 5000
 
 OfflineLogBuffer::OfflineLogBuffer() {}
 
@@ -18,7 +18,7 @@ bool OfflineLogBuffer::begin() {
     return true;
 }
 
-void OfflineLogBuffer::appendLog(unsigned long uptimeMs, const String& kartu, int door, const String& status) {
+void OfflineLogBuffer::appendLog(unsigned long uptimeMs, const String& kartu, int door, const String& status, const String& reason) {
     // 1. Batasi ukuran ring buffer
     _enforceRingBufferLimit();
 
@@ -28,8 +28,8 @@ void OfflineLogBuffer::appendLog(unsigned long uptimeMs, const String& kartu, in
         Serial.println("[OfflineLog] Gagal membuka file log untuk append");
         return;
     }
-    // Format: uptime_ms,kartu,door_number,status
-    f.printf("%lu,%s,%d,%s\n", uptimeMs, kartu.c_str(), door, status.c_str());
+    // Format: uptime_ms,kartu,door_number,status,reason
+    f.printf("%lu,%s,%d,%s,%s\n", uptimeMs, kartu.c_str(), door, status.c_str(), reason.c_str());
     f.close();
 }
 
