@@ -88,7 +88,7 @@ const UserDetail = () => {
                 </div>
                 <div>
                   <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Departemen</span>
-                  <div>{user.department}</div>
+                  <div>{user.department === 'None' ? 'Tanpa Departemen (None)' : user.department}</div>
                 </div>
               </div>
             </div>

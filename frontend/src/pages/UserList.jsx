@@ -20,7 +20,7 @@ const UserList = () => {
   // Add user Form State
   const [newNama, setNewNama] = useState('');
   const [newKartu, setNewKartu] = useState('');
-  const [newDept, setNewDept] = useState('IT');
+  const [newDept, setNewDept] = useState('None');
 
   // CSV State
   const [csvResult, setCsvResult] = useState(null);
@@ -48,6 +48,7 @@ const UserList = () => {
     setShowAddModal(false);
     setNewNama('');
     setNewKartu('');
+    setNewDept('None');
   };
 
   const handleDeleteUser = (uid) => {
@@ -109,6 +110,7 @@ const UserList = () => {
             style={{ appearance: 'auto' }}
           >
             <option value="All">Semua Departemen</option>
+            <option value="None">Tanpa Departemen (None)</option>
             <option value="IT">IT</option>
             <option value="HRD">HRD</option>
             <option value="Finance">Finance</option>
@@ -141,11 +143,13 @@ const UserList = () => {
                 <td>
                   <span style={{ 
                     padding: '4px 8px', 
-                    backgroundColor: 'rgba(255,255,255,0.05)', 
+                    backgroundColor: user.department === 'None' ? 'var(--accent-danger-bg)' : 'rgba(255,255,255,0.05)', 
+                    color: user.department === 'None' ? 'var(--accent-danger)' : 'inherit',
+                    fontWeight: user.department === 'None' ? 600 : 'normal',
                     borderRadius: '6px',
                     fontSize: '0.85rem'
                   }}>
-                    {user.department}
+                    {user.department === 'None' ? 'Tanpa Departemen' : user.department}
                   </span>
                 </td>
                 <td>
@@ -225,6 +229,7 @@ const UserList = () => {
                   onChange={(e) => setNewDept(e.target.value)}
                   style={{ appearance: 'auto' }}
                 >
+                  <option value="None">Tanpa Departemen (None)</option>
                   <option value="IT">IT</option>
                   <option value="HRD">HRD</option>
                   <option value="Finance">Finance</option>
