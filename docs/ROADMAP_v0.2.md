@@ -52,7 +52,7 @@
 
 ### Checklist
 
-- [ ] Setup FastAPI project structure:
+- [x] Setup FastAPI project structure:
   ```
   backend/
   ├── app/
@@ -87,33 +87,33 @@
   ├── .env.example
   └── tests/
   ```
-- [ ] Install dependencies: `fastapi`, `uvicorn`, `sqlalchemy`, `pymysql`, `python-jose`, `bcrypt`, `python-dotenv`
-- [ ] Implementasi JWT Auth:
-  - [ ] `POST /api/auth/login` → return JWT token
-  - [ ] Middleware: semua route kecuali login wajib JWT header
-- [ ] Implementasi CRUD User:
-  - [ ] `GET /api/users` — daftar user + filter + pagination
-  - [ ] `POST /api/users` — tambah user baru
-  - [ ] `PUT /api/users/{uid}` — edit user
-  - [ ] `DELETE /api/users/{uid}` — hapus user
-  - [ ] `POST /api/users/upload-csv` — bulk import (validasi sesuai proposal)
-- [ ] Implementasi CRUD Department:
-  - [ ] `GET /api/departments`
-  - [ ] `POST /api/departments`
-  - [ ] `PUT /api/departments/{id}` — termasuk set `department_access`
-  - [ ] `DELETE /api/departments/{id}`
-- [ ] Implementasi Controller & Door:
-  - [ ] `GET /api/controllers` — daftar controller + status online (hitung dari `last_seen`)
-  - [ ] `GET /api/controllers/{id}/config` — baca config controller
-  - [ ] `PUT /api/controllers/{id}/config` — push config baru
-  - [ ] CRUD doors (assign ke controller, beri nama/lokasi)
-- [ ] Implementasi Logs:
-  - [ ] `GET /api/logs` — filter by kartu, controller, door, tanggal, result
-- [ ] Logika Resolusi Akses:
-  - [ ] `is_custom_access = TRUE` → ambil dari `user_access`
-  - [ ] `is_custom_access = FALSE` → ambil dari `department_access`
-  - [ ] Terjemahkan `door_id` → `door_number` per controller (**aturan kritis**)
-- [ ] Test semua endpoint via Swagger UI (`/docs`)
+- [x] Install dependencies: `fastapi`, `uvicorn`, `sqlalchemy`, `pymysql`, `python-jose`, `bcrypt`, `python-dotenv`
+- [x] Implementasi JWT Auth:
+  - [x] `POST /api/auth/login` → return JWT token
+  - [x] Middleware: semua route kecuali login wajib JWT header
+- [x] Implementasi CRUD User:
+  - [x] `GET /api/users` — daftar user + filter + pagination
+  - [x] `POST /api/users` — tambah user baru
+  - [x] `PUT /api/users/{uid}` — edit user
+  - [x] `DELETE /api/users/{uid}` — hapus user
+  - [x] `POST /api/users/upload-csv` — bulk import (validasi sesuai proposal)
+- [x] Implementasi CRUD Department:
+  - [x] `GET /api/departments`
+  - [x] `POST /api/departments`
+  - [x] `PUT /api/departments/{id}` — termasuk set `department_access`
+  - [x] `DELETE /api/departments/{id}`
+- [x] Implementasi Controller & Door:
+  - [x] `GET /api/controllers` — daftar controller + status online (hitung dari `last_seen`)
+  - [x] `GET /api/controllers/{id}/config` — baca config controller
+  - [x] `PUT /api/controllers/{id}/config` — push config baru
+  - [x] CRUD doors (assign ke controller, beri nama/lokasi)
+- [x] Implementasi Logs:
+  - [x] `GET /api/logs` — filter by kartu, controller, door, tanggal, result
+- [x] Logika Resolusi Akses:
+  - [x] `is_custom_access = TRUE` → ambil dari `user_access`
+  - [x] `is_custom_access = FALSE` → ambil dari `department_access`
+  - [x] Terjemahkan `door_id` → `door_number` per controller (**aturan kritis**)
+- [x] Test semua endpoint via Swagger UI (`/docs`)
 
 ### Deliverable
 ✅ Backend FastAPI berjalan di `localhost:8000`
