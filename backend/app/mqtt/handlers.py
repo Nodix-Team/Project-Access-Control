@@ -2,7 +2,8 @@
 # Dipanggil oleh subscriber.py setelah topic diparse jadi (device_id, suffix). Sengaja tanpa
 # publish/resolusi akses apa pun di sini - itu bagian langkah 04.3+.
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from typing import Dict
 
 from sqlalchemy import select
 
@@ -18,9 +19,23 @@ logger = logging.getLogger(__name__)
 
 VALID_REASONS = {"OK", "UNKNOWN_CARD", "NO_ACCESS", "INVALID_DOOR"}
 
+# device_id -> perkiraan waktu boot (dari status.uptime_ms terakhir, lihat handle_status).
+# Dipakai handle_log untuk merekonstruksi server_ts log REPLAYED. In-memory saja (hilang kalau
+# backend restart) - fallback NOW() di handle_log tetap aman kalau device_id belum ada di sini.
+_boot_estimate: Dict[str, datetime] = {}
+
 
 def handle_log(device_id: str, payload: str) -> None:
     parts = payload.split(",")
+
+    # Log REPLAYED (dari buffer offline controller, lihat firmware/src/storage/OfflineLogBuffer.*)
+    # ditandai field TERAKHIR "REPLAYED" - buang penandanya, sisanya diproses seperti log biasa.
+    # Firmware saat ini (firmware/src/mqtt/MqttManager.cpp) mengirim replay sebagai 4 field +
+    # REPLAYED (tanpa reason), tapi tetap ditoleransi 5 field + REPLAYED (dengan reason) untuk
+    # kontrak target.
+    is_replayed = parts[-1].strip() == "REPLAYED"
+    if is_replayed:
+        parts = parts[:-1]
 
     # Kontrak target: 5 field (dengan reason). Fallback 4 field selama firmware belum
     # menambah reason - supaya langkah ini bisa dites sekarang dengan simulate_esp32.py.
@@ -33,7 +48,9 @@ def handle_log(device_id: str, payload: str) -> None:
         kartu_raw, door_number, result, uptime_ms = parts
         reason = None  # firmware belum kirim reason
     else:
-        logger.warning("log %s: %d field (harap 4/5) - ditolak", device_id, len(parts))
+        logger.warning(
+            "log %s: %d field (harap 4/5, +REPLAYED opsional) - ditolak", device_id, len(parts)
+        )
         return
 
     kartu = normalize_kartu(kartu_raw.strip())
@@ -57,7 +74,19 @@ def handle_log(device_id: str, payload: str) -> None:
         user_nama_snapshot = user.nama if user else None
         door_nama_snapshot = door.nama if door else None
         result_clean = result.strip()
-        server_ts = datetime.now(timezone.utc)  # BACKEND sumber waktu, bukan device
+
+        if is_replayed and device_id in _boot_estimate:
+            # Rekonstruksi waktu absolut dari uptime SAAT KEJADIAN, bukan waktu terima (bisa
+            # jam/hari kemudian untuk log dari buffer offline). Asumsi: device tidak REBOOT
+            # sejak _boot_estimate direkam (WiFi/MQTT putus saja - millis() tetap jalan dari
+            # boot yang sama, jadi estimasi lama tetap valid untuk uptime_ms replay manapun).
+            server_ts = _boot_estimate[device_id] + timedelta(milliseconds=int(uptime_ms))
+        else:
+            # Fallback: device_id belum pernah kirim status sejak backend hidup (atau firmware
+            # belum sinkron kirim status pas reconnect sebelum replay - keterbatasan yang
+            # diketahui, lihat komentar handle_status). NOW() tetap lebih baik daripada menolak
+            # log sama sekali.
+            server_ts = datetime.now(timezone.utc)  # BACKEND sumber waktu, bukan device
 
         # Kartu tak dikenal TETAP disimpan (user_id=NULL) - invariant, jangan di-skip.
         log_entry = AccessLog(
@@ -71,7 +100,7 @@ def handle_log(device_id: str, payload: str) -> None:
             reason=reason,
             server_ts=server_ts,
             device_uptime_ms=int(uptime_ms),
-            is_replayed=False,
+            is_replayed=is_replayed,
         )
         db.add(log_entry)
         db.flush()  # populate log_entry.id sebelum commit, untuk payload broadcast
@@ -99,11 +128,19 @@ def handle_log(device_id: str, payload: str) -> None:
 def handle_status(device_id: str, payload: str) -> None:
     # Format: {total_doors},{user_count},{free_heap},{uptime_ms}
     total_doors, user_count, free_heap, uptime_ms = payload.split(",")
+    now = datetime.now(timezone.utc)
+
+    # Perkiraan waktu boot device, dipakai handle_log untuk merekonstruksi server_ts log
+    # REPLAYED. Firmware belum mengirim status tepat sebelum replay (lihat catatan di
+    # handle_log) - estimasi dari status TERAKHIR kapan pun itu tetap valid selama device
+    # tidak reboot, jadi tetap disimpan di setiap status, bukan cuma pas reconnect.
+    _boot_estimate[device_id] = now - timedelta(milliseconds=int(uptime_ms))
+
     db = SessionLocal()
     try:
         controller = db.scalar(select(Controller).where(Controller.device_id == device_id))
         if controller:
-            controller.last_seen = datetime.now(timezone.utc)
+            controller.last_seen = now
             db.commit()
         # user_count bisa dibandingkan ke jumlah user ter-resolve device ini -> drift check,
         # ditunda (opsional, bukan scope langkah ini).
@@ -126,4 +163,13 @@ def handle_sync_result(device_id: str, payload: str) -> None:
 
 
 def handle_config_response(device_id: str, payload: str) -> None:
-    pass  # TODO (04.6): forward config/response ke frontend
+    # Payload CSV pasangan key,value,key,value,... . Belum ada trigger config/request maupun
+    # konsumen frontend untuk ini (keduanya opsional, tidak dibangun di langkah ini) - cukup
+    # log dulu supaya isinya terlihat & tidak diam-diam hilang kalau controller mengirimnya.
+    parts = payload.split(",")
+    if len(parts) % 2 != 0:
+        logger.warning("config/response %s: jumlah field ganjil, payload=%r", device_id, payload)
+        return
+
+    pairs = dict(zip(parts[0::2], parts[1::2]))
+    logger.info("config/response dari %s: %s", device_id, pairs)
