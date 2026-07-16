@@ -1,57 +1,58 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  /* DARK THEME (Default) */
-  --bg-app: #090d16;
-  --bg-sidebar: #0f1524;
-  --bg-card: rgba(18, 26, 47, 0.7);
-  --bg-header: rgba(9, 13, 22, 0.6);
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-focus: #5f5af6;
+  /* DARK THEME - Obsidian Cyber Security Theme (Default) */
+  --bg-app: #08090d;
+  --bg-sidebar: #0e1017;
+  --bg-card: rgba(18, 21, 32, 0.7);
+  --bg-header: rgba(8, 9, 13, 0.6);
+  --border-color: rgba(255, 255, 255, 0.05);
+  --border-focus: #3b82f6;
   
-  --text-primary: #f3f4f6;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
   
-  --accent-primary: #6366f1;
-  --accent-primary-hover: #4f46e5;
-  --accent-success: #10b981;
-  --accent-success-bg: rgba(16, 185, 129, 0.15);
-  --accent-danger: #ef4444;
-  --accent-danger-bg: rgba(239, 68, 68, 0.15);
-  --accent-warning: #f59e0b;
-  --accent-warning-bg: rgba(245, 158, 11, 0.15);
+  --accent-primary: #2563eb;          /* Electric Tech Blue */
+  --accent-primary-hover: #1d4ed8;
+  --accent-success: #10b981;          /* Access Granted (Emerald) */
+  --accent-success-bg: rgba(16, 185, 129, 0.12);
+  --accent-danger: #f43f5e;           /* Access Denied (Ruby Red) */
+  --accent-danger-bg: rgba(244, 63, 94, 0.12);
+  --accent-warning: #f59e0b;          /* System Offline / Replay (Amber) */
+  --accent-warning-bg: rgba(245, 158, 11, 0.12);
   
-  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --sidebar-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
-  --glass-blur: blur(12px);
-  --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  --sidebar-shadow: 4px 0 24px rgba(0, 0, 0, 0.35);
+  --glass-blur: blur(16px);
+  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 body.light-theme {
-  /* LIGHT THEME */
-  --bg-app: #f4f6f9;
+  /* LIGHT THEME - Modern Professional Slate Theme */
+  --bg-app: #f8fafc;
   --bg-sidebar: #ffffff;
   --bg-card: rgba(255, 255, 255, 0.85);
-  --bg-header: rgba(244, 246, 249, 0.7);
-  --border-color: rgba(0, 0, 0, 0.08);
-  --border-focus: #4f46e5;
+  --bg-header: rgba(248, 250, 252, 0.7);
+  --border-color: rgba(15, 23, 42, 0.06);
+  --border-focus: #2563eb;
   
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #9ca3af;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
   
-  --accent-primary: #4f46e5;
-  --accent-primary-hover: #3730a3;
+  --accent-primary: #2563eb;
+  --accent-primary-hover: #1d4ed8;
   --accent-success: #059669;
-  --accent-success-bg: rgba(5, 150, 105, 0.12);
-  --accent-danger: #dc2626;
-  --accent-danger-bg: rgba(220, 38, 38, 0.12);
+  --accent-success-bg: rgba(5, 150, 105, 0.1);
+  --accent-danger: #e11d48;
+  --accent-danger-bg: rgba(225, 29, 72, 0.1);
   --accent-warning: #d97706;
-  --accent-warning-bg: rgba(217, 119, 6, 0.12);
+  --accent-warning-bg: rgba(217, 119, 6, 0.1);
   
-  --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
-  --sidebar-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 8px 30px rgba(31, 38, 135, 0.05);
+  --sidebar-shadow: 4px 0 24px rgba(15, 23, 42, 0.04);
 }
 
 * {
@@ -422,4 +423,33 @@ body.light-theme .form-input {
 
 .feed-row-denied {
   animation: flash-red 1.5s ease-out;
+}
+
+/* ============================================================
+   TYPOGRAPHY SPECIFICS & TECH DATA STYLING
+   ============================================================ */
+code, pre {
+  font-family: var(--font-mono) !important;
+  font-size: 0.85rem;
+  letter-spacing: -0.2px;
+  background-color: rgba(255, 255, 255, 0.03);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+body.light-theme code {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.custom-table td {
+  font-size: 0.9rem;
+}
+
+/* Make first column (numbers) and date/time columns look techy and aligned */
+.custom-table td:first-child,
+.custom-table td:nth-child(4) {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: -0.2px;
 }
