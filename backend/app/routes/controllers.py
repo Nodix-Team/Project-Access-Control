@@ -9,6 +9,7 @@ from app.auth.dependencies import get_current_admin
 from app.database import get_db
 from app.models.controller import Controller
 from app.mqtt import client as mqtt_client
+from app.mqtt.publisher import publish
 from app.schemas.controller import (
     ControllerConfigOut,
     ControllerConfigUpdate,
@@ -21,6 +22,12 @@ from app.services.sync_service import run_full_sync
 router = APIRouter(
     prefix="/api/controllers", tags=["controllers"], dependencies=[Depends(get_current_admin)]
 )
+
+# Config yang aman di-push langsung tanpa konfirmasi (lihat architecture_review.md P1-2).
+# wifi_*/mqtt_* SENGAJA tidak masuk sini - butuh mekanisme rollback firmware
+# (config_last_known_good.json) yang belum ada di jalur MQTT ini; perubahan itu tetap
+# tersimpan di DB, diterapkan manual lewat web server lokal controller (jaring pengaman).
+_SAFE_CONFIG_KEYS = {"heartbeat_s", "total_doors"}
 
 # is_online = last_seen > NOW() - INTERVAL (heartbeat_s * 3) SECOND, dihitung ulang tiap query —
 # lihat blok "is_online Dihitung, Bukan Disimpan" di architecture_proposal_v0.2.md
@@ -103,10 +110,9 @@ def update_controller_config(
     db.commit()
     db.refresh(controller)
 
-    # TODO (Sprint 3): publish config baru ke controller via MQTT topic `access/{device_id}/config/set`
-    # (format CSV key,value, QoS 1) lewat backend/app/mqtt/publisher.py yang belum dibuat. Untuk
-    # sekarang config HANYA ditulis ke DB — controller fisik tidak menerima update apa pun sampai
-    # Sprint 3 (Backend MQTT + Sync Protocol) selesai.
+    for key, value in updates.items():
+        if key in _SAFE_CONFIG_KEYS:
+            publish(f"access/{controller.device_id}/config/set", f"{key},{value}", qos=1)
 
     return _to_config_out(controller)
 

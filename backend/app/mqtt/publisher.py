@@ -14,7 +14,7 @@ from app.services.user_service import resolve_user_access
 logger = logging.getLogger(__name__)
 
 
-def _publish(topic: str, payload: str, qos: int = 1) -> None:
+def publish(topic: str, payload: str, qos: int = 1) -> None:
     # Broker offline -> publish paho gagal/queue diam-diam. Route REST tetap harus balas
     # sukses untuk operasi DB-nya, jadi di sini cukup log warning, jangan lempar exception.
     if not mqtt_client.is_connected():
@@ -36,11 +36,11 @@ def push_user(db: Session, user: User) -> None:
         doors = by_ctrl.get(device_id)
         if doors:
             payload = f"{user.kartu}," + "|".join(str(d) for d in doors)
-            _publish(f"access/{device_id}/users/set", payload)
+            publish(f"access/{device_id}/users/set", payload)
         else:
-            _publish(f"access/{device_id}/users/delete", user.kartu)
+            publish(f"access/{device_id}/users/delete", user.kartu)
 
 
 def push_delete(kartu: str, device_ids) -> None:
     for device_id in device_ids:
-        _publish(f"access/{device_id}/users/delete", kartu)  # idempoten di controller
+        publish(f"access/{device_id}/users/delete", kartu)  # idempoten di controller
