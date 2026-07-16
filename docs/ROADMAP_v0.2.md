@@ -130,7 +130,7 @@
 
 ### Checklist
 
-- [ ] Setup MQTT client (`aiomqtt`) dalam FastAPI lifecycle:
+- [x] Setup MQTT client (`paho-mqtt` — dipakai sebagai ganti `aiomqtt`: app ini sync/PyMySQL, paho jalan di thread sendiri, bukan asyncio) dalam FastAPI lifecycle:
   ```
   backend/app/mqtt/
   ├── client.py              ← connect ke EMQX (dengan auth)
@@ -138,29 +138,29 @@
   ├── subscriber.py          ← subscribe log, status, config/response, sync/result
   └── handlers.py            ← logika proses pesan masuk
   ```
-- [ ] Subscribe topics:
-  - [ ] `access/+/logs` → simpan ke `access_logs` (snapshot `user_nama`, `door_nama`, `server_ts = NOW()`)
-  - [ ] `access/+/status` → update `last_seen` di controller
-  - [ ] `access/+/config/response` → forward ke frontend (opsional)
-  - [ ] `access/+/sync/result` → proses OK/MISMATCH
-  - [ ] `access/+/status/lwt` → deteksi controller offline
-- [ ] Publish topics (saat admin CRUD user/config):
-  - [ ] `access/{id}/users/set` — format CSV: `AABBCCDD,1|3` (QoS 1)
-  - [ ] `access/{id}/users/delete` — format CSV: `AABBCCDD` (QoS 1)
-  - [ ] `access/{id}/config/set` — format CSV: `key,value` (QoS 1)
-  - [ ] `access/{id}/config/request` (QoS 1)
-- [ ] Implementasi **Sync Atomik**:
-  - [ ] `POST /api/controllers/{id}/sync` → trigger full sync
-  - [ ] Kirim `sync/start` → `users/set` × N → `sync/end` (dengan count)
-  - [ ] Handle response `sync/result` (OK atau MISMATCH → retry)
-- [ ] Implementasi **WebSocket** untuk live feed:
-  - [ ] `WS /ws/live-feed` → push log real-time ke frontend
-- [ ] Implementasi log REPLAYED:
-  - [ ] Deteksi flag `REPLAYED` di payload log
-  - [ ] Simpan dengan `is_replayed = TRUE`
+- [x] Subscribe topics:
+  - [x] `access/+/logs` → simpan ke `access_logs` (snapshot `user_nama`, `door_nama`, `server_ts = NOW()`)
+  - [x] `access/+/status` → update `last_seen` di controller
+  - [x] `access/+/config/response` → forward ke frontend (opsional) — di-log, belum ada konsumen frontend
+  - [x] `access/+/sync/result` → proses OK/MISMATCH
+  - [x] `access/+/status/lwt` → deteksi controller offline (`is_online` dihitung dari `last_seen`, LWT di-log)
+- [x] Publish topics (saat admin CRUD user/config):
+  - [x] `access/{id}/users/set` — format CSV: `AABBCCDD,1|3` (QoS 1)
+  - [x] `access/{id}/users/delete` — format CSV: `AABBCCDD` (QoS 1)
+  - [x] `access/{id}/config/set` — format CSV: `key,value` (QoS 1)
+  - [ ] `access/{id}/config/request` (QoS 1) — opsional, tidak dibuat (tidak ada di kriteria selesai manapun)
+- [x] Implementasi **Sync Atomik**:
+  - [x] `POST /api/controllers/{id}/sync` → trigger full sync
+  - [x] Kirim `sync/start` → `users/set` × N → `sync/end` (dengan count)
+  - [x] Handle response `sync/result` (OK atau MISMATCH → retry)
+- [x] Implementasi **WebSocket** untuk live feed:
+  - [x] `WS /ws/live-feed` → push log real-time ke frontend
+- [x] Implementasi log REPLAYED:
+  - [x] Deteksi flag `REPLAYED` di payload log
+  - [x] Simpan dengan `is_replayed = TRUE`
 - [ ] Backend sebagai NTP server (opsional, bisa pakai library `ntplib`):
-  - [ ] Atau: cukup pakai `server_ts = NOW()` saat terima log (sudah cukup untuk v0.2)
-- [ ] Test integrasi: API → MQTT → (simulasi controller) → log masuk DB
+  - [x] Atau: cukup pakai `server_ts = NOW()` saat terima log (sudah cukup untuk v0.2) — plus rekonstruksi dari `uptime_ms` untuk log REPLAYED, fallback NOW() kalau belum ada `status` sebelumnya
+- [ ] Test integrasi: API → MQTT → (simulasi controller) → log masuk DB — diverifikasi via test lokal (SQLite, `TestClient` WebSocket asli, thread nyata untuk jalur cross-thread); **belum** dijalankan terhadap EMQX + MySQL + `simulate_esp32.py` sungguhan
 
 ### Deliverable
 ✅ Backend bisa kirim perintah ke controller via MQTT

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint 3 Test Runbook — Backend MQTT</title>
+<style>
+  :root{
+    --ink-950:#12161c;
+    --ink-800:#232b34;
+    --ink-600:#4a5560;
+    --ink-400:#7c8791;
+    --line: rgba(18,22,28,0.13);
+    --paper: #eef1ee;
+    --panel: #ffffff;
+    --brass: #b06a24;
+    --brass-ink: #7a4a18;
+    --ok: #2f7a53;
+    --ok-bg: #e4f1e9;
+    --pending: #a8452c;
+    --pending-bg: #f6e6e1;
+    --code-bg: #f4f5f2;
+    --shadow: 0 1px 2px rgba(18,22,28,0.06), 0 1px 1px rgba(18,22,28,0.04);
+  }
+  :root[data-theme="dark"]{
+    --ink-950:#eef1ee;
+    --ink-800:#d6dbd6;
+    --ink-600:#a4aeb0;
+    --ink-400:#7c8791;
+    --line: rgba(238,241,238,0.14);
+    --paper: #12161c;
+    --panel: #1a2029;
+    --brass: #d38f43;
+    --brass-ink: #e8a854;
+    --ok: #6bbf94;
+    --ok-bg: rgba(80,160,120,0.13);
+    --pending: #d97a5f;
+    --pending-bg: rgba(200,90,60,0.14);
+    --code-bg: #10151b;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink-950:#eef1ee;
+      --ink-800:#d6dbd6;
+      --ink-600:#a4aeb0;
+      --ink-400:#7c8791;
+      --line: rgba(238,241,238,0.14);
+      --paper: #12161c;
+      --panel: #1a2029;
+      --brass: #d38f43;
+      --brass-ink: #e8a854;
+      --ok: #6bbf94;
+      --ok-bg: rgba(80,160,120,0.13);
+      --pending: #d97a5f;
+      --pending-bg: rgba(200,90,60,0.14);
+      --code-bg: #10151b;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink-800);
+    font-family:-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    font-size:16px;
+    line-height:1.55;
+  }
+  .mono{
+    font-family:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;
+  }
+
+  a{color:var(--brass-ink);}
+
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px 96px;}
+
+  header.top{
+    padding:52px 24px 36px;
+    border-bottom:1px solid var(--line);
+    background:var(--panel);
+  }
+  header.top .inner{max-width:860px;margin:0 auto;}
+  .eyebrow{
+    font-family:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;
+    font-size:12.5px;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:var(--brass-ink);
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow .dot{width:6px;height:6px;background:var(--brass);border-radius:50%;display:inline-block;}
+  h1{
+    font-size:clamp(28px,4vw,38px);
+    line-height:1.14;
+    margin:14px 0 10px;
+    letter-spacing:-0.01em;
+    text-wrap:balance;
+    color:var(--ink-950);
+  }
+  .lede{
+    font-size:17px;
+    color:var(--ink-600);
+    max-width:64ch;
+    margin:0;
+  }
+  .lede b{color:var(--ink-800);font-weight:600;}
+
+  /* overview grid */
+  .overview{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-top:28px;
+  }
+  .ocard{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:14px 14px 13px;
+    position:relative;
+  }
+  .ocard .num{
+    font-family:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;
+    font-size:12px;
+    color:var(--brass-ink);
+    font-weight:700;
+    letter-spacing:.02em;
+  }
+  .ocard .t{font-size:13.5px;font-weight:600;color:var(--ink-950);margin-top:5px;line-height:1.3;}
+  .ocard .d{font-size:12.5px;color:var(--ink-600);margin-top:4px;line-height:1.35;}
+  .ocard a{text-decoration:none;color:inherit;display:block;}
+  .ocard a:hover{border-color:var(--brass);}
+  .ocard a:focus-visible{outline:2px solid var(--brass);outline-offset:2px;}
+
+  /* quick reference */
+  .refbox{
+    margin:34px 0 0;
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:18px 20px 20px;
+  }
+  .refbox h2{
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--ink-600);
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  .refgrid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px 28px;
+  }
+  .refgrid dt{
+    font-size:12px;
+    color:var(--ink-400);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .refgrid dd{
+    margin:2px 0 0;
+    font-family:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;
+    font-size:13.5px;
+    color:var(--ink-950);
+  }
+  .refgrid dd small{color:var(--ink-600);font-family:inherit;}
+
+  /* body sections */
+  main{padding-top:8px;}
+
+  .foundation{
+    margin:44px 0 0;
+    padding:20px 22px;
+    background:var(--panel);
+    border-left:3px solid var(--ink-400);
+    border-top:1px solid var(--line);
+    border-right:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+  }
+  .foundation h2{font-size:16px;margin:0 0 4px;color:var(--ink-950);}
+  .foundation p{margin:6px 0;font-size:14.5px;color:var(--ink-600);}
+  .foundation .badge{
+    display:inline-block;
+    font-family:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;
+    font-size:11px;
+    letter-spacing:.03em;
+    padding:2px 7px;
+    background:var(--code-bg);
+    border:1px solid var(--line);
+    color:var(--ink-600);
+    margin-right:6px;
+  }
+
+  h2.section-h{
+    font-size:22px;
+    margin:56px 0 6px;
+    color:var(--ink-950);
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  h2.section-h .n{
+    font-family:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;
+    font-size:15px;
+    color:var(--brass-ink);
+    font-weight:700;
+  }
+
+  details.step{
+    margin-top:22px;
+    background:var(--panel);
+    border:1px solid var(--line);
+  }
+  details.step > summary{
+    list-style:none;
+    cursor:pointer;
+    padding:16px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    font-family:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;
+  }
+  details.step > summary::-webkit-details-marker{display:none;}
+  details.step > summary .stitle{
+    font-size:13.5px;
+    letter-spacing:.02em;
+    color:var(--ink-950);
+    font-weight:600;
+  }
+  details.step > summary .stitle .code{color:var(--brass-ink);}
+  details.step > summary .sarrow{
+    color:var(--ink-400);
+    font-size:12px;
+    transition:transform .15s ease;
+    flex:none;
+  }
+  details.step[open] > summary .sarrow{transform:rotate(90deg);}
+  details.step > summary .progress{
+    font-size:11.5px;
+    color:var(--ink-600);
+    flex:none;
+  }
+  .step-body{padding:4px 20px 22px;border-top:1px solid var(--line);}
+  .step-body .why{
+    font-size:14px;
+    color:var(--ink-600);
+    margin:14px 0 0;
+    max-width:66ch;
+  }
+  .step-body .prereq{
+    margin:14px 0 0;
+    font-size:13px;
+    color:var(--ink-600);
+  }
+  .step-body .prereq b{color:var(--ink-800);font-weight:600;}
+
+  .test{margin-top:22px;}
+  .test h3{
+    font-size:14px;
+    margin:0 0 8px;
+    color:var(--ink-950);
+    font-weight:600;
+  }
+  .test h3 .idx{color:var(--ink-400);font-weight:500;}
+
+  pre{
+    background:var(--code-bg);
+    border:1px solid var(--line);
+    padding:12px 14px;
+    overflow-x:auto;
+    margin:8px 0;
+    font-family:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;
+    font-size:12.8px;
+    line-height:1.55;
+    color:var(--ink-800);
+  }
+  code{
+    font-family:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;
+    background:var(--code-bg);
+    padding:1px 5px;
+    font-size:.89em;
+    border:1px solid var(--line);
+  }
+  pre code{background:none;border:none;padding:0;}
+
+  .expect{
+    margin:10px 0 0;
+    padding:11px 13px;
+    background:var(--ok-bg);
+    border:1px solid transparent;
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+  }
+  .expect .lbl{
+    font-family:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ok);
+    font-weight:700;
+    flex:none;
+    padding-top:1px;
+  }
+  .expect p{margin:0;font-size:13.5px;color:var(--ink-800);}
+  .expect code{background:rgba(255,255,255,0.5);}
+  :root[data-theme="dark"] .expect code{background:rgba(0,0,0,0.25);}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .expect code{background:rgba(0,0,0,0.25);}}
+
+  .note{
+    margin:10px 0 0;
+    padding:11px 13px;
+    background:var(--pending-bg);
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+  }
+  .note .lbl{
+    font-family:ui-monospace,"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--pending);
+    font-weight:700;
+    flex:none;
+    padding-top:1px;
+  }
+  .note p{margin:0;font-size:13.5px;color:var(--ink-800);}
+
+  label.chk{
+    display:flex;
+    align-items:flex-start;
+    gap:9px;
+    margin-top:9px;
+    font-size:13.8px;
+    color:var(--ink-800);
+    cursor:pointer;
+    user-select:none;
+  }
+  label.chk input{
+    appearance:none;
+    -webkit-appearance:none;
+    width:16px;height:16px;
+    flex:none;
+    margin-top:2px;
+    border:1.5px solid var(--ink-400);
+    background:var(--panel);
+    position:relative;
+    cursor:pointer;
+  }
+  label.chk input:checked{
+    background:var(--ok);
+    border-color:var(--ok);
+  }
+  label.chk input:checked::after{
+    content:"";
+    position:absolute;
+    left:4px;top:1px;
+    width:4px;height:8px;
+    border:solid white;
+    border-width:0 2px 2px 0;
+    transform:rotate(45deg);
+  }
+  label.chk input:focus-visible{outline:2px solid var(--brass);outline-offset:2px;}
+  label.chk span b{font-weight:600;}
+  label.chk span{padding-top:0.5px;}
+
+  hr.rule{border:none;border-top:1px solid var(--line);margin:20px 0;}
+
+  footer{
+    max-width:860px;margin:64px auto 0;padding:24px 24px 0;
+    border-top:1px solid var(--line);
+    font-size:13px;
+    color:var(--ink-400);
+  }
+
+  @media (max-width:640px){
+    .overview{grid-template-columns:1fr 1fr;}
+    .refgrid{grid-template-columns:1fr;}
+    header.top{padding:38px 18px 28px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="inner">
+    <div class="eyebrow"><span class="dot"></span>Access Control System &middot; v0.2</div>
+    <h1>Sprint 3 Manual Test Runbook</h1>
+    <p class="lede">Panduan verifikasi <b>backend-mqtt</b> (04.1–04.6) di device kamu yang punya akses Docker/EMQX/MySQL. Setiap bagian membangun di atas fondasi Sprint&nbsp;1 (database + auth EMQX) dan Sprint&nbsp;2 (REST API + JWT) — bukan langkah berdiri sendiri.</p>
+
+    <div class="overview">
+      <div class="ocard"><a href="#s1"><div class="num">04.1</div><div class="t">Koneksi MQTT</div><div class="d">Client hidup, reconnect otomatis</div></a></div>
+      <div class="ocard"><a href="#s2"><div class="num">04.2</div><div class="t">Subscribe log &amp; status</div><div class="d">Tap kartu → masuk DB, heartbeat → online</div></a></div>
+      <div class="ocard"><a href="#s3"><div class="num">04.3</div><div class="t">Publisher</div><div class="d">CRUD user → users/set &amp; users/delete</div></a></div>
+      <div class="ocard"><a href="#s4"><div class="num">04.4</div><div class="t">Sync atomik</div><div class="d">Full sync, staging, retry</div></a></div>
+      <div class="ocard"><a href="#s5"><div class="num">04.5</div><div class="t">WebSocket live feed</div><div class="d">Log tersiar real-time, multi-klien</div></a></div>
+      <div class="ocard"><a href="#s6"><div class="num">04.6</div><div class="t">REPLAYED + config push</div><div class="d">Log offline &amp; config aman</div></a></div>
+    </div>
+
+    <div class="refbox">
+      <h2>Referensi cepat</h2>
+      <dl class="refgrid">
+        <div><dt>Login admin (Sprint 2)</dt><dd>admin / admin123</dd></div>
+        <div><dt>EMQX dashboard (Sprint 1)</dt><dd>127.0.0.1:18083 <small>admin / public</small></dd></div>
+        <div><dt>MQTT user "backend"</dt><dd>backend / backend123</dd></div>
+        <div><dt>MQTT user "ctrl-A"</dt><dd>ctrl-A / ctrlA123</dd></div>
+        <div><dt>ctrl-A doors (id 1)</dt><dd>1 Lobby Utama · 2 Ruang Server <small>· 3 Meeting · 4 Arsip</small></dd></div>
+        <div><dt>ctrl-B doors (id 2)</dt><dd>1 Lobby B · 2 Lab Komputer <small>· 3 Workshop · 4 Gudang</small></dd></div>
+        <div><dt>Kartu seed (IT, dept)</dt><dd>AABBCCDD — John Doe</dd></div>
+        <div><dt>door_id kritis</dt><dd>6 = Lab Komputer = ctrl-B #2</dd></div>
+      </dl>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<main>
+
+  <div class="foundation">
+    <h2>Fondasi dari Sprint 1 &amp; 2</h2>
+    <p><span class="badge">Sprint 1</span>MySQL (<code>schema.sql</code> + <code>seed.sql</code>) dan EMQX dengan 3 user terautentikasi (<code>backend</code>, <code>ctrl-A</code>, <code>ctrl-B</code>) sudah harus hidup — Sprint 3 tidak membangun ulang keduanya, cuma memakainya.</p>
+    <p><span class="badge">Sprint 2</span>Semua endpoint <code>/api/*</code> tetap butuh JWT dari <code>POST /api/auth/login</code>. Data seed (John/Jane/Bob/Alice/Charlie, department IT/HRD/Security) dipakai lagi di bawah sebagai skenario nyata — bukan data karangan.</p>
+    <p>Kalau salah satu dari dua fondasi ini belum hidup, lompat ke <b>Prasyarat</b> di bawah dulu sebelum masuk 04.1.</p>
+  </div>
+
+  <h2 class="section-h" id="prasyarat"><span class="n">00</span>Prasyarat &amp; Setup</h2>
+
+  <div class="test">
+    <h3><span class="idx">1.</span> Nyalakan MySQL &amp; EMQX, isi <code>backend/.env</code></h3>
+    <pre><code>docker ps   # pastikan container MySQL &amp; EMQX jalan</code></pre>
+    <p class="why">Isi <code>backend/.env</code> — nama variabel harus sama persis dengan yang dibaca <code>app/config.py</code>:</p>
+    <pre><code># DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME -> sesuai container MySQL kamu
+JWT_SECRET_KEY=apapun-yang-penting-tidak-kosong
+MQTT_HOST=localhost
+MQTT_PORT=1883
+MQTT_USERNAME=backend
+MQTT_PASSWORD=backend123
+AUTH_ENABLED=false</code></pre>
+  </div>
+
+  <div class="test">
+    <h3><span class="idx">2.</span> Install dependency (sudah termasuk <code>paho-mqtt</code>)</h3>
+    <pre><code>cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt</code></pre>
+  </div>
+
+  <div class="test">
+    <h3><span class="idx">3.</span> Jalankan server, lalu login</h3>
+    <pre><code>uvicorn app.main:app --reload</code></pre>
+    <p class="why">Terminal baru — simpan token, dipakai semua request <code>/api/*</code> di bawah:</p>
+    <pre><code>$body = @{ username = "admin"; password = "admin123" } | ConvertTo-Json
+$login = Invoke-RestMethod -Uri http://localhost:8000/api/auth/login -Method Post -Body $body -ContentType "application/json"
+$headers = @{ Authorization = "Bearer $($login.access_token)" }</code></pre>
+  </div>
+
+  <div class="test">
+    <h3><span class="idx">4.</span> Jalankan simulator controller (terminal ketiga)</h3>
+    <pre><code>python tools/simulate_esp32.py 127.0.0.1</code></pre>
+    <p class="why">Simulator mewakili <b>ctrl-A</b> &amp; <b>ctrl-B</b> sekaligus. Perintah yang dipakai berulang di bawah: <code class="mono">tap &lt;ctrl-A|ctrl-B&gt; &lt;kartu&gt; &lt;pintu&gt;</code>.</p>
+  </div>
+
+  <!-- ============ 04.1 ============ -->
+  <h2 class="section-h" id="s1"><span class="n">04.1</span>Koneksi MQTT</h2>
+
+  <details class="step" open>
+    <summary><span class="stitle"><span class="code">04.1</span> — Client hidup, reconnect otomatis</span><span class="sarrow">▸</span></summary>
+    <div class="step-body">
+      <p class="why">Backend tidak boleh jatuh kalau EMQX mati, dan harus reconnect sendiri kalau EMQX hidup lagi.</p>
+
+      <div class="test">
+        <h3><span class="idx">A.</span> Broker hidup saat startup</h3>
+        <pre><code>Invoke-RestMethod http://localhost:8000/health</code></pre>
+        <div class="expect"><span class="lbl">Expect</span><p><code>{"status":"ok","mqtt_connected":true}</code></p></div>
+        <label class="chk"><input type="checkbox" data-key="1a"><span><b>mqtt_connected: true</b> saat broker hidup</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">B.</span> Broker mati → server tetap hidup</h3>
+        <p class="why">Stop container EMQX, lalu restart <code class="mono">uvicorn</code> (Ctrl+C, jalankan lagi).</p>
+        <div class="expect"><span class="lbl">Expect</span><p>Server tetap start normal (tidak crash), <code>mqtt_connected: false</code>, endpoint lain (mis. <code>/docs</code>) tetap 200.</p></div>
+        <label class="chk"><input type="checkbox" data-key="1b"><span>Server tidak crash meski broker mati</span></label>
+        <label class="chk"><input type="checkbox" data-key="1b2"><span>Endpoint REST lain tetap 200</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">C.</span> Broker hidup lagi → reconnect ≤30 detik</h3>
+        <p class="why">Server dari test B tetap jalan. Start ulang EMQX, lalu poll <code>/health</code> tiap beberapa detik.</p>
+        <div class="expect"><span class="lbl">Expect</span><p><code>mqtt_connected</code> berubah <code>true</code> sendiri dalam ≤30 detik, tanpa restart server.</p></div>
+        <label class="chk"><input type="checkbox" data-key="1c"><span>Auto-reconnect ≤30 detik, tanpa restart manual</span></label>
+      </div>
+    </div>
+  </details>
+
+  <!-- ============ 04.2 ============ -->
+  <h2 class="section-h" id="s2"><span class="n">04.2</span>Subscribe: Log &amp; Status</h2>
+
+  <details class="step" open>
+    <summary><span class="stitle"><span class="code">04.2</span> — Tap kartu masuk DB, heartbeat → online</span><span class="sarrow">▸</span></summary>
+    <div class="step-body">
+      <p class="prereq"><b>Prasyarat:</b> 04.1-C lulus, simulator jalan.</p>
+
+      <div class="test">
+        <h3><span class="idx">A.</span> Kartu dikenal (John Doe, seed Sprint 2)</h3>
+        <pre><code>tap ctrl-A AABBCCDD 1</code></pre>
+        <pre><code>Invoke-RestMethod -Headers $headers "http://localhost:8000/api/logs?kartu=AABBCCDD"</code></pre>
+        <div class="expect"><span class="lbl">Expect</span><p>Row baru: <code>user_nama: "John Doe"</code>, <code>door_nama: "Lobby Utama"</code>, <code>result: "GRANTED"</code>, <code>device_uptime_ms</code> terisi.</p></div>
+        <label class="chk"><input type="checkbox" data-key="2a"><span>user_nama &amp; door_nama ter-snapshot benar</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">B.</span> Kartu tak dikenal</h3>
+        <pre><code>tap ctrl-A 00000FADE 1</code></pre>
+        <div class="expect"><span class="lbl">Expect</span><p>Row tetap tersimpan (bukan ditolak), <code>user_id: null</code>.</p></div>
+        <label class="chk"><input type="checkbox" data-key="2b"><span>Kartu asing tetap tersimpan, user_id null</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">C.</span> Kartu numerik pendek</h3>
+        <pre><code>tap ctrl-A 555 1</code></pre>
+        <pre><code>Invoke-RestMethod -Headers $headers "http://localhost:8000/api/logs?kartu=0000000555"</code></pre>
+        <div class="expect"><span class="lbl">Expect</span><p>Tersimpan sebagai <code>0000000555</code> (10 digit, di-pad otomatis).</p></div>
+        <label class="chk"><input type="checkbox" data-key="2c"><span>normalize_kartu memad ke 10 digit</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">D.</span> Heartbeat → is_online</h3>
+        <p class="why">Biarkan simulator jalan (heartbeat tiap 10 detik).</p>
+        <pre><code>Invoke-RestMethod -Headers $headers http://localhost:8000/api/controllers</code></pre>
+        <div class="expect"><span class="lbl">Expect</span><p>ctrl-A &amp; ctrl-B <code>is_online: true</code>.</p></div>
+        <label class="chk"><input type="checkbox" data-key="2d"><span>is_online: true selagi simulator jalan</span></label>
+
+        <p class="why" style="margin-top:14px;">Sekarang <b>hentikan</b> simulator (Ctrl+C) dan tunggu <b>~90 detik</b> (3× <code>heartbeat_s</code> default 30s) sebelum cek ulang.</p>
+        <div class="note"><span class="lbl">Perlu sabar</span><p>Bukan hang — ini memang didesain toleran 3× interval heartbeat supaya 1 heartbeat telat tidak dianggap offline palsu.</p></div>
+        <label class="chk"><input type="checkbox" data-key="2d2"><span>is_online: false setelah ~90 detik simulator mati</span></label>
+      </div>
+    </div>
+  </details>
+
+  <!-- ============ 04.3 ============ -->
+  <h2 class="section-h" id="s3"><span class="n">04.3</span>Publisher: CRUD User → Controller</h2>
+
+  <details class="step" open>
+    <summary><span class="stitle"><span class="code">04.3</span> — REST CRUD user menembus ke controller</span><span class="sarrow">▸</span></summary>
+    <div class="step-body">
+      <p class="prereq"><b>Prasyarat:</b> 04.2 lulus. Pakai kartu <b>baru</b> (bukan seed) supaya tidak bentrok data John Doe.</p>
+
+      <div class="test">
+        <h3><span class="idx">A.</span> Create user dept IT (akses ctrl-A + ctrl-B)</h3>
+        <pre><code>$body = @{ kartu="10203040"; nama="Test Sprint3"; department_id=1; is_custom_access=$false } | ConvertTo-Json
+$user = Invoke-RestMethod -Uri http://localhost:8000/api/users -Method Post -Headers $headers -Body $body -ContentType "application/json"
+$uid = $user.uid</code></pre>
+        <div class="expect"><span class="lbl">Expect di terminal simulator</span><p>ctrl-A: <code>Upsert User: 10203040 -&gt; [1, 2]</code><br>ctrl-B: <code>Upsert User: 10203040 -&gt; [2]</code></p></div>
+        <div class="note"><span class="lbl">Verifikasi kritis</span><p>ctrl-B harus dapat <code class="mono">2</code> (door_number Lab Komputer), <b>bukan</b> <code class="mono">6</code> (door_id-nya). Ini inti bug P0-1 dari <code>architecture_review.md</code>.</p></div>
+        <label class="chk"><input type="checkbox" data-key="3a"><span>ctrl-A dapat [1,2], ctrl-B dapat [2] — bukan [6]</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">B.</span> Pindah department → cabut akses ctrl-B</h3>
+        <p class="why">Pindahkan ke HRD (dept 2 — cuma Lobby Utama, tidak menyentuh ctrl-B sama sekali):</p>
+        <pre><code>$body = @{ department_id = 2 } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:8000/api/users/$uid" -Method Put -Headers $headers -Body $body -ContentType "application/json"</code></pre>
+        <div class="expect"><span class="lbl">Expect di terminal simulator</span><p>ctrl-A: <code>Upsert User: 10203040 -&gt; [1]</code><br>ctrl-B: <code>Berhasil menghapus user: 10203040</code></p></div>
+        <label class="chk"><input type="checkbox" data-key="3b"><span>ctrl-B menerima users/delete saat akses dicabut</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">C.</span> Delete user</h3>
+        <pre><code>Invoke-RestMethod -Uri "http://localhost:8000/api/users/$uid" -Method Delete -Headers $headers</code></pre>
+        <div class="expect"><span class="lbl">Expect</span><p>ctrl-A menerima <code>users/delete</code> untuk 10203040 (controller terdampak terakhir).</p></div>
+        <label class="chk"><input type="checkbox" data-key="3c"><span>DELETE user memicu users/delete ke controller terdampak</span></label>
+        <label class="chk"><input type="checkbox" data-key="3d"><span>Payload MQTT tidak pernah memuat "nama" (cek log simulator)</span></label>
+      </div>
+    </div>
+  </details>
+
+  <!-- ============ 04.4 ============ -->
+  <h2 class="section-h" id="s4"><span class="n">04.4</span>Sync Atomik</h2>
+
+  <details class="step" open>
+    <summary><span class="stitle"><span class="code">04.4</span> — Full sync, staging, retry</span><span class="sarrow">▸</span></summary>
+    <div class="step-body">
+      <p class="prereq"><b>Prasyarat:</b> 04.2 lulus. Controller ID ctrl-A biasanya <code>1</code> di data seed segar — cek dulu lewat <code>GET /api/controllers</code> kalau beda.</p>
+
+      <div class="test">
+        <h3><span class="idx">A.</span> Sync normal</h3>
+        <pre><code>Invoke-RestMethod -Uri http://localhost:8000/api/controllers/1/sync -Method Post -Headers $headers</code></pre>
+        <div class="expect"><span class="lbl">Expect di terminal simulator</span><p><code>Memulai sinkronisasi atomik...</code> → beberapa <code>Staging User: ...</code> → <code>Sinkronisasi SUKSES. N user disimpan ke RAM.</code></p></div>
+        <div class="note"><span class="lbl">Cara verifikasi count</span><p>Jangan patokan angka tetap — cocokkan jumlah baris <code>Staging User</code> di simulator dengan <code>count</code> di response API. Kalau baru dari seed segar (belum bikin user baru), harusnya <b>4</b> (John, Jane, Bob, Charlie — semua yang aksesnya menyentuh ctrl-A).</p></div>
+        <label class="chk"><input type="checkbox" data-key="4a"><span>Response <code>{"status":"OK","count":N}</code>, bukan 501</span></label>
+        <label class="chk"><input type="checkbox" data-key="4a2"><span>count API = jumlah baris "Staging User" di simulator</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">B.</span> Sync ke controller offline</h3>
+        <p class="why">Hentikan simulator (Ctrl+C) sepenuhnya, lalu ulangi request sync.</p>
+        <div class="note"><span class="lbl">Perlu sabar</span><p>Bisa sampai ~90 detik (3 percobaan × timeout 30 detik) — bukan hang, itu retry otomatis bekerja.</p></div>
+        <div class="expect"><span class="lbl">Expect</span><p>Response akhirnya balik dengan <code>"status":"SYNC_FAILED"</code>, <code>"last":"TIMEOUT"</code> — bukan menggantung selamanya.</p></div>
+        <label class="chk"><input type="checkbox" data-key="4b"><span>Timeout terbungkus rapi, tidak hang selamanya</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">C.</span> Broker mati saat sync</h3>
+        <p class="why">Stop EMQX, lalu request sync lagi.</p>
+        <div class="expect"><span class="lbl">Expect</span><p>503 <code>Broker MQTT offline</code> — langsung, tanpa mencoba publish apa pun.</p></div>
+        <label class="chk"><input type="checkbox" data-key="4c"><span>Broker offline → 503 instan</span></label>
+      </div>
+    </div>
+  </details>
+
+  <!-- ============ 04.5 ============ -->
+  <h2 class="section-h" id="s5"><span class="n">04.5</span>WebSocket Live Feed</h2>
+
+  <details class="step" open>
+    <summary><span class="stitle"><span class="code">04.5</span> — Siaran real-time ke banyak klien</span><span class="sarrow">▸</span></summary>
+    <div class="step-body">
+      <p class="prereq"><b>Prasyarat:</b> 04.2 lulus. Nyalakan ulang EMQX &amp; simulator kalau sempat dimatikan di 04.4.</p>
+
+      <div class="test">
+        <h3><span class="idx">A.</span> Siapkan klien WebSocket</h3>
+        <p class="why">Pakai <code class="mono">wscat</code> kalau ada Node, atau skrip Python singkat ini (2 terminal terpisah, jalankan sama persis di keduanya):</p>
+        <pre><code>pip install websockets</code></pre>
+        <pre><code>import asyncio, websockets, json
+async def main():
+    async with websockets.connect("ws://localhost:8000/ws/live-feed") as ws:
+        print("Terhubung, menunggu live feed...")
+        async for msg in ws:
+            print(json.dumps(json.loads(msg), indent=2))
+asyncio.run(main())</code></pre>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">B.</span> Tap sekali, cek 2 klien</h3>
+        <pre><code>tap ctrl-A AABBCCDD 1</code></pre>
+        <div class="expect"><span class="lbl">Expect</span><p>Kedua terminal klien menerima JSON identik dalam &lt;1 detik.</p></div>
+        <label class="chk"><input type="checkbox" data-key="5a"><span>2 klien simultan menerima broadcast &lt;1 detik</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">C.</span> Kartu tak dikenal</h3>
+        <pre><code>tap ctrl-A 00000FADE 1</code></pre>
+        <div class="expect"><span class="lbl">Expect</span><p><code>user_nama: null</code> tetap tersiar ke klien.</p></div>
+        <label class="chk"><input type="checkbox" data-key="5b"><span>Kartu asing tetap tersiar, user_nama null</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">D.</span> Tutup 1 klien, tap lagi</h3>
+        <p class="why">Ctrl+C di salah satu terminal klien, lalu tap sekali lagi.</p>
+        <div class="expect"><span class="lbl">Expect</span><p>Klien yang tersisa tetap menerima broadcast; terminal <code>uvicorn</code> tidak menampilkan error.</p></div>
+        <label class="chk"><input type="checkbox" data-key="5c"><span>Koneksi mati dibersihkan otomatis, tidak ada error server</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">E.</span> Cek format waktu</h3>
+        <div class="expect"><span class="lbl">Expect</span><p><code>server_ts</code> berakhiran <code>Z</code> murni, contoh <code>2026-07-16T05:32:36.109447Z</code> — <b>bukan</b> <code>...+00:00Z</code>.</p></div>
+        <label class="chk"><input type="checkbox" data-key="5d"><span>server_ts diakhiri "Z" tunggal (UTC)</span></label>
+      </div>
+    </div>
+  </details>
+
+  <!-- ============ 04.6 ============ -->
+  <h2 class="section-h" id="s6"><span class="n">04.6</span>Log REPLAYED + Config Push</h2>
+
+  <details class="step" open>
+    <summary><span class="stitle"><span class="code">04.6</span> — Buffer offline &amp; config aman</span><span class="sarrow">▸</span></summary>
+    <div class="step-body">
+      <p class="prereq"><b>Prasyarat:</b> 04.2 lulus. Bagian ini butuh publish manual (bukan lewat simulator, yang tidak mensimulasikan buffer offline) — pakai MQTT Explorer, atau skrip Python singkat di bawah (device ini sudah punya <code>paho-mqtt</code> terpasang).</p>
+
+      <div class="test">
+        <h3><span class="idx">A.</span> Publish log REPLAYED manual</h3>
+        <pre><code>import paho.mqtt.client as mqtt
+c = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+c.username_pw_set("ctrl-A", "ctrlA123")
+c.connect("127.0.0.1", 1883, 60)
+c.publish("access/ctrl-A/logs", "AABBCCDD,1,GRANTED,OK,123456,REPLAYED", qos=1)
+c.disconnect()</code></pre>
+        <pre><code>Invoke-RestMethod -Headers $headers "http://localhost:8000/api/logs?is_replayed=true"</code></pre>
+        <div class="expect"><span class="lbl">Expect</span><p>Row baru muncul dengan <code>is_replayed: true</code>.</p></div>
+        <label class="chk"><input type="checkbox" data-key="6a"><span>Payload 6-field + REPLAYED → is_replayed: true</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">B.</span> Log biasa (tanpa REPLAYED)</h3>
+        <pre><code>tap ctrl-A AABBCCDD 1</code></pre>
+        <div class="expect"><span class="lbl">Expect</span><p><code>GET /api/logs?is_replayed=false</code> menyertakan row ini.</p></div>
+        <label class="chk"><input type="checkbox" data-key="6b"><span>Log real-time tetap is_replayed: false</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">C.</span> server_ts tersebar (bukan menumpuk)</h3>
+        <p class="why">Kirim 2–3 publish manual dengan <code>uptime_ms</code> yang jauh berbeda (mis. <code>1000</code> lalu <code>500000</code>), setelah simulator sempat kirim minimal 1 <code>status</code> heartbeat untuk device itu.</p>
+        <div class="expect"><span class="lbl">Expect</span><p><code>server_ts</code> antar log berbeda signifikan — <b>bukan</b> beberapa log di detik yang sama persis.</p></div>
+        <div class="note"><span class="lbl">Keterbatasan diketahui</span><p>Kalau backend belum pernah terima <code>status</code> dari device itu sejak dia hidup, fallback ke <code>NOW()</code> diterima — dicatat eksplisit di <code>CHANGELOG.md</code>, bukan bug.</p></div>
+        <label class="chk"><input type="checkbox" data-key="6c"><span>server_ts tersebar sesuai uptime_ms, bukan menumpuk</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">D.</span> Config push — key aman</h3>
+        <pre><code>$body = @{ heartbeat_s = 60 } | ConvertTo-Json
+Invoke-RestMethod -Uri http://localhost:8000/api/controllers/1/config -Method Put -Headers $headers -Body $body -ContentType "application/json"</code></pre>
+        <div class="expect"><span class="lbl">Expect di terminal simulator</span><p><code>Menerapkan konfigurasi secara lokal: heartbeat_s=60</code></p></div>
+        <label class="chk"><input type="checkbox" data-key="6d"><span>heartbeat_s / total_doors ter-publish ke controller</span></label>
+      </div>
+
+      <div class="test">
+        <h3><span class="idx">E.</span> Config push — key berbahaya (wifi/mqtt)</h3>
+        <pre><code>$body = @{ wifi_ssid = "TEST_WIFI" } | ConvertTo-Json
+Invoke-RestMethod -Uri http://localhost:8000/api/controllers/1/config -Method Put -Headers $headers -Body $body -ContentType "application/json"</code></pre>
+        <div class="expect"><span class="lbl">Expect</span><p>Tersimpan di DB (cek lewat <code>GET .../config</code>), <b>tidak ada</b> output apa pun di terminal simulator.</p></div>
+        <label class="chk"><input type="checkbox" data-key="6e"><span>wifi_ssid tersimpan DB-only, tidak dipublish</span></label>
+      </div>
+    </div>
+  </details>
+
+  <hr class="rule" style="margin-top:48px;">
+
+  <p style="font-size:13.5px;color:var(--ink-600);">
+    Kalau ada langkah yang hasilnya tidak sesuai, salin pesan error / output simulator apa adanya — jangan diringkas — supaya lebih mudah dilacak baliknya.
+  </p>
+</main>
+
+<footer>
+  Sprint 3 — <code class="mono">feature/backend-mqtt</code> · dibuat untuk verifikasi manual di device dengan akses Docker/EMQX/MySQL.
+</footer>
+</div>
+
+<script>
+(function(){
+  var STORE_KEY = "s3runbook-checks";
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(STORE_KEY) || "{}"); } catch(e){ state = {}; }
+
+  document.querySelectorAll('label.chk input[type="checkbox"]').forEach(function(box){
+    var key = box.getAttribute('data-key');
+    if (state[key]) box.checked = true;
+    box.addEventListener('change', function(){
+      state[key] = box.checked;
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e){}
+      updateProgress();
+    });
+  });
+
+  function updateProgress(){
+    document.querySelectorAll('details.step').forEach(function(step){
+      var boxes = step.querySelectorAll('label.chk input[type="checkbox"]');
+      if (!boxes.length) return;
+      var done = 0;
+      boxes.forEach(function(b){ if (b.checked) done++; });
+      var summary = step.querySelector('summary');
+      var existing = summary.querySelector('.progress');
+      var text = done + '/' + boxes.length;
+      if (existing) {
+        existing.textContent = text;
+      } else {
+        var span = document.createElement('span');
+        span.className = 'progress';
+        span.textContent = text;
+        summary.insertBefore(span, summary.querySelector('.sarrow'));
+      }
+    });
+  }
+  updateProgress();
+})();
+</script>
+</body>
+</html>

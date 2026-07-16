@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     MQTT_USERNAME: str = "backend"
     MQTT_PASSWORD: str = ""
 
+    # --- WebSocket Auth (lihat app/ws/auth.py) ---
+    # Belum diaktifkan di app ini (WS /ws/live-feed masih bebas diakses tanpa token). Struktur
+    # validasinya sudah ada supaya tinggal di-set True kalau proteksi WS mau dinyalakan.
+    AUTH_ENABLED: bool = False
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @property

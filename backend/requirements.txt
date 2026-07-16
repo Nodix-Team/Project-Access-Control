@@ -7,5 +7,5 @@ python-jose[cryptography]
 bcrypt
 passlib
 python-dotenv
-aiomqtt
+paho-mqtt
 pydantic-settings

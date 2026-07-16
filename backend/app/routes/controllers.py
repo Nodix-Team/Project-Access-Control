@@ -1,5 +1,5 @@
 # Route CRUD Controller + baca/push config + status online (dihitung, bukan disimpan)
-from typing import List, NoReturn
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import case, func, literal_column, select
@@ -8,12 +8,26 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_admin
 from app.database import get_db
 from app.models.controller import Controller
-from app.schemas.controller import ControllerConfigOut, ControllerConfigUpdate, ControllerOut
+from app.mqtt import client as mqtt_client
+from app.mqtt.publisher import publish
+from app.schemas.controller import (
+    ControllerConfigOut,
+    ControllerConfigUpdate,
+    ControllerOut,
+    SyncResultOut,
+)
+from app.services.sync_service import run_full_sync
 
 # Semua route di sini wajib JWT (dependencies di level router)
 router = APIRouter(
     prefix="/api/controllers", tags=["controllers"], dependencies=[Depends(get_current_admin)]
 )
+
+# Config yang aman di-push langsung tanpa konfirmasi (lihat architecture_review.md P1-2).
+# wifi_*/mqtt_* SENGAJA tidak masuk sini - butuh mekanisme rollback firmware
+# (config_last_known_good.json) yang belum ada di jalur MQTT ini; perubahan itu tetap
+# tersimpan di DB, diterapkan manual lewat web server lokal controller (jaring pengaman).
+_SAFE_CONFIG_KEYS = {"heartbeat_s", "total_doors"}
 
 # is_online = last_seen > NOW() - INTERVAL (heartbeat_s * 3) SECOND, dihitung ulang tiap query —
 # lihat blok "is_online Dihitung, Bukan Disimpan" di architecture_proposal_v0.2.md
@@ -96,22 +110,20 @@ def update_controller_config(
     db.commit()
     db.refresh(controller)
 
-    # TODO (Sprint 3): publish config baru ke controller via MQTT topic `access/{device_id}/config/set`
-    # (format CSV key,value, QoS 1) lewat backend/app/mqtt/publisher.py yang belum dibuat. Untuk
-    # sekarang config HANYA ditulis ke DB — controller fisik tidak menerima update apa pun sampai
-    # Sprint 3 (Backend MQTT + Sync Protocol) selesai.
+    for key, value in updates.items():
+        if key in _SAFE_CONFIG_KEYS:
+            publish(f"access/{controller.device_id}/config/set", f"{key},{value}", qos=1)
 
     return _to_config_out(controller)
 
 
-@router.post("/{controller_id}/sync", response_model=None)
-def sync_controller(controller_id: int, db: Session = Depends(get_db)) -> NoReturn:
-    # TODO (Sprint 3): implementasi protokol sync atomik (PRD 6.4) — kirim users/sync/start
-    # (sync_id) -> users/set x N -> users/sync/end (count) via MQTT, tunggu sync/result (OK/
-    # MISMATCH) dari controller. Butuh backend/app/mqtt/ (client, publisher, subscriber,
-    # handlers) yang belum dibangun. Untuk sekarang stub 501 supaya kontrak endpoint sudah ada.
-    _get_controller_or_404(db, controller_id)
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Sync atomik belum diimplementasikan — lihat Sprint 3 (Backend MQTT + Sync Protocol)",
-    )
+@router.post("/{controller_id}/sync", response_model=SyncResultOut)
+def sync_controller(controller_id: int, db: Session = Depends(get_db)) -> SyncResultOut:
+    controller = _get_controller_or_404(db, controller_id)
+
+    if not mqtt_client.is_connected():
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Broker MQTT offline")
+
+    # MISMATCH/TIMEOUT bukan error request - controller mempertahankan daftar lama (pintu tetap
+    # bisa diakses), jadi status jujur dibalas apa adanya lewat 200, bukan dianggap sukses/dipaksa.
+    return SyncResultOut(**run_full_sync(db, controller))

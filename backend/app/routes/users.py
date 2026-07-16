@@ -10,6 +10,7 @@ from app.auth.dependencies import get_current_admin
 from app.database import get_db
 from app.models.department import Department
 from app.models.user import User
+from app.mqtt.publisher import push_delete, push_user
 from app.schemas.user import (
     CsvUploadResponse,
     CsvUploadRowError,
@@ -92,6 +93,7 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)) -> UserOut:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Kartu sudah terdaftar")
     db.refresh(user)
+    push_user(db, user)
     return _to_user_out(db, user)
 
 
@@ -117,6 +119,7 @@ def update_user(uid: int, payload: UserUpdate, db: Session = Depends(get_db)) ->
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Kartu sudah terdaftar")
     db.refresh(user)
+    push_user(db, user)  # akses bisa berubah (kartu, department_id, is_custom_access, ...)
     return _to_user_out(db, user)
 
 
@@ -126,8 +129,13 @@ def delete_user(uid: int, db: Session = Depends(get_db)) -> None:
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User tidak ditemukan")
 
+    # Kumpulkan controller terdampak SEBELUM baris user hilang - resolve_user_access butuh user.uid.
+    device_ids = list(resolve_user_access(db, user.uid).keys())
+    kartu = user.kartu
+
     db.delete(user)
     db.commit()
+    push_delete(kartu, device_ids)
 
 
 @router.post("/upload-csv", response_model=CsvUploadResponse)
