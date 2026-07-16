@@ -15,21 +15,23 @@ class Settings(BaseSettings):
     # --- JWT Auth ---
     JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_MINUTES: int = 60
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # --- MQTT / EMQX Broker ---
-    MQTT_HOST: str = "localhost"
+    MQTT_BROKER: str = "localhost"
     MQTT_PORT: int = 1883
-    MQTT_USERNAME: str = "backend"
+    MQTT_USER: str = "backend"
     MQTT_PASSWORD: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @property
     def database_url(self) -> str:
         # Format DSN untuk SQLAlchemy + driver PyMySQL
+        import urllib.parse
+        encoded_password = urllib.parse.quote_plus(self.DB_PASSWORD)
         return (
-            f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}"
+            f"mysql+pymysql://{self.DB_USER}:{encoded_password}"
             f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
 
