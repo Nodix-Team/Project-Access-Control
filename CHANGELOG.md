@@ -33,6 +33,33 @@ Implementasi REST API v0.2 (FastAPI) sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.
 
 ---
 
+### Backend MQTT + Sync Protocol — Sprint 3 (`feature/backend-mqtt`)
+
+Integrasi MQTT penuh sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.md) Sprint 3: koneksi broker, subscribe log/status/sync-result, publish perubahan user & config, protokol sync atomik, WebSocket live feed, dan penanganan log `REPLAYED` dari buffer offline controller.
+
+### Added
+- `backend/app/mqtt/client.py` — koneksi paho-mqtt (`CallbackAPIVersion.VERSION2`) ke EMQX, `connect_async` + `loop_start()` non-blocking di thread background, auto-reconnect (`reconnect_delay_set`), status hidup lewat `is_connected()`. **Pakai `paho-mqtt`, bukan `aiomqtt`** — app ini sync (PyMySQL), paho jalan di thread sendiri, bukan asyncio
+- `GET /health` menyertakan `mqtt_connected`
+- `backend/app/mqtt/subscriber.py` — subscribe QoS 1 ke `access/+/logs`, `access/+/status`, `access/+/status/lwt`, `access/+/sync/result`, `access/+/config/response`; routing `on_message` ke handler berdasar `device_id` yang diparse dari topic, exception per-pesan ditangkap (tidak pernah menjatuhkan thread paho)
+- `backend/app/mqtt/handlers.py`:
+  - `handle_log` — simpan ke `access_logs` dengan `normalize_kartu()`, translasi `door_number → door_id` per controller, snapshot `user_nama`/`door_nama`, kartu tak dikenal tetap disimpan (`user_id=NULL`). Mendukung payload 4 field (kontrak firmware saat ini) maupun 5 field (kontrak target + `reason`)
+  - Deteksi flag `REPLAYED` (field terakhir payload) untuk log dari buffer offline controller — `is_replayed=TRUE` disimpan apa pun kejadiannya. `server_ts` direkonstruksi dari `boot_estimate` device (diisi `handle_status` dari `uptime_ms` heartbeat) + `uptime_ms` log, supaya ratusan log dari beberapa jam offline **tidak** menumpuk di satu detik yang sama; fallback ke `NOW()` kalau device belum pernah kirim status sejak backend hidup (keterbatasan diketahui, firmware belum sinkron kirim status pas reconnect sebelum replay)
+  - `handle_status` — update `controllers.last_seen`
+  - `handle_sync_result` — jembatani hasil sync ke `sync_service`
+  - `handle_config_response` — parse pasangan `key,value,...` dan log (belum ada konsumen frontend)
+- `backend/app/mqtt/publisher.py` — `push_user()`/`push_delete()`: publish perubahan akses user ke **semua** controller (bukan cuma hasil `resolve_user_access`, supaya controller yang aksesnya baru dicabut tetap menerima `users/delete`, bukan dibiarkan nyangkut). `door_id` dan `nama` tidak pernah keluar ke payload MQTT. Broker offline → log warning, route REST tetap balas sukses untuk operasi DB-nya
+- `backend/app/services/sync_service.py` — `POST /api/controllers/{id}/sync` (bukan lagi `501`): full sync atomik (`sync/start` → `users/set` × N → `sync/end` dengan count → tunggu `sync/result`), retry otomatis kalau `MISMATCH`/`TIMEOUT`. Menjembatani `sync/result` (thread paho) ke request FastAPI yang menunggu (thread berbeda) lewat `threading.Event` per `sync_id`
+- `PUT /api/controllers/{id}/config` — publish ke `access/{device_id}/config/set` untuk config aman (`heartbeat_s`, `total_doors`) saja; `wifi_*`/`mqtt_*` sengaja **tidak** di-push otomatis (butuh rollback firmware yang belum ada), tetap tersimpan di DB dan diterapkan manual lewat web server lokal controller
+- `backend/app/ws/manager.py` + `WS /ws/live-feed` — siarkan log akses real-time ke frontend begitu tersimpan ke DB, menjembatani thread paho ke event loop asyncio lewat `asyncio.run_coroutine_threadsafe`; koneksi mati dibersihkan otomatis
+- `backend/app/ws/auth.py` + `AUTH_ENABLED` (config.py, default `False`) — struktur validasi token WS (`?token=`) sudah ada meski belum diaktifkan, supaya tinggal diaktifkan tanpa ubah endpoint
+
+### Known Limitations
+- Rekonstruksi `server_ts` untuk log `REPLAYED` bergantung pada backend sudah pernah menerima minimal 1 `status` dari device sejak backend hidup; kalau belum, fallback ke `NOW()` (lebih baik daripada menolak log, tapi timestamp jadi kurang akurat untuk kasus ini)
+- `POST /api/controllers/{id}/config/request` (trigger `config/response`) tidak dibuat — item opsional di roadmap, tidak ada di kriteria selesai manapun
+- Belum diverifikasi end-to-end terhadap broker EMQX + MySQL + firmware/simulator sungguhan (diverifikasi lewat test lokal: SQLite, `TestClient` WebSocket asli, thread terpisah sungguhan untuk jalur cross-thread) — perlu dijalankan ulang begitu ada akses Docker/EMQX/MySQL asli
+
+---
+
 ## [v0.1.0] - 2026-07-13
 
 ### Prototype v0.1 — Serial Simulation + MQTT User Management
