@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import StatCard from "../../components/StatCard";
 import StatCardSkeleton from "../../components/StatCardSkeleton";
+import Table, { type Column } from "../../components/Table";
 import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
 import { accessLogs, controllers, doors, users } from "../../mock/data";
 import { isControllerOnline } from "../../utils/controllerStatus";
+import { formatTime } from "../../utils/format";
 import type { AccessLog, AccessReason, AccessResult } from "../../types";
 
 const FEED_LIMIT = 20;
@@ -47,6 +49,10 @@ function generateRandomLog(): AccessLog {
   };
 }
 
+function resultColor(result: AccessResult): string {
+  return result === "GRANTED" ? "text-green-600" : "text-red-600";
+}
+
 export default function Dashboard() {
   const isLoading = useSimulatedLoading();
   const [feed, setFeed] = useState<AccessLog[]>(() =>
@@ -65,51 +71,95 @@ export default function Dashboard() {
   const onlineCount = controllers.filter((c) => isControllerOnline(c)).length;
   const offlineCount = controllers.length - onlineCount;
 
+  const columns: Column<AccessLog>[] = [
+    { header: "Waktu", render: (l) => formatTime(l.server_ts) },
+    {
+      header: "Nama / Kartu",
+      render: (l) => (
+        <div>
+          <div className="font-bold text-gray-900">{l.user_nama ?? "Unknown"}</div>
+          <div className="font-mono text-xs text-gray-400">{l.kartu}</div>
+        </div>
+      ),
+    },
+    {
+      header: "Pintu / Controller",
+      render: (l) => {
+        const ctrl = controllers.find((c) => c.id === l.controller_id);
+        return (
+          <div>
+            <div className="font-bold text-gray-900">{l.door_nama ?? "—"}</div>
+            <div className="text-xs text-gray-400">{ctrl?.device_id ?? "—"}</div>
+          </div>
+        );
+      },
+    },
+    {
+      header: "Status",
+      render: (l) => <span className={`font-semibold ${resultColor(l.result)}`}>{l.result}</span>,
+    },
+    {
+      header: "Reason",
+      render: (l) => <span className={resultColor(l.result)}>{l.reason ?? "—"}</span>,
+    },
+  ];
+
   return (
     <div>
       <h1 className="mb-4 text-xl font-semibold text-gray-900">Dashboard</h1>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-3 gap-4">
         {isLoading ? (
           <>
-            <StatCardSkeleton />
             <StatCardSkeleton />
             <StatCardSkeleton />
             <StatCardSkeleton />
           </>
         ) : (
           <>
-            <StatCard label="Users" value={users.length} />
-            <StatCard label="Controllers" value={controllers.length} />
-            <StatCard label="Doors" value={doors.length} />
-            <StatCard
-              label="Status Controller"
-              value={`${onlineCount} Online / ${offlineCount} Offline`}
-            />
+            <StatCard label="Users" value={users.length} to="/users" />
+            <StatCard label="Controllers" value={controllers.length} to="/controllers" />
+            <StatCard label="Doors" value={doors.length} to="/doors" />
           </>
         )}
       </div>
 
-      <div className="mt-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900">🔴 Live Access Feed</h2>
-        <div className="max-h-96 space-y-1 overflow-y-auto">
-          {feed.map((log) => (
-            <div
-              key={log.id}
-              className={`flex items-center justify-between rounded-md px-3 py-2 text-sm ${
-                log.result === "GRANTED" ? "bg-green-50" : "bg-red-50"
-              }`}
-            >
-              <span className={log.result === "GRANTED" ? "text-green-700" : "text-red-700"}>
-                {log.result === "GRANTED" ? "🟢" : "🔴"}{" "}
-                {new Date(log.server_ts).toLocaleTimeString("id-ID")}{" "}
-                {log.user_nama ?? "Unknown"}
-              </span>
-              <span className="text-gray-500">
-                {log.door_nama} · {log.result} ({log.reason})
-              </span>
-            </div>
-          ))}
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm lg:col-span-2">
+          <h2 className="mb-3 text-sm font-semibold text-gray-900">🔴 Live Transaction</h2>
+          <div className="max-h-[28rem] overflow-y-auto">
+            <Table
+              columns={columns}
+              rows={feed}
+              rowKey={(l) => l.id}
+              emptyMessage="Belum ada transaksi."
+            />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <h2 className="mb-3 text-sm font-semibold text-gray-900">
+            Status Controller ({onlineCount} Online / {offlineCount} Offline)
+          </h2>
+          <div className="space-y-3">
+            {controllers.map((controller) => {
+              const online = isControllerOnline(controller);
+              return (
+                <div key={controller.id} className="rounded-md border border-gray-200 p-3">
+                  <div className="font-semibold text-gray-900">{controller.nama}</div>
+                  <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                    <span>
+                      Device ID: {controller.device_id} · IP:{" "}
+                      {controller.ip_address ?? "DHCP (auto)"}
+                    </span>
+                    <span className={`font-semibold ${online ? "text-green-600" : "text-red-600"}`}>
+                      {online ? "ONLINE" : "OFFLINE"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

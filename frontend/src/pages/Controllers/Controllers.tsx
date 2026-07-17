@@ -46,6 +46,28 @@ export default function Controllers() {
     { header: "Nama", render: (c) => c.nama },
     { header: "Lokasi", render: (c) => c.lokasi },
     {
+      header: "IP Address",
+      render: (c) =>
+        c.ip_address ? (
+          <div>
+            <a
+              href={`http://${c.ip_address}:${c.web_port}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono text-blue-600 hover:underline"
+            >
+              {c.ip_address}
+            </a>
+            <div className="text-xs uppercase text-gray-400">{c.ip_mode}</div>
+          </div>
+        ) : (
+          <div>
+            <span className="font-mono text-gray-400">—</span>
+            <div className="text-xs uppercase text-gray-400">{c.ip_mode}</div>
+          </div>
+        ),
+    },
+    {
       header: "Status",
       render: (c) =>
         isControllerOnline(c) ? (
@@ -79,7 +101,7 @@ export default function Controllers() {
       <h1 className="mb-4 text-xl font-semibold text-gray-900">Controller Management</h1>
 
       {isLoading ? (
-        <TableSkeleton cols={5} />
+        <TableSkeleton cols={6} />
       ) : (
         <Table
           columns={columns}

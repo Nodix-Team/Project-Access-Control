@@ -1,53 +1,47 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import Modal from "../../components/Modal";
-import { controllers, doors } from "../../mock/data";
-import type { Department } from "../../types";
 
 export interface DepartmentFormResult {
   nama: string;
   deskripsi: string;
-  doorIds: number[];
 }
 
+// Hanya dipakai untuk "+ Tambah Department" (nama + deskripsi). Akses pintu default diatur
+// terpisah lewat panel "Access Department" di kanan (DepartmentAccessPanel) setelah department
+// dibuat - dept baru selalu mulai tanpa akses pintu (aman default, sesuai revisi @danskiv).
 export default function DepartmentModal({
   open,
   onClose,
   onSave,
-  initial,
 }: {
   open: boolean;
   onClose: () => void;
   onSave: (result: DepartmentFormResult) => void;
-  initial?: { department: Department; doorIds: number[] } | null;
 }) {
   const [nama, setNama] = useState("");
   const [deskripsi, setDeskripsi] = useState("");
-  const [doorIds, setDoorIds] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    if (!open) return;
-    setNama(initial?.department.nama ?? "");
-    setDeskripsi(initial?.department.deskripsi ?? "");
-    setDoorIds(new Set(initial?.doorIds ?? []));
-  }, [open, initial]);
-
-  function toggleDoor(doorId: number) {
-    setDoorIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(doorId)) next.delete(doorId);
-      else next.add(doorId);
-      return next;
-    });
+  function reset() {
+    setNama("");
+    setDeskripsi("");
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!nama.trim()) return;
-    onSave({ nama: nama.trim(), deskripsi: deskripsi.trim(), doorIds: Array.from(doorIds) });
+    onSave({ nama: nama.trim(), deskripsi: deskripsi.trim() });
+    reset();
   }
 
   return (
-    <Modal open={open} title={initial ? "Edit Department" : "Tambah Department"} onClose={onClose}>
+    <Modal
+      open={open}
+      title="Tambah Department"
+      onClose={() => {
+        reset();
+        onClose();
+      }}
+    >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="dept-nama">
@@ -76,35 +70,9 @@ export default function DepartmentModal({
           />
         </div>
 
-        <div>
-          <span className="mb-1 block text-sm font-medium text-gray-700">
-            Default Akses Pintu
-          </span>
-          <div className="max-h-64 space-y-3 overflow-y-auto rounded-md border border-gray-200 p-3">
-            {controllers.map((controller) => {
-              const controllerDoors = doors
-                .filter((d) => d.controller_id === controller.id)
-                .sort((a, b) => a.door_number - b.door_number);
-              return (
-                <div key={controller.id}>
-                  <p className="mb-1 text-xs font-semibold text-gray-500">
-                    {controller.nama} — {controller.device_id}
-                  </p>
-                  {controllerDoors.map((door) => (
-                    <label key={door.id} className="flex items-center gap-2 text-sm text-gray-800">
-                      <input
-                        type="checkbox"
-                        checked={doorIds.has(door.id)}
-                        onChange={() => toggleDoor(door.id)}
-                      />
-                      Pintu {door.door_number} — {door.nama}
-                    </label>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <p className="text-xs text-gray-400">
+          Akses pintu default diatur belakangan lewat "Manage" setelah department ini dibuat.
+        </p>
 
         <button
           type="submit"

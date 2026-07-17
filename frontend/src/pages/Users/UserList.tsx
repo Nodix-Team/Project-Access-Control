@@ -111,8 +111,18 @@ export default function UserList() {
 
   const columns: Column<User>[] = [
     { header: "#", render: (u) => u.uid },
+    {
+      header: "Nama",
+      render: (u) => (
+        <button
+          onClick={() => navigate(`/users/${u.uid}`)}
+          className="font-medium text-blue-600 hover:underline"
+        >
+          {u.nama}
+        </button>
+      ),
+    },
     { header: "Kartu", render: (u) => <span className="font-mono">{u.kartu}</span> },
-    { header: "Nama", render: (u) => u.nama },
     { header: "Department", render: (u) => departmentName(departments, u.department_id) },
     {
       header: "Akses",
@@ -123,24 +133,14 @@ export default function UserList() {
       ),
     },
     {
-      header: "Aksi",
+      header: "",
       render: (u) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => navigate(`/users/${u.uid}`)}
-            className="text-gray-500 hover:text-blue-600"
-            aria-label="Detail"
-          >
-            👁️
-          </button>
-          <button
-            onClick={() => handleDelete(u.uid)}
-            className="text-gray-500 hover:text-red-600"
-            aria-label="Hapus"
-          >
-            🗑️
-          </button>
-        </div>
+        <button
+          onClick={() => handleDelete(u.uid)}
+          className="flex items-center gap-1 text-gray-500 hover:text-red-600"
+        >
+          🗑️ <span className="text-xs">Hapus</span>
+        </button>
       ),
     },
   ];

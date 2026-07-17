@@ -10,6 +10,7 @@ import {
   users,
 } from "../../mock/data";
 import { useUiStore } from "../../store/uiStore";
+import { formatDateTime } from "../../utils/format";
 import type { Door } from "../../types";
 
 function departmentDoorIds(departmentId: number | null): number[] {
@@ -40,8 +41,6 @@ export default function UserDetail() {
   const { id } = useParams();
   const user = users.find((u) => u.uid === Number(id));
 
-  const activeTab = useUiStore((state) => state.userDetailTab);
-  const setActiveTab = useUiStore((state) => state.setUserDetailTab);
   const accessMode = useUiStore((state) => state.userDetailAccessMode);
   const setAccessMode = useUiStore((state) => state.setUserDetailAccessMode);
 
@@ -107,31 +106,11 @@ export default function UserDetail() {
         </p>
       </div>
 
-      <div className="mb-4 flex gap-2 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab("akses")}
-          className={`px-3 py-2 text-sm font-medium ${
-            activeTab === "akses"
-              ? "border-b-2 border-blue-600 text-blue-700"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          📋 User Access
-        </button>
-        <button
-          onClick={() => setActiveTab("log")}
-          className={`px-3 py-2 text-sm font-medium ${
-            activeTab === "log"
-              ? "border-b-2 border-blue-600 text-blue-700"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          📜 Log Aktivitas
-        </button>
-      </div>
-
-      {activeTab === "akses" && (
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Sisi kiri: User Access */}
         <div>
+          <h2 className="mb-2 text-sm font-semibold text-gray-900">📋 User Access</h2>
+
           <div className="mb-4 flex items-center gap-4 text-sm">
             <label className="flex items-center gap-1.5">
               <input
@@ -195,29 +174,31 @@ export default function UserDetail() {
             💾 Simpan & Sync ke Controller
           </button>
         </div>
-      )}
 
-      {activeTab === "log" && (
-        <div className="space-y-1">
-          {userLogs.length === 0 && (
-            <p className="text-sm text-gray-400">Belum ada log aktivitas untuk kartu ini.</p>
-          )}
-          {userLogs.map((log) => (
-            <div
-              key={log.id}
-              className="flex items-center justify-between rounded-md border border-gray-100 px-3 py-2 text-sm"
-            >
-              <span>
-                {new Date(log.server_ts).toLocaleString("id-ID")} · {log.door_nama}
-              </span>
-              <span className="flex items-center gap-2">
-                <Badge tone={log.result === "GRANTED" ? "green" : "red"}>{log.result}</Badge>
-                {log.is_replayed && <Badge tone="yellow">REPLAYED</Badge>}
-              </span>
-            </div>
-          ))}
+        {/* Sisi kanan: Log Aktivitas */}
+        <div>
+          <h2 className="mb-2 text-sm font-semibold text-gray-900">📜 Log Aktivitas</h2>
+          <div className="space-y-1">
+            {userLogs.length === 0 && (
+              <p className="text-sm text-gray-400">Belum ada log aktivitas untuk kartu ini.</p>
+            )}
+            {userLogs.map((log) => (
+              <div
+                key={log.id}
+                className="flex items-center justify-between rounded-md border border-gray-100 bg-white px-3 py-2 text-sm shadow-sm"
+              >
+                <span className="text-gray-700">
+                  {formatDateTime(log.server_ts)} · {log.door_nama}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Badge tone={log.result === "GRANTED" ? "green" : "red"}>{log.result}</Badge>
+                  {log.is_replayed && <Badge tone="yellow">REPLAYED</Badge>}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -5,7 +5,21 @@ import TableSkeleton from "../../components/TableSkeleton";
 import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
 import { accessLogs, controllers, doors } from "../../mock/data";
 import { useUiStore } from "../../store/uiStore";
+import { formatDateTime } from "../../utils/format";
 import type { AccessLog } from "../../types";
+
+function toDateInputValue(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Preset rentang cepat, biar gampang export CSV rentang tertentu (mis. "2 hari terakhir")
+// tanpa harus set tanggal manual satu-satu.
+const RANGE_PRESETS: { label: string; days: number }[] = [
+  { label: "Hari ini", days: 0 },
+  { label: "2 hari terakhir", days: 1 },
+  { label: "7 hari terakhir", days: 6 },
+  { label: "30 hari terakhir", days: 29 },
+];
 
 function toCsv(logs: AccessLog[]): string {
   const header = [
@@ -89,8 +103,15 @@ export default function AccessLogs() {
     downloadCsv(toCsv(filteredLogs), `access_logs_${Date.now()}.csv`);
   }
 
+  function applyRangePreset(days: number) {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - days);
+    setLogsFilter({ dateFrom: toDateInputValue(from), dateTo: toDateInputValue(to) });
+  }
+
   const columns: Column<AccessLog>[] = [
-    { header: "Waktu", render: (l) => new Date(l.server_ts).toLocaleString("id-ID") },
+    { header: "Waktu", render: (l) => formatDateTime(l.server_ts) },
     { header: "Nama", render: (l) => l.user_nama ?? "Unknown" },
     { header: "Pintu", render: (l) => l.door_nama ?? "—" },
     {
@@ -118,6 +139,27 @@ export default function AccessLogs() {
         >
           Export CSV
         </button>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-gray-500">Rentang cepat:</span>
+        {RANGE_PRESETS.map((preset) => (
+          <button
+            key={preset.label}
+            onClick={() => applyRangePreset(preset.days)}
+            className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+          >
+            {preset.label}
+          </button>
+        ))}
+        {(filter.dateFrom || filter.dateTo) && (
+          <button
+            onClick={() => setLogsFilter({ dateFrom: null, dateTo: null })}
+            className="text-xs text-gray-400 hover:text-red-600"
+          >
+            ✕ Reset rentang
+          </button>
+        )}
       </div>
 
       <div className="mb-4 flex flex-wrap gap-3">
