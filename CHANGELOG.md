@@ -77,6 +77,26 @@ Implementasi penyesuaian firmware ESP32 (simulasi) dan perbaikan protokol sinkro
 
 ---
 
+### Frontend Mockup — Sprint 5 (`feature/frontend-mockup`)
+
+Fase A (mockup) dari Sprint 5 sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.md) Sprint 5 dan `docs/frontend_proposal.md`. **Seluruh data di fase ini masih dummy** (`src/mock/data.ts`) — belum ada panggilan API/WebSocket sama sekali. Integrasi ke backend nyata (React Query + native WebSocket) menyusul di Fase B (`feature/frontend-app`), setelah mockup ini di-approve.
+
+### Added
+- Scaffold `frontend/`: Vite + React 19 + **TypeScript**, **Tailwind CSS v4**, `react-router-dom` v6, `zustand` (state UI: filter, modal, tab) — sesuai tech stack final di `docs/frontend_proposal.md`
+- `src/types/` — interface TS untuk 8 entitas (mirror schema MySQL + response FastAPI)
+- `src/mock/data.ts` — sumber data dummy tunggal, isinya meniru `database/seed.sql` asli (bukan data karangan), termasuk `resolveAccess()` yang meniru `resolve_user_access()` backend
+- 8 halaman: **Login** (validasi lokal `admin`/`admin123`), **Dashboard** (StatCard + Live Feed simulasi `setInterval`, TODO WebSocket untuk Fase B), **User Management** (list, search, filter, pagination, tambah user, upload CSV dengan validasi penuh — header/nama-koma/kartu-kosong/nama-kosong/duplikat/department-tidak-ada/pintu-tidak-ada), **User Detail** (toggle Ikut Department vs Custom, checkbox pintu dikelompokkan per controller dengan nomor lokal, tab Log Aktivitas), **Department Management** (CRUD + editor default akses pintu), **Controller Management** (badge online/offline dihitung dari `last_seen` vs `heartbeat_s×3`, panel config dengan field WiFi password write-only), **Door Management** (CRUD + validasi keunikan `(controller_id, door_number)`), **Access Logs** (filter lengkap, badge REPLAYED, export CSV client-side)
+- `src/utils/kartu.ts` — `normalizeKartu()`, cermin persis `backend/app/utils/kartu.py` (padding 10 digit + uppercase case-insensitive)
+- `src/utils/csv.ts` — parser CSV RFC4180 + validasi, cermin `csv_service.py`
+- `src/utils/controllerStatus.ts` — `isControllerOnline()`, cermin rumus backend (`last_seen > NOW() - heartbeat_s*3`), dihitung ulang bukan dibaca dari field statis
+- `MockupBanner` — pita "⚠️ MOCKUP — data dummy, pending approval" tampil di semua halaman ter-proteksi
+- `TableSkeleton`/`StatCardSkeleton` + `useSimulatedLoading` — pola loading-state yang siap dipakai ulang saat Fase B ganti ke `isLoading` asli dari React Query
+
+### Fixed
+- `.gitignore` bawaan Vite (`logs`) ternyata ikut meng-ignore folder `src/pages/Logs/` di git Windows (`core.ignorecase=true`) — diperbaiki jadi `/logs` (anchored) supaya tidak bentrok dengan nama folder halaman.
+
+---
+
 ## [v0.1.0] - 2026-07-13
 
 ### Prototype v0.1 — Serial Simulation + MQTT User Management
