@@ -40,6 +40,35 @@ export function useUsers(params: UsersQueryParams = {}) {
   });
 }
 
+export function useUser(uid: number) {
+  return useQuery({
+    queryKey: ["users", "detail", uid],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ApiUser>(`/api/users/${uid}`);
+      return data;
+    },
+    enabled: Number.isFinite(uid),
+  });
+}
+
+export interface UpdateUserPayload {
+  is_custom_access?: boolean;
+  door_ids?: number[];
+}
+
+export function useUpdateUser(uid: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: UpdateUserPayload) => {
+      const { data } = await apiClient.put<ApiUser>(`/api/users/${uid}`, payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
 export interface CreateUserPayload {
   kartu: string;
   nama: string;

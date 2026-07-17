@@ -1,36 +1,27 @@
+import { isAxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import Badge from "../../components/Badge";
-import {
-  accessLogs,
-  controllers,
-  departmentAccess,
-  departments,
-  doors,
-  users,
-} from "../../mock/data";
+import { useControllers, useSyncController } from "../../api/controllers";
+import { useDepartments } from "../../api/departments";
+import { useDoors } from "../../api/doors";
+import { useUpdateUser, useUser } from "../../api/users";
 import { useUiStore } from "../../store/uiStore";
-import { formatDateTime } from "../../utils/format";
-import type { Door } from "../../types";
+import type { Controller, Door } from "../../types";
 
-function departmentDoorIds(departmentId: number | null): number[] {
-  if (departmentId === null) return [];
-  return departmentAccess.filter((da) => da.department_id === departmentId).map((da) => da.door_id);
-}
-
-// resolved_access (per-controller door_number) -> daftar door_id, buat inisialisasi checkbox custom.
-function resolvedAccessToDoorIds(
-  resolvedAccess: Record<number, number[]> | undefined,
-  allDoors: Door[],
+// access nyata dari backend: Dict[device_id string, door_number[]] (lihat api/users.ts ApiUser.access)
+// - KUNCINYA device_id, BUKAN controller_id angka. Konversi ke daftar door_id (buat seed checkbox
+// custom) harus lewat controller.device_id, beda dari versi mock lama yang keliru asumsi controller_id.
+function accessToDoorIds(
+  access: Record<string, number[]>,
+  controllers: Controller[],
+  doors: Door[],
 ): number[] {
-  if (!resolvedAccess) return [];
   const ids: number[] = [];
-  for (const [controllerIdStr, doorNumbers] of Object.entries(resolvedAccess)) {
-    const controllerId = Number(controllerIdStr);
+  for (const [deviceId, doorNumbers] of Object.entries(access)) {
+    const controller = controllers.find((c) => c.device_id === deviceId);
+    if (!controller) continue;
     for (const doorNumber of doorNumbers) {
-      const door = allDoors.find(
-        (d) => d.controller_id === controllerId && d.door_number === doorNumber,
-      );
+      const door = doors.find((d) => d.controller_id === controller.id && d.door_number === doorNumber);
       if (door) ids.push(door.id);
     }
   }
@@ -39,7 +30,14 @@ function resolvedAccessToDoorIds(
 
 export default function UserDetail() {
   const { id } = useParams();
-  const user = users.find((u) => u.uid === Number(id));
+  const uid = Number(id);
+
+  const userQuery = useUser(uid);
+  const controllersQuery = useControllers();
+  const doorsQuery = useDoors();
+  const departmentsQuery = useDepartments();
+  const updateUser = useUpdateUser(uid);
+  const syncController = useSyncController();
 
   const accessMode = useUiStore((state) => state.userDetailAccessMode);
   const setAccessMode = useUiStore((state) => state.setUserDetailAccessMode);
@@ -47,27 +45,35 @@ export default function UserDetail() {
   const [customDoorIds, setCustomDoorIds] = useState<Set<number>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
 
-  // Set ulang mode & seed checkbox custom tiap kali user yang dibuka berganti.
+  const user = userQuery.data;
+  const controllers = controllersQuery.data ?? [];
+  const doors = doorsQuery.data ?? [];
+  const departments = departmentsQuery.data ?? [];
+
+  const ready =
+    userQuery.isSuccess && controllersQuery.isSuccess && doorsQuery.isSuccess && departmentsQuery.isSuccess;
+
+  // Set ulang mode & seed checkbox custom tiap kali user yang dibuka (atau datanya) berganti.
   useEffect(() => {
-    if (!user) return;
+    if (!ready || !user) return;
     setAccessMode(user.is_custom_access ? "custom" : "department");
-    const seed = user.is_custom_access
-      ? resolvedAccessToDoorIds(user.resolved_access, doors)
-      : departmentDoorIds(user.department_id);
+    const seed = user.is_custom_access ? accessToDoorIds(user.access, controllers, doors) : [];
     setCustomDoorIds(new Set(seed));
-  }, [user, setAccessMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, user]);
 
-  const liveDeptDoorIds = useMemo(
-    () => new Set(departmentDoorIds(user?.department_id ?? null)),
-    [user?.department_id],
-  );
+  const department = departments.find((d) => d.id === user?.department_id);
+  const deptDoorIds = useMemo(() => new Set(department?.door_ids ?? []), [department]);
 
-  const userLogs = useMemo(
-    () => (user ? accessLogs.filter((log) => log.kartu === user.kartu) : []),
-    [user],
-  );
+  function showToast(message: string) {
+    setToast(message);
+    setTimeout(() => setToast(null), 3000);
+  }
 
-  if (!user) {
+  if (userQuery.isLoading || !ready) {
+    return <p className="text-sm text-gray-400 dark:text-gray-500">Memuat...</p>;
+  }
+  if (userQuery.isError || !user) {
     return <p className="text-sm text-gray-400 dark:text-gray-500">User tidak ditemukan.</p>;
   }
 
@@ -81,14 +87,42 @@ export default function UserDetail() {
     });
   }
 
-  function handleSaveSync() {
-    setToast("Tersimpan (mock)");
-    setTimeout(() => setToast(null), 2500);
+  async function handleSaveSync() {
+    const isCustom = accessMode === "custom";
+    updateUser.mutate(
+      { is_custom_access: isCustom, door_ids: isCustom ? Array.from(customDoorIds) : [] },
+      {
+        onSuccess: async () => {
+          const results = await Promise.allSettled(
+            controllers.map((c) => syncController.mutateAsync(c.id)),
+          );
+          const brokerOffline = results.some(
+            (r) => r.status === "rejected" && isAxiosError(r.reason) && r.reason.response?.status === 503,
+          );
+          const failed = results.filter(
+            (r) => r.status === "rejected" || (r.status === "fulfilled" && r.value.status !== "OK"),
+          ).length;
+
+          if (brokerOffline) {
+            showToast("Tersimpan. Sync belum aktif (broker MQTT offline).");
+          } else if (failed > 0) {
+            showToast(`Tersimpan. ${failed} controller gagal sync (TIMEOUT/MISMATCH).`);
+          } else {
+            showToast("Tersimpan & tersinkron ke semua controller.");
+          }
+        },
+        onError: (err) => {
+          const detail = isAxiosError(err) ? err.response?.data?.detail : undefined;
+          showToast(detail ?? "Gagal menyimpan akses");
+        },
+      },
+    );
   }
 
-  const deptName = departments.find((d) => d.id === user.department_id)?.nama ?? "—";
+  const deptName = department?.nama ?? "—";
   const isChecked = (doorId: number) =>
-    accessMode === "department" ? liveDeptDoorIds.has(doorId) : customDoorIds.has(doorId);
+    accessMode === "department" ? deptDoorIds.has(doorId) : customDoorIds.has(doorId);
+  const saving = updateUser.isPending || syncController.isPending;
 
   return (
     <div>
@@ -171,36 +205,20 @@ export default function UserDetail() {
 
           <button
             onClick={handleSaveSync}
-            className="mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            disabled={saving}
+            className="mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            💾 Simpan & Sync ke Controller
+            {saving ? "Menyimpan..." : "💾 Simpan & Sync ke Controller"}
           </button>
         </div>
 
-        {/* Sisi kanan: Log Aktivitas */}
+        {/* Sisi kanan: Log Aktivitas — dikawal Prompt B7 (GET /api/logs belum wired sampai saat itu) */}
         <div>
           <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">📜 Log Aktivitas</h2>
-          <div className="space-y-1">
-            {userLogs.length === 0 && (
-              <p className="text-sm text-gray-400 dark:text-gray-500">
-                Belum ada log aktivitas untuk kartu ini.
-              </p>
-            )}
-            {userLogs.map((log) => (
-              <div
-                key={log.id}
-                className="flex items-center justify-between rounded-md border border-gray-100 bg-white px-3 py-2 text-sm shadow-sm dark:border-gray-700 dark:bg-gray-800"
-              >
-                <span className="text-gray-700 dark:text-gray-300">
-                  {formatDateTime(log.server_ts)} · {log.door_nama}
-                </span>
-                <span className="flex items-center gap-2">
-                  <Badge tone={log.result === "GRANTED" ? "green" : "red"}>{log.result}</Badge>
-                  {log.is_replayed && <Badge tone="yellow">REPLAYED</Badge>}
-                </span>
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            Log aktivitas kartu ini akan tampil di sini setelah Prompt B7 (Access Logs) selesai
+            diwire ke <span className="font-mono">GET /api/logs</span>.
+          </p>
         </div>
       </div>
     </div>
