@@ -19,6 +19,12 @@ interface UiState {
     dateTo: string | null;
   };
   setLogsFilter: (filter: Partial<UiState["logsFilter"]>) => void;
+
+  // Halaman User Detail: tab aktif + sumber akses yang sedang ditampilkan (bukan data server).
+  userDetailTab: "akses" | "log";
+  setUserDetailTab: (tab: UiState["userDetailTab"]) => void;
+  userDetailAccessMode: "department" | "custom";
+  setUserDetailAccessMode: (mode: UiState["userDetailAccessMode"]) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -40,4 +46,9 @@ export const useUiStore = create<UiState>((set) => ({
   },
   setLogsFilter: (filter) =>
     set((state) => ({ logsFilter: { ...state.logsFilter, ...filter } })),
+
+  userDetailTab: "akses",
+  setUserDetailTab: (tab) => set({ userDetailTab: tab }),
+  userDetailAccessMode: "department",
+  setUserDetailAccessMode: (mode) => set({ userDetailAccessMode: mode }),
 }));
