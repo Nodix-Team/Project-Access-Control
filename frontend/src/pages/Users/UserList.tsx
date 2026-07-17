@@ -1,43 +1,18 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Badge from "../../components/Badge";
 import Table, { type Column } from "../../components/Table";
 import TableSkeleton from "../../components/TableSkeleton";
-import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
-import { departmentAccess, departments, doors, users as seedUsers } from "../../mock/data";
+import { useDepartments } from "../../api/departments";
+import { useCreateUser, useDeleteUser, useUsers, type ApiUser } from "../../api/users";
 import { useUiStore } from "../../store/uiStore";
-import type { Department, Door, User } from "../../types";
 import AddUserModal, { type NewUserInput } from "./AddUserModal";
 import CsvUploadModal from "./CsvUploadModal";
-import type { CsvValidUser } from "../../utils/csv";
 
 const PAGE_SIZE = 10;
 
-function doorIdsToResolvedAccess(doorIds: number[], allDoors: Door[]): Record<number, number[]> {
-  const byController: Record<number, number[]> = {};
-  for (const doorId of doorIds) {
-    const door = allDoors.find((d) => d.id === doorId);
-    if (!door) continue;
-    byController[door.controller_id] = byController[door.controller_id] ?? [];
-    byController[door.controller_id].push(door.door_number);
-  }
-  return byController;
-}
-
-function departmentDoorIds(departmentId: number | null): number[] {
-  if (departmentId === null) return [];
-  return departmentAccess.filter((da) => da.department_id === departmentId).map((da) => da.door_id);
-}
-
-function departmentName(departments_: Department[], departmentId: number | null): string {
-  if (departmentId === null) return "—";
-  return departments_.find((d) => d.id === departmentId)?.nama ?? "—";
-}
-
 export default function UserList() {
   const navigate = useNavigate();
-  const isLoading = useSimulatedLoading();
-  const [userList, setUserList] = useState<User[]>(seedUsers);
   const [page, setPage] = useState(1);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [csvModalOpen, setCsvModalOpen] = useState(false);
@@ -45,71 +20,44 @@ export default function UserList() {
   const { search, departmentId: filterDepartmentId } = useUiStore((state) => state.userListFilter);
   const setUserListFilter = useUiStore((state) => state.setUserListFilter);
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return userList.filter((user) => {
-      const matchesSearch =
-        term === "" ||
-        user.nama.toLowerCase().includes(term) ||
-        user.kartu.toLowerCase().includes(term);
-      const matchesDept = filterDepartmentId === null || user.department_id === filterDepartmentId;
-      return matchesSearch && matchesDept;
-    });
-  }, [userList, search, filterDepartmentId]);
+  const departmentsQuery = useDepartments();
+  const usersQuery = useUsers({
+    search: search || undefined,
+    department_id: filterDepartmentId ?? undefined,
+    page,
+    page_size: PAGE_SIZE,
+  });
+  const createUser = useCreateUser();
+  const deleteUser = useDeleteUser();
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const departments = departmentsQuery.data ?? [];
+  const users = usersQuery.data?.items ?? [];
+  const total = usersQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  function nextUid(): number {
-    return userList.reduce((max, u) => Math.max(max, u.uid), 0) + 1;
+  function departmentName(departmentId: number | null): string {
+    if (departmentId === null) return "—";
+    return departments.find((d) => d.id === departmentId)?.nama ?? "—";
   }
 
   function handleAddUser(input: NewUserInput) {
-    const newUser: User = {
-      uid: nextUid(),
-      kartu: input.kartu,
-      nama: input.nama,
-      department_id: input.departmentId,
-      is_custom_access: false,
-      resolved_access: doorIdsToResolvedAccess(departmentDoorIds(input.departmentId), doors),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setUserList((prev) => [...prev, newUser]);
-    setPage(1);
-  }
-
-  function handleCsvImport(imported: CsvValidUser[]) {
-    setUserList((prev) => {
-      let uidCounter = prev.reduce((max, u) => Math.max(max, u.uid), 0);
-      const byKartu = new Map(prev.map((u) => [u.kartu, u]));
-
-      for (const row of imported) {
-        const doorIds = row.isCustomAccess ? row.doorIds : departmentDoorIds(row.departmentId);
-        const existing = byKartu.get(row.kartu);
-        const user: User = {
-          uid: existing?.uid ?? ++uidCounter,
-          kartu: row.kartu,
-          nama: row.nama,
-          department_id: row.departmentId,
-          is_custom_access: row.isCustomAccess,
-          resolved_access: doorIdsToResolvedAccess(doorIds, doors),
-          created_at: existing?.created_at ?? new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        byKartu.set(row.kartu, user);
-      }
-      return Array.from(byKartu.values());
-    });
-    setPage(1);
+    createUser.mutate(
+      { kartu: input.kartu, nama: input.nama, department_id: input.departmentId },
+      {
+        onSuccess: () => {
+          setAddModalOpen(false);
+          setPage(1);
+        },
+      },
+    );
   }
 
   function handleDelete(uid: number) {
     if (!confirm("Hapus user ini?")) return;
-    setUserList((prev) => prev.filter((u) => u.uid !== uid));
+    deleteUser.mutate(uid);
   }
 
-  const columns: Column<User>[] = [
+  const columns: Column<ApiUser>[] = [
     { header: "#", render: (u) => u.uid },
     {
       header: "Nama",
@@ -123,7 +71,7 @@ export default function UserList() {
       ),
     },
     { header: "Kartu", render: (u) => <span className="font-mono">{u.kartu}</span> },
-    { header: "Department", render: (u) => departmentName(departments, u.department_id) },
+    { header: "Department", render: (u) => departmentName(u.department_id) },
     {
       header: "Akses",
       render: (u) => (
@@ -137,7 +85,8 @@ export default function UserList() {
       render: (u) => (
         <button
           onClick={() => handleDelete(u.uid)}
-          className="flex items-center gap-1 text-gray-500 hover:text-red-600"
+          disabled={deleteUser.isPending}
+          className="flex items-center gap-1 text-gray-500 hover:text-red-600 disabled:opacity-40"
         >
           🗑️ <span className="text-xs">Hapus</span>
         </button>
@@ -167,6 +116,12 @@ export default function UserList() {
         </div>
       </div>
 
+      {createUser.isError && (
+        <div className="mb-3 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
+          Gagal menambah user — kartu mungkin sudah terdaftar.
+        </div>
+      )}
+
       <div className="mb-4 flex gap-3">
         <input
           type="text"
@@ -195,12 +150,12 @@ export default function UserList() {
         </select>
       </div>
 
-      {isLoading ? (
+      {usersQuery.isLoading ? (
         <TableSkeleton cols={6} />
       ) : (
         <Table
           columns={columns}
-          rows={pageRows}
+          rows={users}
           rowKey={(u) => u.uid}
           emptyMessage="Tidak ada user yang cocok dengan pencarian/filter."
         />
@@ -208,7 +163,7 @@ export default function UserList() {
 
       <div className="mt-3 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
         <span>
-          Menampilkan {pageRows.length} dari {filtered.length} user
+          Menampilkan {users.length} dari {total} user
         </span>
         <div className="flex items-center gap-2">
           <button
@@ -236,11 +191,7 @@ export default function UserList() {
         onClose={() => setAddModalOpen(false)}
         onAdd={handleAddUser}
       />
-      <CsvUploadModal
-        open={csvModalOpen}
-        onClose={() => setCsvModalOpen(false)}
-        onImport={handleCsvImport}
-      />
+      <CsvUploadModal open={csvModalOpen} onClose={() => setCsvModalOpen(false)} />
     </div>
   );
 }
