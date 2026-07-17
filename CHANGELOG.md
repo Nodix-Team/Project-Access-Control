@@ -97,6 +97,32 @@ Fase A (mockup) dari Sprint 5 sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.md) Spr
 
 ---
 
+### Frontend React — Sprint 5 (`feature/frontend-integration`)
+
+Fase B (integrasi backend nyata) dari Sprint 5, lanjutan Fase A (`feature/frontend-mockup`). Seluruh `src/mock/data.ts` dan util pendukungnya (`useSimulatedLoading`, `isControllerOnline`, `utils/csv.ts`) dihapus — semua 8 halaman kini membaca/menulis lewat backend FastAPI + MQTT + WebSocket sungguhan, diverifikasi langsung terhadap Docker MySQL/EMQX/uvicorn (bukan cuma `tsc`/build) di tiap langkah.
+
+### Added
+- `src/api/client.ts` — instance axios + interceptor: `Authorization: Bearer <jwt>` dari `localStorage` di tiap request, `401` di response → hapus token + redirect `/login`
+- Autentikasi nyata: `useLogin()`/`useMe()` (`src/api/auth.ts`), `ProtectedRoute` memvalidasi sesi lewat `GET /api/auth/me`
+- Dashboard: stats via React Query (`useUsers`, `useControllers`, `useDoors`), Live Feed via `useLiveFeed()` — native `WebSocket` ke `WS /ws/live-feed` dengan auto-reconnect 3 detik
+- User Management: CRUD + `useUploadUsersCsv()` (validasi CSV sepenuhnya di backend, tidak lagi di client), pagination server-side
+- User Detail: resolusi akses nyata dari `GET /api/users/{uid}` (field `access` di-keyed **device_id** controller, bukan `controller_id`) diterjemahkan ke checkbox per pintu; **Simpan & Sync** → `PUT /api/users/{uid}` lalu `POST /api/controllers/{id}/sync` ke tiap controller, pesan berbeda untuk sukses / `SYNC_FAILED` (TIMEOUT/MISMATCH) / broker MQTT offline (503)
+- Department Management: CRUD + editor akses default → `PUT /api/departments/{id}` replace penuh `door_ids`; Sync All memicu `POST /api/controllers/{id}/sync` untuk controller yang relevan dengan akses department tsb
+- Controller Management: badge online/offline langsung dari `is_online` hasil hitung backend; modal Config fetch `GET/PUT /api/controllers/{id}/config` sungguhan; field "WiFi password" dihapus dari UI karena backend memang tidak pernah menyimpan/mengembalikannya
+- Door Management: CRUD nyata; validasi keunikan `(controller_id, door_number)` di client dihapus, pesan `409` dari backend ditampilkan apa adanya
+- Access Logs: `GET /api/logs` dengan filter penuh (`kartu`, `controller_id`, `door_id`, `result`, `date_from`, `date_to`, `is_replayed`) + pagination server-side, urut `server_ts DESC` dari backend; Export CSV mengekspor data halaman terfilter yang sedang tampil
+- Dark mode toggle (class-based, `@custom-variant dark` Tailwind v4) tersedia di seluruh halaman
+
+### Fixed
+- CORS sama sekali belum ada di backend (`fix/backend-cors`, terpisah dari branch frontend) — tidak ketahuan lewat `curl` karena `curl` tidak menegakkan same-origin policy, baru ketahuan lewat simulasi preflight `OPTIONS` browser
+- `GET /api/users/{uid}` belum ada dan `PUT /api/users/{uid}` belum bisa menulis `user_access` (`feat/backend-user-access-api`, terpisah dari branch frontend) — blocker untuk User Detail Fase B, diperbaiki lebih dulu sebelum lanjut
+
+### Known Limitations
+- Export CSV di Access Logs hanya mengekspor halaman aktif yang sedang terfilter/tertampil, bukan seluruh histori yang cocok filter lintas halaman
+- `POST /api/controllers/{id}/config/request` dan konsumen frontend untuk `config/response` tidak dibuat — sama seperti batasan Sprint 3, tetap opsional
+
+---
+
 ## [v0.1.0] - 2026-07-13
 
 ### Prototype v0.1 — Serial Simulation + MQTT User Management
