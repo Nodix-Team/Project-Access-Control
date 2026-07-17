@@ -44,7 +44,7 @@ export default function DepartmentModal({
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="dept-nama">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="dept-nama">
             Nama
           </label>
           <input
@@ -52,13 +52,13 @@ export default function DepartmentModal({
             type="text"
             value={nama}
             onChange={(e) => setNama(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
             required
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="dept-desc">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="dept-desc">
             Deskripsi
           </label>
           <input
@@ -66,11 +66,11 @@ export default function DepartmentModal({
             type="text"
             value={deskripsi}
             onChange={(e) => setDeskripsi(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
           />
         </div>
 
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-400 dark:text-gray-500">
           Akses pintu default diatur belakangan lewat "Manage" setelah department ini dibuat.
         </p>
 

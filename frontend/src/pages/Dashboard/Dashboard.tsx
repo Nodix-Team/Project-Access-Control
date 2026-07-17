@@ -50,7 +50,9 @@ function generateRandomLog(): AccessLog {
 }
 
 function resultColor(result: AccessResult): string {
-  return result === "GRANTED" ? "text-green-600" : "text-red-600";
+  return result === "GRANTED"
+    ? "text-green-600 dark:text-green-400"
+    : "text-red-600 dark:text-red-400";
 }
 
 export default function Dashboard() {
@@ -77,8 +79,8 @@ export default function Dashboard() {
       header: "Nama / Kartu",
       render: (l) => (
         <div>
-          <div className="font-bold text-gray-900">{l.user_nama ?? "Unknown"}</div>
-          <div className="font-mono text-xs text-gray-400">{l.kartu}</div>
+          <div className="font-bold text-gray-900 dark:text-gray-100">{l.user_nama ?? "Unknown"}</div>
+          <div className="font-mono text-xs text-gray-400 dark:text-gray-500">{l.kartu}</div>
         </div>
       ),
     },
@@ -88,8 +90,8 @@ export default function Dashboard() {
         const ctrl = controllers.find((c) => c.id === l.controller_id);
         return (
           <div>
-            <div className="font-bold text-gray-900">{l.door_nama ?? "—"}</div>
-            <div className="text-xs text-gray-400">{ctrl?.device_id ?? "—"}</div>
+            <div className="font-bold text-gray-900 dark:text-gray-100">{l.door_nama ?? "—"}</div>
+            <div className="text-xs text-gray-400 dark:text-gray-500">{ctrl?.device_id ?? "—"}</div>
           </div>
         );
       },
@@ -106,7 +108,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold text-gray-900">Dashboard</h1>
+      <h1 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
 
       <div className="grid grid-cols-3 gap-4">
         {isLoading ? (
@@ -125,8 +127,10 @@ export default function Dashboard() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm lg:col-span-2">
-          <h2 className="mb-3 text-sm font-semibold text-gray-900">🔴 Live Transaction</h2>
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 lg:col-span-2">
+          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
+            🔴 Live Transaction
+          </h2>
           <div className="max-h-[28rem] overflow-y-auto">
             <Table
               columns={columns}
@@ -137,22 +141,29 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold text-gray-900">
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
             Status Controller ({onlineCount} Online / {offlineCount} Offline)
           </h2>
           <div className="space-y-3">
             {controllers.map((controller) => {
               const online = isControllerOnline(controller);
               return (
-                <div key={controller.id} className="rounded-md border border-gray-200 p-3">
-                  <div className="font-semibold text-gray-900">{controller.nama}</div>
-                  <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                <div
+                  key={controller.id}
+                  className="rounded-md border border-gray-200 p-3 dark:border-gray-600"
+                >
+                  <div className="font-semibold text-gray-900 dark:text-gray-100">
+                    {controller.nama}
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                     <span>
                       Device ID: {controller.device_id} · IP:{" "}
                       {controller.ip_address ?? "DHCP (auto)"}
                     </span>
-                    <span className={`font-semibold ${online ? "text-green-600" : "text-red-600"}`}>
+                    <span
+                      className={`font-semibold ${online ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                    >
                       {online ? "ONLINE" : "OFFLINE"}
                     </span>
                   </div>

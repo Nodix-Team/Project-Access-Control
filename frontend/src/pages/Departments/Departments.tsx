@@ -94,8 +94,8 @@ export default function Departments() {
             onClick={() => setSelectedId(d.id)}
             className={`rounded-md border px-2 py-1 text-xs font-medium ${
               selectedId === d.id
-                ? "border-blue-600 bg-blue-50 text-blue-700"
-                : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                ? "border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-900/30 dark:text-blue-300"
+                : "border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
             }`}
           >
             Manage
@@ -113,7 +113,9 @@ export default function Departments() {
       <Toast message={toastMessage} />
 
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Department Management</h1>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          Department Management
+        </h1>
         <button
           onClick={() => setAddModalOpen(true)}
           className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"

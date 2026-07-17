@@ -80,10 +80,16 @@ export default function Doors() {
       header: "Aksi",
       render: (d) => (
         <div className="flex gap-2">
-          <button onClick={() => openEditModal(d)} className="text-gray-500 hover:text-blue-600">
+          <button
+            onClick={() => openEditModal(d)}
+            className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+          >
             ✏️
           </button>
-          <button onClick={() => handleDelete(d.id)} className="text-gray-500 hover:text-red-600">
+          <button
+            onClick={() => handleDelete(d.id)}
+            className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+          >
             🗑️
           </button>
         </div>
@@ -94,7 +100,9 @@ export default function Doors() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Door Management</h1>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          Door Management
+        </h1>
         <button
           onClick={openAddModal}
           className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"

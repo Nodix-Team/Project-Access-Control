@@ -27,7 +27,7 @@ export default function DepartmentAccessPanel({
 
   if (!department) {
     return (
-      <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-400">
+      <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-gray-300 p-8 text-center text-sm text-gray-400 dark:border-gray-600 dark:text-gray-500">
         Pilih "Manage" pada salah satu department di tabel untuk kelola aksesnya di sini.
       </div>
     );
@@ -43,12 +43,14 @@ export default function DepartmentAccessPanel({
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-900">Access Department</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          Access Department
+        </h2>
         <button
           onClick={onSyncAll}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
         >
           🔄 Sync All
         </button>
@@ -56,28 +58,34 @@ export default function DepartmentAccessPanel({
 
       <div className="mb-4 space-y-2">
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">Nama Department</label>
+          <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+            Nama Department
+          </label>
           <input
             type="text"
             value={nama}
             onChange={(e) => setNama(e.target.value)}
             onBlur={() => onSaveInfo(nama.trim(), deskripsi.trim())}
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-700">Deskripsi</label>
+          <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+            Deskripsi
+          </label>
           <input
             type="text"
             value={deskripsi}
             onChange={(e) => setDeskripsi(e.target.value)}
             onBlur={() => onSaveInfo(nama.trim(), deskripsi.trim())}
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
           />
         </div>
       </div>
 
-      <p className="mb-2 text-xs font-medium text-gray-700">Default Akses Pintu</p>
+      <p className="mb-2 text-xs font-medium text-gray-700 dark:text-gray-300">
+        Default Akses Pintu
+      </p>
       <div className="space-y-3">
         {controllers.map((controller) => {
           const controllerDoors = doors
@@ -85,11 +93,14 @@ export default function DepartmentAccessPanel({
             .sort((a, b) => a.door_number - b.door_number);
           return (
             <div key={controller.id}>
-              <p className="mb-1 text-xs font-semibold text-gray-500">
+              <p className="mb-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
                 {controller.nama} — {controller.device_id}
               </p>
               {controllerDoors.map((door) => (
-                <label key={door.id} className="flex items-center gap-2 text-sm text-gray-800">
+                <label
+                  key={door.id}
+                  className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200"
+                >
                   <input
                     type="checkbox"
                     checked={selectedDoorIds.has(door.id)}

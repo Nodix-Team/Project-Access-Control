@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useThemeSync } from "./hooks/useThemeSync";
 import Login from "./pages/Login/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import UserList from "./pages/Users/UserList";
@@ -10,6 +11,8 @@ import Doors from "./pages/Doors/Doors";
 import AccessLogs from "./pages/Logs/AccessLogs";
 
 export default function App() {
+  useThemeSync();
+
   return (
     <BrowserRouter>
       <Routes>

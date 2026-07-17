@@ -52,7 +52,7 @@ export default function AddUserModal({
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="add-kartu">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="add-kartu">
             Kartu
           </label>
           <input
@@ -61,13 +61,13 @@ export default function AddUserModal({
             value={kartu}
             onChange={(e) => setKartu(e.target.value)}
             placeholder="mis. 123456 atau AABBCCDD"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
             required
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="add-nama">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="add-nama">
             Nama
           </label>
           <input
@@ -75,20 +75,20 @@ export default function AddUserModal({
             type="text"
             value={nama}
             onChange={(e) => setNama(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
             required
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="add-dept">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="add-dept">
             Department
           </label>
           <select
             id="add-dept"
             value={departmentId}
             onChange={(e) => setDepartmentId(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
           >
             <option value="">— Tanpa department —</option>
             {departments.map((dept) => (

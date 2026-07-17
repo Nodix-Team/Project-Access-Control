@@ -54,16 +54,16 @@ export default function Controllers() {
               href={`http://${c.ip_address}:${c.web_port}`}
               target="_blank"
               rel="noreferrer"
-              className="font-mono text-blue-600 hover:underline"
+              className="font-mono text-blue-600 hover:underline dark:text-blue-400"
             >
               {c.ip_address}
             </a>
-            <div className="text-xs uppercase text-gray-400">{c.ip_mode}</div>
+            <div className="text-xs uppercase text-gray-400 dark:text-gray-500">{c.ip_mode}</div>
           </div>
         ) : (
           <div>
-            <span className="font-mono text-gray-400">—</span>
-            <div className="text-xs uppercase text-gray-400">{c.ip_mode}</div>
+            <span className="font-mono text-gray-400 dark:text-gray-500">—</span>
+            <div className="text-xs uppercase text-gray-400 dark:text-gray-500">{c.ip_mode}</div>
           </div>
         ),
     },
@@ -80,12 +80,15 @@ export default function Controllers() {
       header: "Aksi",
       render: (c) => (
         <div className="flex gap-2">
-          <button onClick={() => setEditing(c)} className="text-gray-500 hover:text-blue-600">
+          <button
+            onClick={() => setEditing(c)}
+            className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+          >
             ⚙️ Config
           </button>
           <button
             onClick={() => handleFullSync(c)}
-            className="text-gray-500 hover:text-green-600"
+            className="text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400"
           >
             🔄 Full Sync
           </button>
@@ -98,7 +101,9 @@ export default function Controllers() {
     <div>
       <Toast message={toastMessage} />
 
-      <h1 className="mb-4 text-xl font-semibold text-gray-900">Controller Management</h1>
+      <h1 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
+        Controller Management
+      </h1>
 
       {isLoading ? (
         <TableSkeleton cols={6} />

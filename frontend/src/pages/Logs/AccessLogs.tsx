@@ -132,22 +132,24 @@ export default function AccessLogs() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Access Logs</h1>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Access Logs</h1>
         <button
           onClick={handleExport}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
         >
           Export CSV
         </button>
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-gray-500">Rentang cepat:</span>
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+          Rentang cepat:
+        </span>
         {RANGE_PRESETS.map((preset) => (
           <button
             key={preset.label}
             onClick={() => applyRangePreset(preset.days)}
-            className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+            className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             {preset.label}
           </button>
@@ -155,7 +157,7 @@ export default function AccessLogs() {
         {(filter.dateFrom || filter.dateTo) && (
           <button
             onClick={() => setLogsFilter({ dateFrom: null, dateTo: null })}
-            className="text-xs text-gray-400 hover:text-red-600"
+            className="text-xs text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400"
           >
             ✕ Reset rentang
           </button>
@@ -168,7 +170,7 @@ export default function AccessLogs() {
           placeholder="Cari kartu..."
           value={filter.kartu}
           onChange={(e) => setLogsFilter({ kartu: e.target.value })}
-          className="w-48 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-48 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         />
 
         <select
@@ -179,7 +181,7 @@ export default function AccessLogs() {
               doorId: null,
             })
           }
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="">Semua Controller</option>
           {controllers.map((c) => (
@@ -192,7 +194,7 @@ export default function AccessLogs() {
         <select
           value={filter.doorId ?? ""}
           onChange={(e) => setLogsFilter({ doorId: e.target.value ? Number(e.target.value) : null })}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="">Semua Pintu</option>
           {availableDoors.map((d) => (
@@ -207,7 +209,7 @@ export default function AccessLogs() {
           onChange={(e) =>
             setLogsFilter({ result: e.target.value as "ALL" | "GRANTED" | "DENIED" })
           }
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="ALL">Semua Result</option>
           <option value="GRANTED">GRANTED</option>
@@ -218,14 +220,14 @@ export default function AccessLogs() {
           type="date"
           value={filter.dateFrom ?? ""}
           onChange={(e) => setLogsFilter({ dateFrom: e.target.value || null })}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         />
-        <span className="self-center text-sm text-gray-400">s/d</span>
+        <span className="self-center text-sm text-gray-400 dark:text-gray-500">s/d</span>
         <input
           type="date"
           value={filter.dateTo ?? ""}
           onChange={(e) => setLogsFilter({ dateTo: e.target.value || null })}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         />
       </div>
 
@@ -239,7 +241,7 @@ export default function AccessLogs() {
             rowKey={(l) => l.id}
             emptyMessage="Tidak ada log yang cocok dengan filter."
           />
-          <p className="mt-2 text-xs text-gray-400">
+          <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
             Menampilkan {filteredLogs.length} dari {accessLogs.length} log.
           </p>
         </>

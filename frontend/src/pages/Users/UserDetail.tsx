@@ -68,7 +68,7 @@ export default function UserDetail() {
   );
 
   if (!user) {
-    return <p className="text-sm text-gray-400">User tidak ditemukan.</p>;
+    return <p className="text-sm text-gray-400 dark:text-gray-500">User tidak ditemukan.</p>;
   }
 
   function toggleDoor(doorId: number) {
@@ -98,9 +98,9 @@ export default function UserDetail() {
         </div>
       )}
 
-      <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <h1 className="text-lg font-semibold text-gray-900">{user.nama}</h1>
-        <p className="mt-1 text-sm text-gray-500">
+      <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{user.nama}</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Kartu: <span className="font-mono">{user.kartu}</span> · Department: {deptName} ·
           Sumber akses: {accessMode === "department" ? "Ikut Department" : "Custom"}
         </p>
@@ -109,7 +109,7 @@ export default function UserDetail() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Sisi kiri: User Access */}
         <div>
-          <h2 className="mb-2 text-sm font-semibold text-gray-900">📋 User Access</h2>
+          <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">📋 User Access</h2>
 
           <div className="mb-4 flex items-center gap-4 text-sm">
             <label className="flex items-center gap-1.5">
@@ -139,9 +139,9 @@ export default function UserDetail() {
               return (
                 <div
                   key={controller.id}
-                  className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                  className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
                 >
-                  <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                  <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {controller.nama} — {controller.device_id}
                   </h3>
                   <div className="space-y-1">
@@ -149,7 +149,9 @@ export default function UserDetail() {
                       <label
                         key={door.id}
                         className={`flex items-center gap-2 text-sm ${
-                          accessMode === "department" ? "text-gray-400" : "text-gray-800"
+                          accessMode === "department"
+                            ? "text-gray-400 dark:text-gray-500"
+                            : "text-gray-800 dark:text-gray-200"
                         }`}
                       >
                         <input
@@ -177,17 +179,19 @@ export default function UserDetail() {
 
         {/* Sisi kanan: Log Aktivitas */}
         <div>
-          <h2 className="mb-2 text-sm font-semibold text-gray-900">📜 Log Aktivitas</h2>
+          <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">📜 Log Aktivitas</h2>
           <div className="space-y-1">
             {userLogs.length === 0 && (
-              <p className="text-sm text-gray-400">Belum ada log aktivitas untuk kartu ini.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">
+                Belum ada log aktivitas untuk kartu ini.
+              </p>
             )}
             {userLogs.map((log) => (
               <div
                 key={log.id}
-                className="flex items-center justify-between rounded-md border border-gray-100 bg-white px-3 py-2 text-sm shadow-sm"
+                className="flex items-center justify-between rounded-md border border-gray-100 bg-white px-3 py-2 text-sm shadow-sm dark:border-gray-700 dark:bg-gray-800"
               >
-                <span className="text-gray-700">
+                <span className="text-gray-700 dark:text-gray-300">
                   {formatDateTime(log.server_ts)} · {log.door_nama}
                 </span>
                 <span className="flex items-center gap-2">

@@ -116,7 +116,7 @@ export default function UserList() {
       render: (u) => (
         <button
           onClick={() => navigate(`/users/${u.uid}`)}
-          className="font-medium text-blue-600 hover:underline"
+          className="font-medium text-blue-600 hover:underline dark:text-blue-400"
         >
           {u.nama}
         </button>
@@ -148,11 +148,13 @@ export default function UserList() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">User Management</h1>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          User Management
+        </h1>
         <div className="flex gap-2">
           <button
             onClick={() => setCsvModalOpen(true)}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             📤 CSV
           </button>
@@ -174,7 +176,7 @@ export default function UserList() {
             setUserListFilter({ search: e.target.value });
             setPage(1);
           }}
-          className="w-64 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-64 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         />
         <select
           value={filterDepartmentId ?? ""}
@@ -182,7 +184,7 @@ export default function UserList() {
             setUserListFilter({ departmentId: e.target.value ? Number(e.target.value) : null });
             setPage(1);
           }}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="">Semua Department</option>
           {departments.map((dept) => (
@@ -204,7 +206,7 @@ export default function UserList() {
         />
       )}
 
-      <div className="mt-3 flex items-center justify-between text-sm text-gray-500">
+      <div className="mt-3 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
         <span>
           Menampilkan {pageRows.length} dari {filtered.length} user
         </span>
@@ -212,7 +214,7 @@ export default function UserList() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="rounded-md border border-gray-300 px-2 py-1 disabled:opacity-40"
+            className="rounded-md border border-gray-300 px-2 py-1 disabled:opacity-40 dark:border-gray-600"
           >
             ← Prev
           </button>
@@ -222,7 +224,7 @@ export default function UserList() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="rounded-md border border-gray-300 px-2 py-1 disabled:opacity-40"
+            className="rounded-md border border-gray-300 px-2 py-1 disabled:opacity-40 dark:border-gray-600"
           >
             Next →
           </button>

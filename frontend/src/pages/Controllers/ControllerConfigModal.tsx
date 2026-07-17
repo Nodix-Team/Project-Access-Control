@@ -58,7 +58,7 @@ export default function ControllerConfigModal({
     <Modal open={open} title={`Config — ${controller.device_id}`} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="cfg-heartbeat">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cfg-heartbeat">
             Heartbeat (detik)
           </label>
           <input
@@ -67,12 +67,12 @@ export default function ControllerConfigModal({
             min={1}
             value={heartbeatS}
             onChange={(e) => setHeartbeatS(Number(e.target.value))}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="cfg-ssid">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cfg-ssid">
             WiFi SSID
           </label>
           <input
@@ -80,12 +80,12 @@ export default function ControllerConfigModal({
             type="text"
             value={wifiSsid}
             onChange={(e) => setWifiSsid(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="cfg-wifi-pass">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cfg-wifi-pass">
             Set WiFi Password baru (opsional)
           </label>
           <input
@@ -95,22 +95,22 @@ export default function ControllerConfigModal({
             onChange={(e) => setWifiPassword(e.target.value)}
             placeholder="Kosongkan bila tidak ingin mengubah"
             autoComplete="new-password"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
           />
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
             Write-only — password tersimpan tidak pernah ditampilkan kembali di sini.
           </p>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="cfg-ipmode">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cfg-ipmode">
             IP Mode
           </label>
           <select
             id="cfg-ipmode"
             value={ipMode}
             onChange={(e) => setIpMode(e.target.value as "dhcp" | "static")}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
           >
             <option value="dhcp">DHCP</option>
             <option value="static">Static</option>
@@ -119,7 +119,7 @@ export default function ControllerConfigModal({
 
         {ipMode === "static" && (
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="cfg-ip">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cfg-ip">
               IP Address
             </label>
             <input
@@ -128,13 +128,13 @@ export default function ControllerConfigModal({
               value={ipAddress}
               onChange={(e) => setIpAddress(e.target.value)}
               placeholder="192.168.1.50"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
             />
           </div>
         )}
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="cfg-broker">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cfg-broker">
             MQTT Broker
           </label>
           <input
@@ -142,7 +142,7 @@ export default function ControllerConfigModal({
             type="text"
             value={mqttBroker}
             onChange={(e) => setMqttBroker(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
           />
         </div>
 
