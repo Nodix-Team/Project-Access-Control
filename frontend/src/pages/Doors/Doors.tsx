@@ -1,29 +1,20 @@
 import { useState } from "react";
 import Table, { type Column } from "../../components/Table";
 import TableSkeleton from "../../components/TableSkeleton";
-import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
-import { controllers, doors as seedDoors } from "../../mock/data";
+import { useControllers } from "../../api/controllers";
+import { useDeleteDoor, useDoors } from "../../api/doors";
 import type { Door } from "../../types";
-import DoorModal, { type DoorFormResult } from "./DoorModal";
+import DoorModal from "./DoorModal";
 
 export default function Doors() {
-  const isLoading = useSimulatedLoading();
-  const [doorList, setDoorList] = useState<Door[]>(seedDoors);
+  const doorsQuery = useDoors();
+  const controllersQuery = useControllers();
+  const deleteDoor = useDeleteDoor();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Door | null>(null);
 
-  function nextId(): number {
-    return doorList.reduce((max, d) => Math.max(max, d.id), 0) + 1;
-  }
-
-  function isDuplicate(controllerId: number, doorNumber: number): boolean {
-    return doorList.some(
-      (d) =>
-        d.controller_id === controllerId &&
-        d.door_number === doorNumber &&
-        d.id !== editing?.id,
-    );
-  }
+  const doors = doorsQuery.data ?? [];
+  const controllers = controllersQuery.data ?? [];
 
   function openAddModal() {
     setEditing(null);
@@ -35,37 +26,9 @@ export default function Doors() {
     setModalOpen(true);
   }
 
-  function handleSave(result: DoorFormResult) {
-    if (editing) {
-      setDoorList((prev) =>
-        prev.map((d) =>
-          d.id === editing.id
-            ? {
-                ...d,
-                controller_id: result.controllerId,
-                door_number: result.doorNumber,
-                nama: result.nama,
-                lokasi: result.lokasi,
-              }
-            : d,
-        ),
-      );
-    } else {
-      const newDoor: Door = {
-        id: nextId(),
-        controller_id: result.controllerId,
-        door_number: result.doorNumber,
-        nama: result.nama,
-        lokasi: result.lokasi,
-      };
-      setDoorList((prev) => [...prev, newDoor]);
-    }
-    setModalOpen(false);
-  }
-
   function handleDelete(id: number) {
     if (!confirm("Hapus pintu ini?")) return;
-    setDoorList((prev) => prev.filter((d) => d.id !== id));
+    deleteDoor.mutate(id);
   }
 
   const columns: Column<Door>[] = [
@@ -111,12 +74,12 @@ export default function Doors() {
         </button>
       </div>
 
-      {isLoading ? (
+      {doorsQuery.isLoading ? (
         <TableSkeleton cols={5} />
       ) : (
         <Table
           columns={columns}
-          rows={[...doorList].sort(
+          rows={[...doors].sort(
             (a, b) => a.controller_id - b.controller_id || a.door_number - b.door_number,
           )}
           rowKey={(d) => d.id}
@@ -127,9 +90,9 @@ export default function Doors() {
       <DoorModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSave={handleSave}
+        onSaved={() => setModalOpen(false)}
         initial={editing}
-        isDuplicate={isDuplicate}
+        controllers={controllers}
       />
     </div>
   );

@@ -1,28 +1,25 @@
+import { isAxiosError } from "axios";
 import { type FormEvent, useEffect, useState } from "react";
 import Modal from "../../components/Modal";
-import { controllers } from "../../mock/data";
-import type { Door } from "../../types";
-
-export interface DoorFormResult {
-  controllerId: number;
-  doorNumber: number;
-  nama: string;
-  lokasi: string;
-}
+import { useCreateDoor, useUpdateDoor } from "../../api/doors";
+import type { Controller, Door } from "../../types";
 
 export default function DoorModal({
   open,
   onClose,
-  onSave,
+  onSaved,
   initial,
-  isDuplicate,
+  controllers,
 }: {
   open: boolean;
   onClose: () => void;
-  onSave: (result: DoorFormResult) => void;
+  onSaved: () => void;
   initial?: Door | null;
-  isDuplicate: (controllerId: number, doorNumber: number) => boolean;
+  controllers: Controller[];
 }) {
+  const createDoor = useCreateDoor();
+  const updateDoor = useUpdateDoor();
+
   const [controllerId, setControllerId] = useState<number>(controllers[0]?.id ?? 0);
   const [doorNumber, setDoorNumber] = useState(1);
   const [nama, setNama] = useState("");
@@ -36,21 +33,29 @@ export default function DoorModal({
     setNama(initial?.nama ?? "");
     setLokasi(initial?.lokasi ?? "");
     setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (isDuplicate(controllerId, doorNumber)) {
-      setError(
-        `Controller ini sudah punya pintu nomor ${doorNumber} — nomor pintu harus unik per controller.`,
-      );
-      return;
-    }
-
     setError(null);
-    onSave({ controllerId, doorNumber, nama: nama.trim(), lokasi: lokasi.trim() });
+    const payload = { controller_id: controllerId, door_number: doorNumber, nama: nama.trim(), lokasi: lokasi.trim() };
+
+    if (initial) {
+      updateDoor.mutate({ id: initial.id, payload }, { onSuccess: onSaved, onError: handleError });
+    } else {
+      createDoor.mutate(payload, { onSuccess: onSaved, onError: handleError });
+    }
   }
+
+  function handleError(err: unknown) {
+    // Duplikat door_number per controller ditolak backend (409) - pesan diambil langsung dari
+    // backend (bukan dicek ulang di client), lihat _assert_door_number_unique di routes/doors.py.
+    const detail = isAxiosError(err) ? err.response?.data?.detail : undefined;
+    setError(detail ?? "Gagal menyimpan pintu");
+  }
+
+  const saving = createDoor.isPending || updateDoor.isPending;
 
   return (
     <Modal open={open} title={initial ? "Edit Pintu" : "Tambah Pintu"} onClose={onClose}>
@@ -118,9 +123,10 @@ export default function DoorModal({
 
         <button
           type="submit"
-          className="w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          disabled={saving}
+          className="w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          Simpan
+          {saving ? "Menyimpan..." : "Simpan"}
         </button>
       </form>
     </Modal>
