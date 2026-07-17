@@ -1,10 +1,8 @@
 import { type FormEvent, useState } from "react";
+import { isAxiosError } from "axios";
 import { useNavigate } from "react-router-dom";
+import { useLogin } from "../../api/auth";
 import { useThemeStore } from "../../store/themeStore";
-
-// Mockup - validasi lokal saja, TANPA panggilan API. Diganti login backend nyata di Prompt B0.
-const MOCK_USERNAME = "admin";
-const MOCK_PASSWORD = "admin123";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -13,18 +11,25 @@ export default function Login() {
   const navigate = useNavigate();
   const theme = useThemeStore((state) => state.theme);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
+  const loginMutation = useLogin();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
 
-    if (username === MOCK_USERNAME && password === MOCK_PASSWORD) {
-      localStorage.setItem("jwt", "mock-jwt-token");
-      setError(null);
-      navigate("/dashboard");
-      return;
-    }
-
-    setError("Username atau password salah");
+    loginMutation.mutate(
+      { username, password },
+      {
+        onSuccess: (data) => {
+          localStorage.setItem("jwt", data.access_token);
+          navigate("/dashboard");
+        },
+        onError: (err) => {
+          const detail = isAxiosError(err) ? err.response?.data?.detail : undefined;
+          setError(detail ?? "Username atau password salah");
+        },
+      },
+    );
   }
 
   return (
@@ -77,9 +82,10 @@ export default function Login() {
 
         <button
           type="submit"
-          className="w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          disabled={loginMutation.isPending}
+          className="w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
         >
-          Masuk
+          {loginMutation.isPending ? "Memproses..." : "Masuk"}
         </button>
       </form>
     </div>

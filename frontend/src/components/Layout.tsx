@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { useThemeStore } from "../store/themeStore";
-import MockupBanner from "./MockupBanner";
 import NavSidebar from "./NavSidebar";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -15,7 +14,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen flex-col">
-      <MockupBanner />
       <div className="flex flex-1 overflow-hidden">
         <NavSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">

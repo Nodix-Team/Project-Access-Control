@@ -13,6 +13,10 @@ dist
 dist-ssr
 *.local
 
+# Env - .env.example TETAP di-commit sebagai template, .env asli jangan (VITE_API_URL bisa beda
+# per environment developer, dan ini kebiasaan standar walau isinya sekarang belum ada secret).
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

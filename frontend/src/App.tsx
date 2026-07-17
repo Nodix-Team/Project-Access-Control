@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useThemeSync } from "./hooks/useThemeSync";
@@ -10,9 +11,19 @@ import Controllers from "./pages/Controllers/Controllers";
 import Doors from "./pages/Doors/Doors";
 import AccessLogs from "./pages/Logs/AccessLogs";
 
+const queryClient = new QueryClient();
+
 export default function App() {
   useThemeSync();
 
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppRoutes />
+    </QueryClientProvider>
+  );
+}
+
+function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
