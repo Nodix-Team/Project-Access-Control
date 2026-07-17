@@ -28,7 +28,17 @@ class Settings(BaseSettings):
     # validasinya sudah ada supaya tinggal di-set True kalau proteksi WS mau dinyalakan.
     AUTH_ENABLED: bool = False
 
+    # --- CORS (Frontend Sprint 5) ---
+    # Origin frontend dev (Vite bisa pindah port kalau 5173 dipakai proses lain - lihat
+    # peringatan "Port 5173 is in use, trying another one..." saat testing Fase B). Comma-
+    # separated, override lewat .env kalau port/origin production beda.
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
     @property
     def database_url(self) -> str:
