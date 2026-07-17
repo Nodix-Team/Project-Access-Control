@@ -41,7 +41,7 @@ INSERT INTO department_access (department_id, door_id) VALUES
 -- Users
 INSERT INTO users (kartu, nama, department_id, is_custom_access) VALUES
 ('AABBCCDD', 'John Doe',     1, FALSE),   -- IT, ikut dept
-('11223344', 'Jane Smith',   1, TRUE),     -- IT, custom override
+('0011223344', 'Jane Smith', 1, TRUE),     -- IT, custom override
 ('DEADBEEF', 'Bob Wilson',   2, FALSE),    -- HRD, ikut dept
 ('FF001122', 'Alice Brown',  NULL, TRUE),  -- tanpa dept, custom
 ('CAFEBABE', 'Charlie Lee',  3, FALSE);    -- Security, ikut dept

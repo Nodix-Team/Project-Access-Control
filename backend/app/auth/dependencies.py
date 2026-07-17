@@ -1,6 +1,6 @@
 # Dependency FastAPI untuk proteksi route — wajib JWT header di semua route kecuali login
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -9,13 +9,13 @@ from app.auth.jwt import decode_access_token
 from app.database import get_db
 from app.models.admin import Admin
 
-# tokenUrl hanya dipakai Swagger UI untuk tombol "Authorize", bukan redirect sungguhan
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+security_scheme = HTTPBearer()
 
 
 def get_current_admin(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    credentials: HTTPAuthorizationCredentials = Depends(security_scheme), db: Session = Depends(get_db)
 ) -> Admin:
+    token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Token tidak valid atau kadaluarsa",
