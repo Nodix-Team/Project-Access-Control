@@ -1,15 +1,17 @@
 # Route CRUD User + upload CSV massal
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_admin
 from app.database import get_db
 from app.models.department import Department
+from app.models.door import Door
 from app.models.user import User
+from app.models.user_access import UserAccess
 from app.mqtt.publisher import push_delete, push_user
 from app.schemas.user import (
     CsvUploadResponse,
@@ -46,6 +48,18 @@ def _assert_department_exists(db: Session, department_id: Optional[int]) -> None
         )
 
 
+def _assert_doors_exist(db: Session, door_ids: List[int]) -> None:
+    if not door_ids:
+        return
+    found = set(db.scalars(select(Door.id).where(Door.id.in_(door_ids))).all())
+    missing = set(door_ids) - found
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"door_id tidak ditemukan: {sorted(missing)}",
+        )
+
+
 @router.get("", response_model=UserListOut)
 def list_users(
     db: Session = Depends(get_db),
@@ -72,6 +86,14 @@ def list_users(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/{uid}", response_model=UserOut)
+def get_user(uid: int, db: Session = Depends(get_db)) -> UserOut:
+    user = db.get(User, uid)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User tidak ditemukan")
+    return _to_user_out(db, user)
 
 
 @router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -110,8 +132,21 @@ def update_user(uid: int, payload: UserUpdate, db: Session = Depends(get_db)) ->
     if "department_id" in updates:
         _assert_department_exists(db, updates["department_id"])
 
+    # door_ids BUKAN kolom di model User (beda dari field lain di sini) - jangan ikut setattr
+    # generik di bawah, tangani terpisah sebagai replace penuh user_access (pola sama persis
+    # dengan DepartmentUpdate.door_ids di routes/departments.py).
+    door_ids = updates.pop("door_ids", None)
+    if door_ids is not None:
+        door_ids = sorted(set(door_ids))
+        _assert_doors_exist(db, door_ids)
+
     for field, value in updates.items():
         setattr(user, field, value)
+
+    if door_ids is not None:
+        db.execute(delete(UserAccess).where(UserAccess.user_id == uid))
+        for door_id in door_ids:
+            db.add(UserAccess(user_id=uid, door_id=door_id))
 
     try:
         db.commit()
@@ -119,7 +154,7 @@ def update_user(uid: int, payload: UserUpdate, db: Session = Depends(get_db)) ->
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Kartu sudah terdaftar")
     db.refresh(user)
-    push_user(db, user)  # akses bisa berubah (kartu, department_id, is_custom_access, ...)
+    push_user(db, user)  # akses bisa berubah (kartu, department_id, is_custom_access, door_ids)
     return _to_user_out(db, user)
 
 

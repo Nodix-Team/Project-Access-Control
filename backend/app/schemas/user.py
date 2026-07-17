@@ -25,6 +25,10 @@ class UserUpdate(BaseModel):
     nama: Optional[str] = Field(default=None, min_length=1, max_length=100)
     department_id: Optional[int] = None
     is_custom_access: Optional[bool] = None
+    # Daftar door_id akses custom - kalau dikirim, REPLACE PENUH user_access lama (pola sama
+    # persis dengan DepartmentUpdate.door_ids). Cuma relevan kalau is_custom_access=True, tapi
+    # tidak dipaksa harus dikirim bersamaan - caller (frontend) yang atur kombinasinya.
+    door_ids: Optional[List[int]] = None
 
     @field_validator("kartu")
     @classmethod
