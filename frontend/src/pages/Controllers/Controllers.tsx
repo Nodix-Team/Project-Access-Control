@@ -1,44 +1,41 @@
+import { isAxiosError } from "axios";
 import { useState } from "react";
 import Badge from "../../components/Badge";
 import Table, { type Column } from "../../components/Table";
 import TableSkeleton from "../../components/TableSkeleton";
 import Toast from "../../components/Toast";
-import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
+import { useControllers, useSyncController } from "../../api/controllers";
 import { useToast } from "../../hooks/useToast";
-import { controllers as seedControllers } from "../../mock/data";
-import { isControllerOnline } from "../../utils/controllerStatus";
 import type { Controller } from "../../types";
-import ControllerConfigModal, { type ControllerConfigResult } from "./ControllerConfigModal";
+import ControllerConfigModal from "./ControllerConfigModal";
 
 export default function Controllers() {
-  const isLoading = useSimulatedLoading();
-  const [controllerList, setControllerList] = useState<Controller[]>(seedControllers);
+  const controllersQuery = useControllers();
+  const syncController = useSyncController();
   const [editing, setEditing] = useState<Controller | null>(null);
   const { toastMessage, showToast } = useToast();
 
-  function handleSaveConfig(result: ControllerConfigResult) {
-    if (!editing) return;
-    setControllerList((prev) =>
-      prev.map((c) =>
-        c.id === editing.id
-          ? {
-              ...c,
-              heartbeat_s: result.heartbeat_s,
-              wifi_ssid: result.wifi_ssid,
-              ip_mode: result.ip_mode,
-              ip_address: result.ip_mode === "static" ? result.ip_address : null,
-              mqtt_broker: result.mqtt_broker,
-              updated_at: new Date().toISOString(),
-            }
-          : c,
-      ),
-    );
+  const controllers = controllersQuery.data ?? [];
+
+  function handleSaved() {
     setEditing(null);
-    showToast("Config tersimpan (mock)");
+    showToast("Config tersimpan");
   }
 
   function handleFullSync(controller: Controller) {
-    showToast(`Full Sync ${controller.device_id} dimulai (mock)`);
+    syncController.mutate(controller.id, {
+      onSuccess: (result) => {
+        showToast(
+          result.status === "OK"
+            ? `Full Sync ${controller.device_id} berhasil (${result.count} user)`
+            : `Full Sync ${controller.device_id} gagal (${result.last ?? "SYNC_FAILED"})`,
+        );
+      },
+      onError: (err) => {
+        const detail = isAxiosError(err) ? err.response?.data?.detail : undefined;
+        showToast(detail ?? `Full Sync ${controller.device_id} gagal`);
+      },
+    });
   }
 
   const columns: Column<Controller>[] = [
@@ -69,12 +66,7 @@ export default function Controllers() {
     },
     {
       header: "Status",
-      render: (c) =>
-        isControllerOnline(c) ? (
-          <Badge tone="green">Online</Badge>
-        ) : (
-          <Badge tone="red">Offline</Badge>
-        ),
+      render: (c) => (c.is_online ? <Badge tone="green">Online</Badge> : <Badge tone="red">Offline</Badge>),
     },
     {
       header: "Aksi",
@@ -88,7 +80,8 @@ export default function Controllers() {
           </button>
           <button
             onClick={() => handleFullSync(c)}
-            className="text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400"
+            disabled={syncController.isPending}
+            className="text-gray-500 hover:text-green-600 disabled:opacity-40 dark:text-gray-400 dark:hover:text-green-400"
           >
             🔄 Full Sync
           </button>
@@ -105,12 +98,12 @@ export default function Controllers() {
         Controller Management
       </h1>
 
-      {isLoading ? (
+      {controllersQuery.isLoading ? (
         <TableSkeleton cols={6} />
       ) : (
         <Table
           columns={columns}
-          rows={controllerList}
+          rows={controllers}
           rowKey={(c) => c.id}
           emptyMessage="Belum ada controller."
         />
@@ -119,7 +112,7 @@ export default function Controllers() {
       <ControllerConfigModal
         open={editing !== null}
         onClose={() => setEditing(null)}
-        onSave={handleSaveConfig}
+        onSaved={handleSaved}
         controller={editing}
       />
     </div>
