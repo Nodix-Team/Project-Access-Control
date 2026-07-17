@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import Modal from "../../components/Modal";
-import { departments } from "../../mock/data";
+import { useDepartments } from "../../api/departments";
 import { normalizeKartu } from "../../utils/kartu";
 
 export interface NewUserInput {
@@ -21,6 +21,8 @@ export default function AddUserModal({
   const [kartu, setKartu] = useState("");
   const [nama, setNama] = useState("");
   const [departmentId, setDepartmentId] = useState<string>("");
+  const departmentsQuery = useDepartments();
+  const departments = departmentsQuery.data ?? [];
 
   function reset() {
     setKartu("");

@@ -1,9 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
 
 // Bentuk asli response GET /api/users (lihat backend/app/schemas/user.py UserOut/UserListOut).
-// `access` adalah Dict[str, List[int]] di backend -> kunci controller_id JADI STRING setelah
-// lewat JSON, bukan number (gotcha umum JSON.parse) - dipakai lengkap mulai Prompt B2/B3.
+// `access` adalah Dict[str, List[int]] di backend, KUNCINYA device_id STRING (mis. "ctrl-A"),
+// BUKAN controller_id angka - dikonfirmasi langsung dari response nyata, bukan asumsi dari tipe
+// Python. Dipakai penuh mulai Prompt B3 (User Detail).
 export interface ApiUser {
   uid: number;
   kartu: string;
@@ -35,6 +36,69 @@ export function useUsers(params: UsersQueryParams = {}) {
     queryFn: async () => {
       const { data } = await apiClient.get<UserListResponse>("/api/users", { params });
       return data;
+    },
+  });
+}
+
+export interface CreateUserPayload {
+  kartu: string;
+  nama: string;
+  department_id: number | null;
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateUserPayload) => {
+      const { data } = await apiClient.post<ApiUser>("/api/users", payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (uid: number) => {
+      await apiClient.delete(`/api/users/${uid}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
+export interface CsvUploadRowError {
+  row: number;
+  kartu: string;
+  reason: string;
+}
+
+export interface CsvUploadResponse {
+  success_count: number;
+  processed_kartu: string[];
+  error_count: number;
+  errors: CsvUploadRowError[];
+}
+
+export function useUploadUsersCsv() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { data } = await apiClient.post<CsvUploadResponse>(
+        "/api/users/upload-csv",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 }

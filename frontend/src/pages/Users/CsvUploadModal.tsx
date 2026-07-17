@@ -1,38 +1,44 @@
+import { isAxiosError } from "axios";
 import { useState } from "react";
 import Modal from "../../components/Modal";
-import { departments, doors } from "../../mock/data";
-import { validateUserCsv, type CsvValidUser, type CsvRowError } from "../../utils/csv";
+import { useUploadUsersCsv, type CsvUploadResponse } from "../../api/users";
 
+// Fase B: TIDAK ada validasi CSV di client sama sekali (beda dari Fase A) - file dikirim mentah,
+// backend (process_user_csv) yang jadi satu-satunya sumber kebenaran validasi. Ini sengaja,
+// bukan disederhanakan asal - lihat catatan dampak revisi Prompt A9 soal utils/csv.ts.
 export default function CsvUploadModal({
   open,
   onClose,
-  onImport,
 }: {
   open: boolean;
   onClose: () => void;
-  onImport: (users: CsvValidUser[]) => void;
 }) {
-  const [result, setResult] = useState<
-    { validUsers: CsvValidUser[]; errors: CsvRowError[] } | { fileError: string } | null
-  >(null);
+  const [result, setResult] = useState<CsvUploadResponse | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const uploadCsv = useUploadUsersCsv();
 
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const content = await file.text();
-    const parsed = validateUserCsv(content, departments, doors);
-    setResult(parsed);
+    setResult(null);
+    setFileError(null);
 
-    if (!("fileError" in parsed) && parsed.validUsers.length > 0) {
-      onImport(parsed.validUsers);
-    }
+    uploadCsv.mutate(file, {
+      onSuccess: (data) => setResult(data),
+      onError: (err) => {
+        // Error seluruh file (header salah / nama mengandung koma) -> HTTPException 400 {detail}.
+        const detail = isAxiosError(err) ? err.response?.data?.detail : undefined;
+        setFileError(detail ?? "Gagal upload CSV");
+      },
+    });
 
     event.target.value = "";
   }
 
   function handleClose() {
     setResult(null);
+    setFileError(null);
     onClose();
   }
 
@@ -47,19 +53,24 @@ export default function CsvUploadModal({
         type="file"
         accept=".csv,text/csv"
         onChange={handleFileChange}
+        disabled={uploadCsv.isPending}
         className="mb-4 block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:text-gray-300 dark:file:bg-blue-900/40 dark:file:text-blue-300"
       />
 
-      {result && "fileError" in result && (
+      {uploadCsv.isPending && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">Memproses di server...</p>
+      )}
+
+      {fileError && (
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
-          {result.fileError}
+          {fileError}
         </div>
       )}
 
-      {result && !("fileError" in result) && (
+      {result && (
         <div>
           <div className="mb-2 rounded-md bg-blue-50 p-3 text-sm font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-            {result.validUsers.length} valid, {result.errors.length} ditolak
+            {result.success_count} valid, {result.error_count} ditolak
           </div>
 
           {result.errors.length > 0 && (
