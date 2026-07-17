@@ -7,7 +7,7 @@ import UserDetail from "./pages/Users/UserDetail";
 import Departments from "./pages/Departments/Departments";
 import Controllers from "./pages/Controllers/Controllers";
 import Doors from "./pages/Doors/Doors";
-import AccessLogs from "./pages/AccessLogs";
+import AccessLogs from "./pages/Logs/AccessLogs";
 
 export default function App() {
   return (
