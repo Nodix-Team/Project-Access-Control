@@ -8,4 +8,4 @@ def normalize_kartu(kartu: str) -> str:
     clean = kartu.strip()
     if clean.isdigit() and len(clean) < 10:
         clean = clean.zfill(10)
-    return clean
+    return clean.upper()

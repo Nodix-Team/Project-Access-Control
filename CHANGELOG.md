@@ -60,6 +60,23 @@ Integrasi MQTT penuh sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.md) Sprint 3: ko
 
 ---
 
+### Firmware v0.2 (ESP32 Update) — Sprint 4 (`feature/firmware-adjustment`)
+
+Implementasi penyesuaian firmware ESP32 (simulasi) dan perbaikan protokol sinkronisasi backend sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.md) Sprint 4.
+
+### Added
+- `OfflineLogBuffer`: Kapasitas buffer log dinaikkan secara drastis dari 500 menjadi 5.000 entri untuk mengakomodasi beban lalu lintas pintu yang lebih tinggi tanpa risiko hilangnya data saat MQTT offline.
+- `MqttManager`: Modifikasi payload log akses untuk menyertakan elemen `reason` (contoh: `NO_ACCESS`, `UNKNOWN_CARD`) agar selaras dengan skema baru dari backend MQTT handler.
+- GUI Stress Test Tool (`tools/stress_test_gui.py`): Alat uji beban berbasis antarmuka untuk menyimulasikan injeksi 5.000 user berelasi kompleks secara bersamaan, lengkap dengan pengujian 2.000 tap kartu MQTT secara acak untuk membuktikan tidak ada lagi race condition / *log NULL*.
+- Ekstra Pengaman Konfigurasi: Model Pydantic ditambahkan `extra="ignore"` dan konfigurasi kredensial MySQL URL diubah ke format URL-encoded (`%40`) untuk mencegah *crash*.
+- Normalisasi Identitas Kartu (`backend/app/utils/kartu.py`): Fungsi `normalize_kartu` sekarang menangani kapitalisasi secara konsisten (`.upper()`), menambal *Bug P0* yang dapat menyebabkan *database crash* saat mengurai huruf non-kapital dari CSV.
+
+### Fixed
+- Penyesuaian `database/seed.sql` agar data kartu Jane Smith lebih realistis dengan panjang standar (10 digit: `0011223344`).
+- Penghapusan file kerangka frontend (`frontend/`) dan catatan `docs/pr_review_feedback.md` yang sebelumnya terselip secara tidak sengaja di PR ini.
+
+---
+
 ## [v0.1.0] - 2026-07-13
 
 ### Prototype v0.1 — Serial Simulation + MQTT User Management
