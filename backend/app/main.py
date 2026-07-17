@@ -3,9 +3,11 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from app.auth.router import router as auth_router
+from app.config import settings
 from app.database import get_db
 from app.mqtt import client as mqtt_client
 from app.routes.controllers import router as controllers_router
@@ -26,6 +28,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Access Control API v0.2", lifespan=lifespan)
+
+# Frontend (Vite, Sprint 5) jalan di origin terpisah dari backend - tanpa ini, browser blokir
+# semua request lewat same-origin policy meski request-nya sendiri valid (curl tidak kena ini,
+# makanya gap ini baru ketahuan pas testing beneran dari browser, bukan dari curl/Swagger).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(departments_router)
