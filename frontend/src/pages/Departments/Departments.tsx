@@ -1,6 +1,8 @@
 import { useState } from "react";
 import Table, { type Column } from "../../components/Table";
+import TableSkeleton from "../../components/TableSkeleton";
 import Toast from "../../components/Toast";
+import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
 import { useToast } from "../../hooks/useToast";
 import { departmentAccess as seedDepartmentAccess, departments as seedDepartments } from "../../mock/data";
 import type { Department } from "../../types";
@@ -18,6 +20,7 @@ function groupDoorIdsByDept(
 }
 
 export default function Departments() {
+  const isLoading = useSimulatedLoading();
   const [departmentList, setDepartmentList] = useState<Department[]>(seedDepartments);
   const [accessMap, setAccessMap] = useState<Record<number, number[]>>(() =>
     groupDoorIdsByDept(seedDepartmentAccess),
@@ -119,12 +122,16 @@ export default function Departments() {
         </button>
       </div>
 
-      <Table
-        columns={columns}
-        rows={departmentList}
-        rowKey={(d) => d.id}
-        emptyMessage="Belum ada department."
-      />
+      {isLoading ? (
+        <TableSkeleton cols={4} />
+      ) : (
+        <Table
+          columns={columns}
+          rows={departmentList}
+          rowKey={(d) => d.id}
+          emptyMessage="Belum ada department."
+        />
+      )}
 
       <DepartmentModal
         open={modalOpen}

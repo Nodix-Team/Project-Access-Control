@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Badge from "../../components/Badge";
 import Table, { type Column } from "../../components/Table";
+import TableSkeleton from "../../components/TableSkeleton";
+import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
 import { departmentAccess, departments, doors, users as seedUsers } from "../../mock/data";
 import { useUiStore } from "../../store/uiStore";
 import type { Department, Door, User } from "../../types";
@@ -34,6 +36,7 @@ function departmentName(departments_: Department[], departmentId: number | null)
 
 export default function UserList() {
   const navigate = useNavigate();
+  const isLoading = useSimulatedLoading();
   const [userList, setUserList] = useState<User[]>(seedUsers);
   const [page, setPage] = useState(1);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -190,7 +193,16 @@ export default function UserList() {
         </select>
       </div>
 
-      <Table columns={columns} rows={pageRows} rowKey={(u) => u.uid} emptyMessage="Tidak ada user." />
+      {isLoading ? (
+        <TableSkeleton cols={6} />
+      ) : (
+        <Table
+          columns={columns}
+          rows={pageRows}
+          rowKey={(u) => u.uid}
+          emptyMessage="Tidak ada user yang cocok dengan pencarian/filter."
+        />
+      )}
 
       <div className="mt-3 flex items-center justify-between text-sm text-gray-500">
         <span>

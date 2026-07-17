@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import StatCard from "../../components/StatCard";
+import StatCardSkeleton from "../../components/StatCardSkeleton";
+import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
 import { accessLogs, controllers, doors, users } from "../../mock/data";
 import { isControllerOnline } from "../../utils/controllerStatus";
 import type { AccessLog, AccessReason, AccessResult } from "../../types";
@@ -46,6 +48,7 @@ function generateRandomLog(): AccessLog {
 }
 
 export default function Dashboard() {
+  const isLoading = useSimulatedLoading();
   const [feed, setFeed] = useState<AccessLog[]>(() =>
     [...accessLogs].sort((a, b) => (a.server_ts < b.server_ts ? 1 : -1)),
   );
@@ -67,13 +70,24 @@ export default function Dashboard() {
       <h1 className="mb-4 text-xl font-semibold text-gray-900">Dashboard</h1>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Users" value={users.length} />
-        <StatCard label="Controllers" value={controllers.length} />
-        <StatCard label="Doors" value={doors.length} />
-        <StatCard
-          label="Status Controller"
-          value={`${onlineCount} Online / ${offlineCount} Offline`}
-        />
+        {isLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <StatCard label="Users" value={users.length} />
+            <StatCard label="Controllers" value={controllers.length} />
+            <StatCard label="Doors" value={doors.length} />
+            <StatCard
+              label="Status Controller"
+              value={`${onlineCount} Online / ${offlineCount} Offline`}
+            />
+          </>
+        )}
       </div>
 
       <div className="mt-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">

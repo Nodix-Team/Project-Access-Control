@@ -1,7 +1,9 @@
 import { useState } from "react";
 import Badge from "../../components/Badge";
 import Table, { type Column } from "../../components/Table";
+import TableSkeleton from "../../components/TableSkeleton";
 import Toast from "../../components/Toast";
+import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
 import { useToast } from "../../hooks/useToast";
 import { controllers as seedControllers } from "../../mock/data";
 import { isControllerOnline } from "../../utils/controllerStatus";
@@ -9,6 +11,7 @@ import type { Controller } from "../../types";
 import ControllerConfigModal, { type ControllerConfigResult } from "./ControllerConfigModal";
 
 export default function Controllers() {
+  const isLoading = useSimulatedLoading();
   const [controllerList, setControllerList] = useState<Controller[]>(seedControllers);
   const [editing, setEditing] = useState<Controller | null>(null);
   const { toastMessage, showToast } = useToast();
@@ -75,12 +78,16 @@ export default function Controllers() {
 
       <h1 className="mb-4 text-xl font-semibold text-gray-900">Controller Management</h1>
 
-      <Table
-        columns={columns}
-        rows={controllerList}
-        rowKey={(c) => c.id}
-        emptyMessage="Belum ada controller."
-      />
+      {isLoading ? (
+        <TableSkeleton cols={5} />
+      ) : (
+        <Table
+          columns={columns}
+          rows={controllerList}
+          rowKey={(c) => c.id}
+          emptyMessage="Belum ada controller."
+        />
+      )}
 
       <ControllerConfigModal
         open={editing !== null}

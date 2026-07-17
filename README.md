@@ -29,7 +29,7 @@ Sistem kontrol akses berbasis RFID menggunakan ESP32 sebagai controller, dengan 
 |--------|-----|--------|
 | [`firmware/`](firmware/) | ESP32 Controller — C++ (PlatformIO) | ✅ v0.2.0 (Atomic Sync, Local Web Config, Offline logs, 10-digit pad) |
 | [`backend/`](backend/) | FastAPI REST API + MQTT Client | 🔲 Belum |
-| [`frontend/`](frontend/) | React + Vite Web App | 🔲 Belum |
+| [`frontend/`](frontend/) | React + Vite Web App | 🚧 Mockup (pending approval) |
 | [`database/`](database/) | MySQL Schema + Seed Data | ✅ Schema & Auth Setup Ready (Sprint 1) |
 | [`docs/`](docs/) | Dokumentasi arsitektur & panduan | ✅ Updated |
 | [`tools/`](tools/) | Script utility untuk testing | ✅ Updated |

@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import Badge from "../../components/Badge";
 import Table, { type Column } from "../../components/Table";
+import TableSkeleton from "../../components/TableSkeleton";
+import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
 import { accessLogs, controllers, doors } from "../../mock/data";
 import { useUiStore } from "../../store/uiStore";
 import type { AccessLog } from "../../types";
@@ -48,6 +50,7 @@ function downloadCsv(content: string, filename: string) {
 }
 
 export default function AccessLogs() {
+  const isLoading = useSimulatedLoading();
   const filter = useUiStore((state) => state.logsFilter);
   const setLogsFilter = useUiStore((state) => state.setLogsFilter);
 
@@ -184,15 +187,21 @@ export default function AccessLogs() {
         />
       </div>
 
-      <Table
-        columns={columns}
-        rows={filteredLogs}
-        rowKey={(l) => l.id}
-        emptyMessage="Tidak ada log yang cocok dengan filter."
-      />
-      <p className="mt-2 text-xs text-gray-400">
-        Menampilkan {filteredLogs.length} dari {accessLogs.length} log.
-      </p>
+      {isLoading ? (
+        <TableSkeleton cols={7} />
+      ) : (
+        <>
+          <Table
+            columns={columns}
+            rows={filteredLogs}
+            rowKey={(l) => l.id}
+            emptyMessage="Tidak ada log yang cocok dengan filter."
+          />
+          <p className="mt-2 text-xs text-gray-400">
+            Menampilkan {filteredLogs.length} dari {accessLogs.length} log.
+          </p>
+        </>
+      )}
     </div>
   );
 }

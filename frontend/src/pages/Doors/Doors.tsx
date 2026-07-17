@@ -1,10 +1,13 @@
 import { useState } from "react";
 import Table, { type Column } from "../../components/Table";
+import TableSkeleton from "../../components/TableSkeleton";
+import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
 import { controllers, doors as seedDoors } from "../../mock/data";
 import type { Door } from "../../types";
 import DoorModal, { type DoorFormResult } from "./DoorModal";
 
 export default function Doors() {
+  const isLoading = useSimulatedLoading();
   const [doorList, setDoorList] = useState<Door[]>(seedDoors);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Door | null>(null);
@@ -100,12 +103,18 @@ export default function Doors() {
         </button>
       </div>
 
-      <Table
-        columns={columns}
-        rows={[...doorList].sort((a, b) => a.controller_id - b.controller_id || a.door_number - b.door_number)}
-        rowKey={(d) => d.id}
-        emptyMessage="Belum ada pintu."
-      />
+      {isLoading ? (
+        <TableSkeleton cols={5} />
+      ) : (
+        <Table
+          columns={columns}
+          rows={[...doorList].sort(
+            (a, b) => a.controller_id - b.controller_id || a.door_number - b.door_number,
+          )}
+          rowKey={(d) => d.id}
+          emptyMessage="Belum ada pintu."
+        />
+      )}
 
       <DoorModal
         open={modalOpen}
