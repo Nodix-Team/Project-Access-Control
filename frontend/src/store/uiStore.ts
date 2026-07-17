@@ -17,6 +17,7 @@ interface UiState {
     result: "ALL" | "GRANTED" | "DENIED";
     dateFrom: string | null;
     dateTo: string | null;
+    replayedOnly: boolean;
   };
   setLogsFilter: (filter: Partial<UiState["logsFilter"]>) => void;
 
@@ -45,6 +46,7 @@ export const useUiStore = create<UiState>((set) => ({
     result: "ALL",
     dateFrom: null,
     dateTo: null,
+    replayedOnly: false,
   },
   setLogsFilter: (filter) =>
     set((state) => ({ logsFilter: { ...state.logsFilter, ...filter } })),

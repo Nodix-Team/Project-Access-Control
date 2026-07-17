@@ -1,12 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Badge from "../../components/Badge";
 import Table, { type Column } from "../../components/Table";
 import TableSkeleton from "../../components/TableSkeleton";
-import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
-import { accessLogs, controllers, doors } from "../../mock/data";
+import { useAccessLogs, type ApiAccessLog } from "../../api/logs";
+import { useControllers } from "../../api/controllers";
+import { useDoors } from "../../api/doors";
 import { useUiStore } from "../../store/uiStore";
 import { formatDateTime } from "../../utils/format";
-import type { AccessLog } from "../../types";
+
+const PAGE_SIZE = 20;
 
 function toDateInputValue(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -21,7 +23,7 @@ const RANGE_PRESETS: { label: string; days: number }[] = [
   { label: "30 hari terakhir", days: 29 },
 ];
 
-function toCsv(logs: AccessLog[]): string {
+function toCsv(logs: ApiAccessLog[]): string {
   const header = [
     "id",
     "server_ts",
@@ -64,53 +66,54 @@ function downloadCsv(content: string, filename: string) {
 }
 
 export default function AccessLogs() {
-  const isLoading = useSimulatedLoading();
+  const [page, setPage] = useState(1);
   const filter = useUiStore((state) => state.logsFilter);
   const setLogsFilter = useUiStore((state) => state.setLogsFilter);
 
+  const controllersQuery = useControllers();
+  const doorsQuery = useDoors();
+  const controllers = controllersQuery.data ?? [];
+  const doors = doorsQuery.data ?? [];
+
   const availableDoors = useMemo(
     () => (filter.controllerId ? doors.filter((d) => d.controller_id === filter.controllerId) : doors),
-    [filter.controllerId],
+    [filter.controllerId, doors],
   );
 
-  const filteredLogs = useMemo(() => {
-    return accessLogs
-      .filter((log) => {
-        if (filter.kartu && !log.kartu.toLowerCase().includes(filter.kartu.toLowerCase())) {
-          return false;
-        }
-        if (filter.controllerId !== null && log.controller_id !== filter.controllerId) {
-          return false;
-        }
-        if (filter.doorId !== null && log.door_id !== filter.doorId) {
-          return false;
-        }
-        if (filter.result !== "ALL" && log.result !== filter.result) {
-          return false;
-        }
-        if (filter.dateFrom && new Date(log.server_ts) < new Date(filter.dateFrom)) {
-          return false;
-        }
-        if (filter.dateTo && new Date(log.server_ts) > new Date(`${filter.dateTo}T23:59:59`)) {
-          return false;
-        }
-        return true;
-      })
-      .sort((a, b) => (a.server_ts < b.server_ts ? 1 : -1));
-  }, [filter]);
+  const logsQuery = useAccessLogs({
+    kartu: filter.kartu || undefined,
+    controller_id: filter.controllerId ?? undefined,
+    door_id: filter.doorId ?? undefined,
+    result: filter.result !== "ALL" ? filter.result : undefined,
+    date_from: filter.dateFrom ? `${filter.dateFrom}T00:00:00` : undefined,
+    date_to: filter.dateTo ? `${filter.dateTo}T23:59:59` : undefined,
+    is_replayed: filter.replayedOnly ? true : undefined,
+    page,
+    page_size: PAGE_SIZE,
+  });
+
+  const logs = logsQuery.data?.items ?? [];
+  const total = logsQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  function updateFilter(patch: Parameters<typeof setLogsFilter>[0]) {
+    setLogsFilter(patch);
+    setPage(1);
+  }
 
   function handleExport() {
-    downloadCsv(toCsv(filteredLogs), `access_logs_${Date.now()}.csv`);
+    // Export = data terfilter yang SEDANG tampil di tabel (halaman aktif), bukan seluruh histori.
+    downloadCsv(toCsv(logs), `access_logs_${Date.now()}.csv`);
   }
 
   function applyRangePreset(days: number) {
     const to = new Date();
     const from = new Date();
     from.setDate(from.getDate() - days);
-    setLogsFilter({ dateFrom: toDateInputValue(from), dateTo: toDateInputValue(to) });
+    updateFilter({ dateFrom: toDateInputValue(from), dateTo: toDateInputValue(to) });
   }
 
-  const columns: Column<AccessLog>[] = [
+  const columns: Column<ApiAccessLog>[] = [
     { header: "Waktu", render: (l) => formatDateTime(l.server_ts) },
     { header: "Nama", render: (l) => l.user_nama ?? "Unknown" },
     { header: "Pintu", render: (l) => l.door_nama ?? "—" },
@@ -156,7 +159,7 @@ export default function AccessLogs() {
         ))}
         {(filter.dateFrom || filter.dateTo) && (
           <button
-            onClick={() => setLogsFilter({ dateFrom: null, dateTo: null })}
+            onClick={() => updateFilter({ dateFrom: null, dateTo: null })}
             className="text-xs text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400"
           >
             ✕ Reset rentang
@@ -164,19 +167,19 @@ export default function AccessLogs() {
         )}
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           type="text"
           placeholder="Cari kartu..."
           value={filter.kartu}
-          onChange={(e) => setLogsFilter({ kartu: e.target.value })}
+          onChange={(e) => updateFilter({ kartu: e.target.value })}
           className="w-48 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         />
 
         <select
           value={filter.controllerId ?? ""}
           onChange={(e) =>
-            setLogsFilter({
+            updateFilter({
               controllerId: e.target.value ? Number(e.target.value) : null,
               doorId: null,
             })
@@ -193,7 +196,7 @@ export default function AccessLogs() {
 
         <select
           value={filter.doorId ?? ""}
-          onChange={(e) => setLogsFilter({ doorId: e.target.value ? Number(e.target.value) : null })}
+          onChange={(e) => updateFilter({ doorId: e.target.value ? Number(e.target.value) : null })}
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="">Semua Pintu</option>
@@ -206,9 +209,7 @@ export default function AccessLogs() {
 
         <select
           value={filter.result}
-          onChange={(e) =>
-            setLogsFilter({ result: e.target.value as "ALL" | "GRANTED" | "DENIED" })
-          }
+          onChange={(e) => updateFilter({ result: e.target.value as "ALL" | "GRANTED" | "DENIED" })}
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="ALL">Semua Result</option>
@@ -219,31 +220,61 @@ export default function AccessLogs() {
         <input
           type="date"
           value={filter.dateFrom ?? ""}
-          onChange={(e) => setLogsFilter({ dateFrom: e.target.value || null })}
+          onChange={(e) => updateFilter({ dateFrom: e.target.value || null })}
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         />
         <span className="self-center text-sm text-gray-400 dark:text-gray-500">s/d</span>
         <input
           type="date"
           value={filter.dateTo ?? ""}
-          onChange={(e) => setLogsFilter({ dateTo: e.target.value || null })}
+          onChange={(e) => updateFilter({ dateTo: e.target.value || null })}
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         />
+
+        <label className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+          <input
+            type="checkbox"
+            checked={filter.replayedOnly}
+            onChange={(e) => updateFilter({ replayedOnly: e.target.checked })}
+          />
+          Hanya REPLAYED
+        </label>
       </div>
 
-      {isLoading ? (
+      {logsQuery.isLoading ? (
         <TableSkeleton cols={7} />
       ) : (
         <>
           <Table
             columns={columns}
-            rows={filteredLogs}
+            rows={logs}
             rowKey={(l) => l.id}
             emptyMessage="Tidak ada log yang cocok dengan filter."
           />
-          <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
-            Menampilkan {filteredLogs.length} dari {accessLogs.length} log.
-          </p>
+          <div className="mt-3 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+            <span>
+              Menampilkan {logs.length} dari {total} log
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="rounded-md border border-gray-300 px-2 py-1 disabled:opacity-40 dark:border-gray-600"
+              >
+                ← Prev
+              </button>
+              <span>
+                Halaman {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="rounded-md border border-gray-300 px-2 py-1 disabled:opacity-40 dark:border-gray-600"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
         </>
       )}
     </div>
