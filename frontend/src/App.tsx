@@ -4,7 +4,7 @@ import Login from "./pages/Login/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import UserList from "./pages/Users/UserList";
 import UserDetail from "./pages/Users/UserDetail";
-import Departments from "./pages/Departments";
+import Departments from "./pages/Departments/Departments";
 import Controllers from "./pages/Controllers";
 import Doors from "./pages/Doors";
 import AccessLogs from "./pages/AccessLogs";
