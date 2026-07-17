@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { controllers, doors } from "../../mock/data";
-import type { Department } from "../../types";
+import type { ApiDepartment } from "../../api/departments";
+import type { Controller, Door } from "../../types";
 
 export default function DepartmentAccessPanel({
   department,
-  doorIds,
+  controllers,
+  doors,
   onSaveInfo,
   onSaveAccess,
   onSyncAll,
 }: {
-  department: Department | null;
-  doorIds: number[];
+  department: ApiDepartment | null;
+  controllers: Controller[];
+  doors: Door[];
   onSaveInfo: (nama: string, deskripsi: string) => void;
   onSaveAccess: (doorIds: number[]) => void;
   onSyncAll: () => void;
@@ -22,8 +24,8 @@ export default function DepartmentAccessPanel({
   useEffect(() => {
     setNama(department?.nama ?? "");
     setDeskripsi(department?.deskripsi ?? "");
-    setSelectedDoorIds(new Set(doorIds));
-  }, [department, doorIds]);
+    setSelectedDoorIds(new Set(department?.door_ids ?? []));
+  }, [department]);
 
   if (!department) {
     return (

@@ -2,88 +2,100 @@ import { useState } from "react";
 import Table, { type Column } from "../../components/Table";
 import TableSkeleton from "../../components/TableSkeleton";
 import Toast from "../../components/Toast";
-import { useSimulatedLoading } from "../../hooks/useSimulatedLoading";
 import { useToast } from "../../hooks/useToast";
-import { departmentAccess as seedDepartmentAccess, departments as seedDepartments } from "../../mock/data";
+import {
+  useCreateDepartment,
+  useDeleteDepartment,
+  useDepartments,
+  useUpdateDepartment,
+  type ApiDepartment,
+} from "../../api/departments";
+import { useControllers, useSyncController } from "../../api/controllers";
+import { useDoors } from "../../api/doors";
 import { useUiStore } from "../../store/uiStore";
-import type { Department } from "../../types";
 import DepartmentAccessPanel from "./DepartmentAccessPanel";
 import DepartmentModal, { type DepartmentFormResult } from "./DepartmentModal";
 
-function groupDoorIdsByDept(
-  entries: { department_id: number; door_id: number }[],
-): Record<number, number[]> {
-  const map: Record<number, number[]> = {};
-  for (const entry of entries) {
-    map[entry.department_id] = map[entry.department_id] ?? [];
-    map[entry.department_id].push(entry.door_id);
-  }
-  return map;
-}
-
 export default function Departments() {
-  const isLoading = useSimulatedLoading();
-  const [departmentList, setDepartmentList] = useState<Department[]>(seedDepartments);
-  const [accessMap, setAccessMap] = useState<Record<number, number[]>>(() =>
-    groupDoorIdsByDept(seedDepartmentAccess),
-  );
+  const departmentsQuery = useDepartments();
+  const controllersQuery = useControllers();
+  const doorsQuery = useDoors();
+  const createDepartment = useCreateDepartment();
+  const updateDepartment = useUpdateDepartment();
+  const deleteDepartment = useDeleteDepartment();
+  const syncController = useSyncController();
+
   const [addModalOpen, setAddModalOpen] = useState(false);
   const { toastMessage, showToast } = useToast();
 
   const selectedId = useUiStore((state) => state.selectedDepartmentId);
   const setSelectedId = useUiStore((state) => state.setSelectedDepartmentId);
-  const selectedDept = departmentList.find((d) => d.id === selectedId) ?? null;
 
-  function nextId(): number {
-    return departmentList.reduce((max, d) => Math.max(max, d.id), 0) + 1;
-  }
+  const departments = departmentsQuery.data ?? [];
+  const doors = doorsQuery.data ?? [];
+  const controllers = controllersQuery.data ?? [];
+  const selectedDept = departments.find((d) => d.id === selectedId) ?? null;
 
   function handleAdd(result: DepartmentFormResult) {
-    const id = nextId();
-    const newDept: Department = {
-      id,
-      nama: result.nama,
-      deskripsi: result.deskripsi || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setDepartmentList((prev) => [...prev, newDept]);
-    setAccessMap((prev) => ({ ...prev, [id]: [] }));
-    setAddModalOpen(false);
+    createDepartment.mutate(
+      { nama: result.nama, deskripsi: result.deskripsi || null },
+      { onSuccess: () => setAddModalOpen(false) },
+    );
   }
 
   function handleDelete(id: number) {
     if (!confirm("Hapus department ini?")) return;
-    setDepartmentList((prev) => prev.filter((d) => d.id !== id));
-    setAccessMap((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
+    deleteDepartment.mutate(id, {
+      onSuccess: () => {
+        if (selectedId === id) setSelectedId(null);
+      },
     });
-    if (selectedId === id) setSelectedId(null);
   }
 
   function handleSaveInfo(nama: string, deskripsi: string) {
-    if (!selectedId || !nama) return;
-    setDepartmentList((prev) =>
-      prev.map((d) =>
-        d.id === selectedId ? { ...d, nama, deskripsi: deskripsi || null, updated_at: new Date().toISOString() } : d,
-      ),
-    );
+    if (!selectedDept || !nama) return;
+    updateDepartment.mutate({
+      id: selectedDept.id,
+      payload: { nama, deskripsi: deskripsi || null, door_ids: selectedDept.door_ids },
+    });
   }
 
   function handleSaveAccess(doorIds: number[]) {
-    if (!selectedId) return;
-    setAccessMap((prev) => ({ ...prev, [selectedId]: doorIds }));
-    showToast("Akses department tersimpan (mock)");
-  }
-
-  function handleSyncAll() {
     if (!selectedDept) return;
-    showToast(`Sync semua user di ${selectedDept.nama} (mock)`);
+    updateDepartment.mutate(
+      {
+        id: selectedDept.id,
+        payload: { nama: selectedDept.nama, deskripsi: selectedDept.deskripsi, door_ids: doorIds },
+      },
+      { onSuccess: () => showToast("Akses department tersimpan") },
+    );
   }
 
-  const columns: Column<Department>[] = [
+  async function handleSyncAll() {
+    if (!selectedDept) return;
+    const controllerIds = [
+      ...new Set(
+        doors.filter((d) => selectedDept.door_ids.includes(d.id)).map((d) => d.controller_id),
+      ),
+    ];
+    if (controllerIds.length === 0) {
+      showToast("Tidak ada controller yang relevan (belum ada akses pintu diatur)");
+      return;
+    }
+    const results = await Promise.allSettled(
+      controllerIds.map((id) => syncController.mutateAsync(id)),
+    );
+    const failed = results.filter(
+      (r) => r.status === "rejected" || (r.status === "fulfilled" && r.value.status !== "OK"),
+    ).length;
+    showToast(
+      failed === 0
+        ? `Sync berhasil ke ${controllerIds.length} controller`
+        : `Sync selesai, ${failed}/${controllerIds.length} controller gagal (offline/timeout)`,
+    );
+  }
+
+  const columns: Column<ApiDepartment>[] = [
     { header: "Nama", render: (d) => d.nama },
     { header: "Deskripsi", render: (d) => d.deskripsi ?? "—" },
     {
@@ -126,12 +138,12 @@ export default function Departments() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div>
-          {isLoading ? (
+          {departmentsQuery.isLoading ? (
             <TableSkeleton cols={3} />
           ) : (
             <Table
               columns={columns}
-              rows={departmentList}
+              rows={departments}
               rowKey={(d) => d.id}
               emptyMessage="Belum ada department."
             />
@@ -140,7 +152,8 @@ export default function Departments() {
 
         <DepartmentAccessPanel
           department={selectedDept}
-          doorIds={selectedId ? (accessMap[selectedId] ?? []) : []}
+          controllers={controllers}
+          doors={doors}
           onSaveInfo={handleSaveInfo}
           onSaveAccess={handleSaveAccess}
           onSyncAll={handleSyncAll}
