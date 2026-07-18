@@ -21,9 +21,14 @@
 #define WIFI_PASSWORD   "Danas123"
 #define MQTT_BROKER     "127.0.0.1"        // IP Localhost EMQX
 #define MQTT_PORT       1883
-#define MQTT_USER       "ctrl-A"
-#define MQTT_PASSWORD   "ctrlA123"
-#define DEVICE_ID       "esp32-ac-001"
+#define MQTT_USER       "ctrl-B"
+#define MQTT_PASSWORD   "ctrlB123"
+// device_id HARUS cocok dengan salah satu controller yang sudah ada di seed data (ctrl-A/ctrl-B)
+// - tidak ada endpoint POST /api/controllers untuk daftar controller baru, jadi device_id
+// karangan ("esp32-ac-001") membuat backend tidak pernah mengenali device ini (last_seen tidak
+// ter-update, is_online selalu false, log masuk dengan controller_id NULL). Pakai ctrl-B
+// (bukan ctrl-A) supaya tidak bentrok kalau tools/simulate_esp32.py turut dijalankan bersamaan.
+#define DEVICE_ID       "ctrl-B"
 #define HEARTBEAT_S     30
 #define TOTAL_DOORS     4
 
