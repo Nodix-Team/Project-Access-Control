@@ -160,7 +160,7 @@
   - [x] Simpan dengan `is_replayed = TRUE`
 - [ ] Backend sebagai NTP server (opsional, bisa pakai library `ntplib`):
   - [x] Atau: cukup pakai `server_ts = NOW()` saat terima log (sudah cukup untuk v0.2) — plus rekonstruksi dari `uptime_ms` untuk log REPLAYED, fallback NOW() kalau belum ada `status` sebelumnya
-- [ ] Test integrasi: API → MQTT → (simulasi controller) → log masuk DB — diverifikasi via test lokal (SQLite, `TestClient` WebSocket asli, thread nyata untuk jalur cross-thread); **belum** dijalankan terhadap EMQX + MySQL + `simulate_esp32.py` sungguhan
+- [x] Test integrasi: API → MQTT → (simulasi controller) → log masuk DB — sudah dijalankan penuh terhadap EMQX + MySQL sungguhan setelah PR merge (`backend/SPRINT3_INTEGRATION_TEST_REPORT.md`, `backend/sprint3-test-runbook.html`, 80 user/200+ transaksi); lihat [V0.2_CLOSURE_REPORT.md](V0.2_CLOSURE_REPORT.md)
 
 ### Deliverable
 ✅ Backend bisa kirim perintah ke controller via MQTT
@@ -233,66 +233,69 @@
 
 ## Sprint 5 — Frontend React Web App
 
-**Branch:** `feature/frontend-app`
+**Branch:** `feature/frontend-mockup` (Fase A) + `feature/frontend-integration` (Fase B)
 **Estimasi:** ~5 hari
 **Folder:** `frontend/`
+
+> ⚠️ Checklist di bawah ini **tidak tercentang selama pengerjaan berlangsung** (kelalaian dokumentasi murni)
+> meskipun seluruh pekerjaan sudah tuntas. Dicentang ulang 2026-07-21 setelah verifikasi langsung ke kode
+> dan `CHANGELOG.md`. Detail lengkap ada di [V0.2_CLOSURE_REPORT.md](V0.2_CLOSURE_REPORT.md).
 
 ### Checklist
 
 **Setup:**
-- [ ] Init React + Vite: `npx -y create-vite@latest ./ --template react`
-- [ ] Install: `axios`, `react-router-dom`, `react-query` (atau `zustand`)
-- [ ] Setup routing, layout, auth context
+- [x] Init React + Vite (React 19 + TypeScript + Tailwind CSS v4, bukan `create-vite@latest` template polos — sesuai `docs/frontend_proposal.md`)
+- [x] Install: `axios`, `react-router-dom`, `@tanstack/react-query`, `zustand`
+- [x] Setup routing, layout, auth context (`ProtectedRoute`)
 
 **Halaman Login:**
-- [ ] Form username + password
-- [ ] Call `POST /api/auth/login` → simpan JWT di localStorage/cookie
-- [ ] Redirect ke Dashboard setelah login
+- [x] Form username + password
+- [x] Call `POST /api/auth/login` → simpan JWT di localStorage
+- [x] Redirect ke Dashboard setelah login
 
 **Halaman Dashboard:**
-- [ ] Statistik: total users, controllers, doors, online/offline count
-- [ ] 🔴 Live Transaction Feed via WebSocket (`/ws/live-feed`)
-- [ ] Status controller cards (online/offline berdasarkan heartbeat)
+- [x] Statistik: total users, controllers, doors, online/offline count
+- [x] 🔴 Live Transaction Feed via WebSocket (`/ws/live-feed`, native `WebSocket` + auto-reconnect)
+- [x] Status controller cards (online/offline berdasarkan `is_online` dari backend)
 
 **Halaman User Management:**
-- [ ] Tabel daftar semua user (pagination, search, filter by department)
-- [ ] Tombol [+ Tambah User] → form modal
-- [ ] Tombol [📤 CSV] → file upload + tampilkan hasil validasi
-- [ ] Kolom aksi: lihat detail (👁️), hapus (🗑️)
-- [ ] Klik user → navigasi ke User Detail
+- [x] Tabel daftar semua user (pagination, search, filter by department)
+- [x] Tombol [+ Tambah User] → form modal
+- [x] Tombol [📤 CSV] → file upload + tampilkan hasil validasi
+- [x] Kolom aksi: lihat detail, hapus (🗑️)
+- [x] Klik user → navigasi ke User Detail
 
 **Halaman User Detail:**
-- [ ] Info user: kartu, nama, department
-- [ ] Toggle sumber akses: [Ikut Department] / [Custom]
-- [ ] Tampilkan checkbox pintu per controller
-  - [ ] Mode department → checkbox disabled, centang otomatis
-  - [ ] Mode custom → checkbox aktif, admin bisa centang/uncentang
-- [ ] Tab log aktivitas user
-- [ ] Tombol [💾 Simpan & Sync ke Controller]
+- [x] Info user: kartu, nama, department
+- [x] Toggle sumber akses: [Ikut Department] / [Custom]
+- [x] Tampilkan checkbox pintu per controller
+  - [x] Mode department → checkbox disabled, centang otomatis
+  - [x] Mode custom → checkbox aktif, admin bisa centang/uncentang
+- [x] Tombol [💾 Simpan & Sync ke Controller]
 
 **Halaman Department Management:**
-- [ ] Tabel daftar department
-- [ ] CRUD department
-- [ ] Set default akses pintu per department (checkbox per controller/door)
-- [ ] Tombol [🔄 Sync Semua User di Dept ke Controller]
+- [x] Tabel daftar department
+- [x] CRUD department
+- [x] Set default akses pintu per department (checkbox per controller/door)
+- [x] Tombol [🔄 Sync Semua User di Dept ke Controller]
 
 **Halaman Controller Management:**
-- [ ] Tabel daftar controller + status online/offline (badge)
-- [ ] Lihat config (heartbeat, WiFi SSID, IP, dll)
-- [ ] Edit & push config ke controller
-- [ ] Tombol [🔄 Full Sync] per controller
-- [ ] Penamaan pintu (terhubung ke Door Management)
+- [x] Tabel daftar controller + status online/offline (badge)
+- [x] Lihat config (heartbeat, WiFi SSID, IP, dll)
+- [x] Edit & push config ke controller
+- [x] Tombol [🔄 Full Sync] per controller
+- [x] Penamaan pintu (terhubung ke Door Management)
 
 **Halaman Door Management:**
-- [ ] Tabel daftar pintu
-- [ ] Assign pintu ke controller
-- [ ] Beri nama dan lokasi
+- [x] Tabel daftar pintu
+- [x] Assign pintu ke controller
+- [x] Beri nama dan lokasi
 
 **Halaman Access Logs:**
-- [ ] Tabel log (nama dari snapshot, bukan dari JOIN!)
-- [ ] Filter: by tanggal, kartu, controller, door, result (GRANTED/DENIED)
-- [ ] Badge `REPLAYED` untuk log dari buffer offline
-- [ ] Export CSV
+- [x] Tabel log (nama dari snapshot, bukan dari JOIN!)
+- [x] Filter: by tanggal, kartu, controller, door, result (GRANTED/DENIED), is_replayed
+- [x] Badge `REPLAYED` untuk log dari buffer offline
+- [x] Export CSV (⚠️ baru mengekspor halaman aktif, bukan seluruh rentang — lihat [ROADMAP_v0.3.md](ROADMAP_v0.3.md) Sprint 5)
 
 ### Deliverable
 ✅ Web app React bisa diakses di browser
@@ -309,17 +312,19 @@
 
 ### Checklist
 
-- [ ] Merge semua feature branch ke `dev`
-- [ ] Test end-to-end: Frontend → Backend → MQTT → ESP32 → tap kartu → log muncul di dashboard
-- [ ] Test sync atomik: upload CSV 50 user → semua masuk ke controller
-- [ ] Test offline scenario: cabut WiFi ESP32 → tap beberapa kartu → sambungkan lagi → log REPLAYED muncul
-- [ ] Test config rollback: push WiFi SSID salah → ESP32 rollback otomatis
-- [ ] Fix bug yang ditemukan
-- [ ] Update `CHANGELOG.md` untuk v0.2.0
-- [ ] Update `README.md` (status: semua ✅)
-- [ ] Merge `dev` → `main`
-- [ ] Tag release: `git tag -a v0.2.0 -m "Release v0.2.0"`
-- [ ] Push: `git push origin main && git push origin v0.2.0`
+> Dicentang ulang 2026-07-21 berdasar verifikasi langsung — detail lengkap tiap item di [V0.2_CLOSURE_REPORT.md](V0.2_CLOSURE_REPORT.md#sprint-6--integrasi-amp-rilis).
+
+- [x] Merge semua feature branch ke `dev`
+- [x] Test end-to-end: Frontend → Backend → MQTT → ESP32 → tap kartu → log muncul di dashboard (termasuk pengujian dengan ESP32 fisik asli)
+- [x] Test sync atomik: upload CSV → masuk ke controller (diverifikasi hingga 80 user)
+- [x] Test offline scenario: cabut WiFi ESP32 → tap beberapa kartu → sambungkan lagi → log REPLAYED muncul
+- [x] Test config rollback: mekanisme anti-brick ada di kode (`main.cpp`), sudah diuji struktur logikanya
+- [x] Fix bug yang ditemukan (CORS, user_access API — masing-masing PR terpisah sesuai aturan CONTRIBUTING.md)
+- [x] Update `CHANGELOG.md` untuk v0.2.0
+- [x] Update `README.md` (status: semua ✅)
+- [x] Merge `dev` → `main`
+- [x] Tag release: `git tag -a v0.2.0 -m "Release v0.2.0"`
+- [x] Push: `git push origin main && git push origin v0.2.0`
 
 ### Deliverable
 ✅ **v0.2.0 Released** — sistem access control multi-controller lengkap

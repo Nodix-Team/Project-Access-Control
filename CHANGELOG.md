@@ -7,6 +7,14 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+_(belum ada perubahan baru sejak v0.2.0 — lihat [ROADMAP_v0.3.md](docs/ROADMAP_v0.3.md) untuk rencana selanjutnya)_
+
+---
+
+## [v0.2.0] - 2026-07-21
+
+> Rilis resmi pertama sistem access control multi-controller lengkap (database, backend REST+MQTT, firmware ESP32, frontend React). Realisasi penuh dibandingkan roadmap ada di [`docs/V0.2_CLOSURE_REPORT.md`](docs/V0.2_CLOSURE_REPORT.md) — termasuk gap yang ditemukan di luar scope roadmap awal (keamanan, testing otomatis, hardware fisik), yang jadi dasar [`docs/ROADMAP_v0.3.md`](docs/ROADMAP_v0.3.md).
+
 ### Backend Core API — Sprint 2 (`feature/backend-core`)
 
 Implementasi REST API v0.2 (FastAPI) sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.md) Sprint 2. Belum termasuk MQTT client/publisher/subscriber dan protokol sync atomik — ditunda ke Sprint 3, ditandai TODO eksplisit di kode.
