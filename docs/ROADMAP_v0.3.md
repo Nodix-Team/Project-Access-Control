@@ -1,6 +1,9 @@
-# 🗺️ Roadmap Pengembangan v0.3
+# 📝 DRAFT PROPOSAL: Roadmap Pengembangan v0.3
 
-> Roadmap ini berdasarkan [`V0.2_CLOSURE_REPORT.md`](V0.2_CLOSURE_REPORT.md) (perbandingan realisasi v0.2 vs
+> [!IMPORTANT]
+> Dokumen ini adalah **DRAFT / PROPOSAL USULAN** pengembangan untuk versi 0.3. Rencana ini **belum bersifat final** dan masih memerlukan review, diskusi, masukan, serta persetujuan dari seluruh anggota tim (terutama Rizal/Peng) sebelum disahkan menjadi roadmap resmi.
+
+> Roadmap ini dirancang berdasarkan [`V0.2_CLOSURE_REPORT.md`](V0.2_CLOSURE_REPORT.md) (perbandingan realisasi v0.2 vs
 > roadmap-nya), [`BACKLOG_PENGEMBANGAN.md`](BACKLOG_PENGEMBANGAN.md) (usulan yang sengaja ditunda dari v0.2),
 > dan temuan audit kode langsung selama v0.2 (keamanan, testing, kesiapan hardware fisik).
 > Aturan branching, commit message, dan proses PR **mengikuti [`CONTRIBUTING.md`](../CONTRIBUTING.md) yang sudah ada — tidak berubah.**
