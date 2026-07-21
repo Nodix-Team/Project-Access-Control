@@ -8,9 +8,8 @@ Project-Access-Control/
 ├── backend/        ← FastAPI REST API + MQTT (Python)
 ├── frontend/       ← React + Vite Web App (JavaScript)
 ├── database/       ← MySQL Schema & Migrations (SQL)
-├── docs/           ← Dokumentasi arsitektur & panduan
-├── tools/          ← Script utility untuk testing/development
-└── PRD-V2/         ← Product Requirement Document
+├── docs/           ← Dokumentasi arsitektur, panduan, roadmap, PRD
+└── tools/          ← Script utility untuk testing/development
 ```
 
 ## Branching Strategy
@@ -107,6 +106,8 @@ mysql -u root -p access_control < database/seed.sql   # data dummy
 
 ## Referensi
 
+- [Indeks Dokumentasi Lengkap](docs/README.md) — peta semua dokumen di `docs/`
 - [Architecture Proposal v0.2 (Rev 3)](docs/architecture_proposal_v0.2.md)
 - [Architecture Review](docs/architecture_review.md)
 - [Testing Guide](docs/testing_guide.md)
+- [Roadmap v0.3](docs/ROADMAP_v0.3.md)

@@ -1,0 +1,100 @@
+erDiagram
+    CONTROLLERS ||--o{ DOORS : "punya"
+    CONTROLLERS ||--o{ ACCESS_LOGS : "mengirim"
+    DOORS ||--o{ DEPARTMENT_ACCESS : "diizinkan-untuk"
+    DOORS ||--o{ USER_ACCESS : "diizinkan-untuk"
+    DOORS ||--o{ ACCESS_LOGS : "dicatat-di"
+    DEPARTMENTS ||--o{ DEPARTMENT_ACCESS : "punya-default"
+    DEPARTMENTS ||--o{ USERS : "menaungi"
+    USERS ||--o{ USER_ACCESS : "override"
+    USERS ||--o{ ACCESS_LOGS : "pelaku"
+    ADMIN_USERS ||--o{ ADMIN_LOGS : "melakukan"
+
+    CONTROLLERS {
+        int id PK
+        varchar device_id UK "ctrl-A"
+        varchar nama
+        varchar lokasi
+        varchar wifi_ssid "TANPA password"
+        varchar mqtt_broker
+        int mqtt_port
+        int total_doors "default 4"
+        int heartbeat_s "default 30"
+        datetime last_seen "is_online DIHITUNG dari sini"
+        varchar fw_version
+        datetime created_at
+        datetime updated_at
+    }
+
+    DOORS {
+        int id PK "GLOBAL - tidak pernah keluar dari Backend"
+        int controller_id FK
+        int door_number "LOKAL 1-4 - ini yang dikirim ke Controller"
+        varchar nama UK "Ruang Server"
+        varchar lokasi
+    }
+
+    DEPARTMENTS {
+        int id PK
+        varchar nama UK "IT / HRD / Security"
+        varchar deskripsi
+        datetime created_at
+        datetime updated_at
+    }
+
+    DEPARTMENT_ACCESS {
+        int id PK
+        int department_id FK
+        int door_id FK
+    }
+
+    USERS {
+        int uid PK
+        varchar kartu UK "collation _ci - case insensitive"
+        varchar nama "TIDAK pernah dikirim ke Controller"
+        int department_id FK "NULL = tanpa dept"
+        bool is_custom_access "TRUE = pakai user_access"
+        bool is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    USER_ACCESS {
+        int id PK
+        int user_id FK
+        int door_id FK
+    }
+
+    ACCESS_LOGS {
+        bigint id PK
+        varchar kartu
+        int user_id FK "NULL jika kartu tak dikenal"
+        varchar user_nama "SNAPSHOT saat kejadian"
+        int door_id FK
+        varchar door_nama "SNAPSHOT saat kejadian"
+        int controller_id FK
+        enum result "GRANTED / DENIED"
+        varchar reason "OK/UNKNOWN_CARD/NO_ACCESS"
+        datetime server_ts "OTORITATIF - UTC"
+        bigint device_uptime_ms "diagnosa"
+        bool replayed "log buffer offline"
+    }
+
+    ADMIN_USERS {
+        int id PK
+        varchar username UK
+        varchar password_hash
+        enum role "admin / viewer"
+        bool is_active
+        datetime created_at
+    }
+
+    ADMIN_LOGS {
+        bigint id PK
+        int admin_id FK
+        varchar aksi "USER_CREATE / DEPT_ACCESS_UPDATE"
+        varchar target "kartu / device_id"
+        json detail_before
+        json detail_after
+        datetime server_ts
+    }

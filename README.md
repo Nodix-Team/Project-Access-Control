@@ -83,10 +83,11 @@ npm run dev
 
 ## 📋 Dokumentasi Pendukung
 
-- 🛣️ [Development Roadmap v0.2 (6 Sprints)](docs/ROADMAP_v0.2.md)
+- 📚 [Indeks Dokumentasi Lengkap](docs/README.md) — peta semua dokumen (roadmap, arsitektur, panduan testing)
+- 🛣️ [Roadmap v0.3 (Sedang Berjalan)](docs/ROADMAP_v0.3.md)
+- 📊 [Laporan Penutupan v0.2](docs/V0.2_CLOSURE_REPORT.md)
 - 📐 [Architecture Proposal Specification (v0.2.0-rev3)](docs/architecture_proposal_v0.2.md)
-- 📝 [Architecture Review (v0.1.0)](docs/architecture_review.md)
-- 🧪 [Panduan Praktis Pengujian & Simulator (v0.2.0)](docs/testing_guide.md)
+- 🧪 [Panduan Praktis Pengujian & Simulator](docs/testing_guide.md)
 
 ---
 
