@@ -65,6 +65,18 @@ Controller hanya menyimpan data **seminimal mungkin** untuk membuat keputusan ak
 > WHERE ua.user_id = :uid;
 > ```
 
+### `[REV3]` Aturan Kritis: Normalisasi ID Kartu 10-Digit
+
+> [!IMPORTANT]
+> **Pencegahan Mismatch Database Lookup pada Log Akses:**
+> 
+> Agar tidak terjadi kegagalan pencocokan data user saat Controller mengirimkan log transaksi, **Backend dan Controller wajib melakukan normalisasi kartu menggunakan logika yang identik**.
+> 
+> * **Kartu Numerik:** Jika ID kartu bertipe numerik murni dan panjangnya < 10 digit, wajib ditambahkan padding `0` di depan hingga panjangnya tepat 10 digit (contoh: `"123456"` -> `"0000123456"`).
+> * **Kartu Alphanumeric Hex:** Jika ID kartu bertipe heksadesimal/alfanumerik (mengandung karakter non-angka seperti `A`-`F`), ID tersebut **tidak boleh di-pad** (contoh: `"AABBCCDD"` tetap `"AABBCCDD"`).
+> 
+> Backend **wajib** menormalkan field `kartu` ini sebelum melakukan penyimpanan ke MySQL (`POST /api/users`, `PUT /api/users/{uid}`, `POST /api/users/upload-csv`) agar pencocokan log sukses.
+
 ### Format Data yang Dikirim ke Controller (CSV)
 
 ```

@@ -5,7 +5,7 @@
 
 -- Admin (password: admin123 — bcrypt hash)
 INSERT INTO admins (username, password, role) VALUES
-('admin', '$2b$12$LJ3m4ys3Lg3do1Wnx0Sn2eTIHRgVPmJxuMmkM7eG.1LHzmXk6gKm', 'admin');
+('admin', '$2b$12$HeO1rUc6yS0xyImfGh60mukBqg8pngtcKXVijOHvwhSaZllcg9f6u', 'admin');
 
 -- Controllers
 INSERT INTO controllers (device_id, nama, lokasi, wifi_ssid, mqtt_broker, mqtt_user, total_doors) VALUES
@@ -41,7 +41,7 @@ INSERT INTO department_access (department_id, door_id) VALUES
 -- Users
 INSERT INTO users (kartu, nama, department_id, is_custom_access) VALUES
 ('AABBCCDD', 'John Doe',     1, FALSE),   -- IT, ikut dept
-('11223344', 'Jane Smith',   1, TRUE),     -- IT, custom override
+('0011223344', 'Jane Smith', 1, TRUE),     -- IT, custom override
 ('DEADBEEF', 'Bob Wilson',   2, FALSE),    -- HRD, ikut dept
 ('FF001122', 'Alice Brown',  NULL, TRUE),  -- tanpa dept, custom
 ('CAFEBABE', 'Charlie Lee',  3, FALSE);    -- Security, ikut dept

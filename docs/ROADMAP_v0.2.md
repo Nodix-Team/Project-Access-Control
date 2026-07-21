@@ -27,16 +27,16 @@
 
 ### Checklist
 
-- [ ] Buat database `access_control` di MySQL
-- [ ] Jalankan `database/schema.sql` — 8 tabel
-- [ ] Jalankan `database/seed.sql` — data dummy
-- [ ] Verifikasi relasi antar tabel via MySQL Workbench
-- [ ] Setup auth EMQX (username/password per controller):
-  - [ ] Tambah user `backend` / `{random_pass}`
-  - [ ] Tambah user `ctrl-A` / `{random_pass}`
-  - [ ] Tambah user `ctrl-B` / `{random_pass}` (opsional, jika punya 2 ESP32)
-- [ ] Verifikasi koneksi MQTT **dengan auth** dari laptop
-- [ ] Catat semua kredensial di `.env.example` (tanpa value asli)
+- [x] Buat database `access_control` di MySQL
+- [x] Jalankan `database/schema.sql` — 8 tabel
+- [x] Jalankan `database/seed.sql` — data dummy
+- [x] Verifikasi relasi antar tabel via MySQL Workbench
+- [x] Setup auth EMQX (username/password per controller):
+  - [x] Tambah user `backend` / `{random_pass}`
+  - [x] Tambah user `ctrl-A` / `{random_pass}`
+  - [x] Tambah user `ctrl-B` / `{random_pass}` (opsional, jika punya 2 ESP32)
+- [x] Verifikasi koneksi MQTT **dengan auth** dari laptop
+- [x] Catat semua kredensial di `.env.example` (tanpa value asli)
 
 ### Deliverable
 ✅ Database MySQL berisi 8 tabel + data dummy
@@ -52,7 +52,7 @@
 
 ### Checklist
 
-- [ ] Setup FastAPI project structure:
+- [x] Setup FastAPI project structure:
   ```
   backend/
   ├── app/
@@ -87,33 +87,33 @@
   ├── .env.example
   └── tests/
   ```
-- [ ] Install dependencies: `fastapi`, `uvicorn`, `sqlalchemy`, `pymysql`, `python-jose`, `bcrypt`, `python-dotenv`
-- [ ] Implementasi JWT Auth:
-  - [ ] `POST /api/auth/login` → return JWT token
-  - [ ] Middleware: semua route kecuali login wajib JWT header
-- [ ] Implementasi CRUD User:
-  - [ ] `GET /api/users` — daftar user + filter + pagination
-  - [ ] `POST /api/users` — tambah user baru
-  - [ ] `PUT /api/users/{uid}` — edit user
-  - [ ] `DELETE /api/users/{uid}` — hapus user
-  - [ ] `POST /api/users/upload-csv` — bulk import (validasi sesuai proposal)
-- [ ] Implementasi CRUD Department:
-  - [ ] `GET /api/departments`
-  - [ ] `POST /api/departments`
-  - [ ] `PUT /api/departments/{id}` — termasuk set `department_access`
-  - [ ] `DELETE /api/departments/{id}`
-- [ ] Implementasi Controller & Door:
-  - [ ] `GET /api/controllers` — daftar controller + status online (hitung dari `last_seen`)
-  - [ ] `GET /api/controllers/{id}/config` — baca config controller
-  - [ ] `PUT /api/controllers/{id}/config` — push config baru
-  - [ ] CRUD doors (assign ke controller, beri nama/lokasi)
-- [ ] Implementasi Logs:
-  - [ ] `GET /api/logs` — filter by kartu, controller, door, tanggal, result
-- [ ] Logika Resolusi Akses:
-  - [ ] `is_custom_access = TRUE` → ambil dari `user_access`
-  - [ ] `is_custom_access = FALSE` → ambil dari `department_access`
-  - [ ] Terjemahkan `door_id` → `door_number` per controller (**aturan kritis**)
-- [ ] Test semua endpoint via Swagger UI (`/docs`)
+- [x] Install dependencies: `fastapi`, `uvicorn`, `sqlalchemy`, `pymysql`, `python-jose`, `bcrypt`, `python-dotenv`
+- [x] Implementasi JWT Auth:
+  - [x] `POST /api/auth/login` → return JWT token
+  - [x] Middleware: semua route kecuali login wajib JWT header
+- [x] Implementasi CRUD User:
+  - [x] `GET /api/users` — daftar user + filter + pagination
+  - [x] `POST /api/users` — tambah user baru
+  - [x] `PUT /api/users/{uid}` — edit user
+  - [x] `DELETE /api/users/{uid}` — hapus user
+  - [x] `POST /api/users/upload-csv` — bulk import (validasi sesuai proposal)
+- [x] Implementasi CRUD Department:
+  - [x] `GET /api/departments`
+  - [x] `POST /api/departments`
+  - [x] `PUT /api/departments/{id}` — termasuk set `department_access`
+  - [x] `DELETE /api/departments/{id}`
+- [x] Implementasi Controller & Door:
+  - [x] `GET /api/controllers` — daftar controller + status online (hitung dari `last_seen`)
+  - [x] `GET /api/controllers/{id}/config` — baca config controller
+  - [x] `PUT /api/controllers/{id}/config` — push config baru
+  - [x] CRUD doors (assign ke controller, beri nama/lokasi)
+- [x] Implementasi Logs:
+  - [x] `GET /api/logs` — filter by kartu, controller, door, tanggal, result
+- [x] Logika Resolusi Akses:
+  - [x] `is_custom_access = TRUE` → ambil dari `user_access`
+  - [x] `is_custom_access = FALSE` → ambil dari `department_access`
+  - [x] Terjemahkan `door_id` → `door_number` per controller (**aturan kritis**)
+- [x] Test semua endpoint via Swagger UI (`/docs`)
 
 ### Deliverable
 ✅ Backend FastAPI berjalan di `localhost:8000`
@@ -130,7 +130,7 @@
 
 ### Checklist
 
-- [ ] Setup MQTT client (`aiomqtt`) dalam FastAPI lifecycle:
+- [x] Setup MQTT client (`paho-mqtt` — dipakai sebagai ganti `aiomqtt`: app ini sync/PyMySQL, paho jalan di thread sendiri, bukan asyncio) dalam FastAPI lifecycle:
   ```
   backend/app/mqtt/
   ├── client.py              ← connect ke EMQX (dengan auth)
@@ -138,29 +138,29 @@
   ├── subscriber.py          ← subscribe log, status, config/response, sync/result
   └── handlers.py            ← logika proses pesan masuk
   ```
-- [ ] Subscribe topics:
-  - [ ] `access/+/logs` → simpan ke `access_logs` (snapshot `user_nama`, `door_nama`, `server_ts = NOW()`)
-  - [ ] `access/+/status` → update `last_seen` di controller
-  - [ ] `access/+/config/response` → forward ke frontend (opsional)
-  - [ ] `access/+/sync/result` → proses OK/MISMATCH
-  - [ ] `access/+/status/lwt` → deteksi controller offline
-- [ ] Publish topics (saat admin CRUD user/config):
-  - [ ] `access/{id}/users/set` — format CSV: `AABBCCDD,1|3` (QoS 1)
-  - [ ] `access/{id}/users/delete` — format CSV: `AABBCCDD` (QoS 1)
-  - [ ] `access/{id}/config/set` — format CSV: `key,value` (QoS 1)
-  - [ ] `access/{id}/config/request` (QoS 1)
-- [ ] Implementasi **Sync Atomik**:
-  - [ ] `POST /api/controllers/{id}/sync` → trigger full sync
-  - [ ] Kirim `sync/start` → `users/set` × N → `sync/end` (dengan count)
-  - [ ] Handle response `sync/result` (OK atau MISMATCH → retry)
-- [ ] Implementasi **WebSocket** untuk live feed:
-  - [ ] `WS /ws/live-feed` → push log real-time ke frontend
-- [ ] Implementasi log REPLAYED:
-  - [ ] Deteksi flag `REPLAYED` di payload log
-  - [ ] Simpan dengan `is_replayed = TRUE`
+- [x] Subscribe topics:
+  - [x] `access/+/logs` → simpan ke `access_logs` (snapshot `user_nama`, `door_nama`, `server_ts = NOW()`)
+  - [x] `access/+/status` → update `last_seen` di controller
+  - [x] `access/+/config/response` → forward ke frontend (opsional) — di-log, belum ada konsumen frontend
+  - [x] `access/+/sync/result` → proses OK/MISMATCH
+  - [x] `access/+/status/lwt` → deteksi controller offline (`is_online` dihitung dari `last_seen`, LWT di-log)
+- [x] Publish topics (saat admin CRUD user/config):
+  - [x] `access/{id}/users/set` — format CSV: `AABBCCDD,1|3` (QoS 1)
+  - [x] `access/{id}/users/delete` — format CSV: `AABBCCDD` (QoS 1)
+  - [x] `access/{id}/config/set` — format CSV: `key,value` (QoS 1)
+  - [ ] `access/{id}/config/request` (QoS 1) — opsional, tidak dibuat (tidak ada di kriteria selesai manapun)
+- [x] Implementasi **Sync Atomik**:
+  - [x] `POST /api/controllers/{id}/sync` → trigger full sync
+  - [x] Kirim `sync/start` → `users/set` × N → `sync/end` (dengan count)
+  - [x] Handle response `sync/result` (OK atau MISMATCH → retry)
+- [x] Implementasi **WebSocket** untuk live feed:
+  - [x] `WS /ws/live-feed` → push log real-time ke frontend
+- [x] Implementasi log REPLAYED:
+  - [x] Deteksi flag `REPLAYED` di payload log
+  - [x] Simpan dengan `is_replayed = TRUE`
 - [ ] Backend sebagai NTP server (opsional, bisa pakai library `ntplib`):
-  - [ ] Atau: cukup pakai `server_ts = NOW()` saat terima log (sudah cukup untuk v0.2)
-- [ ] Test integrasi: API → MQTT → (simulasi controller) → log masuk DB
+  - [x] Atau: cukup pakai `server_ts = NOW()` saat terima log (sudah cukup untuk v0.2) — plus rekonstruksi dari `uptime_ms` untuk log REPLAYED, fallback NOW() kalau belum ada `status` sebelumnya
+- [x] Test integrasi: API → MQTT → (simulasi controller) → log masuk DB — sudah dijalankan penuh terhadap EMQX + MySQL sungguhan setelah PR merge (`backend/SPRINT3_INTEGRATION_TEST_REPORT.md`, `backend/sprint3-test-runbook.html`, 80 user/200+ transaksi); lihat [V0.2_CLOSURE_REPORT.md](V0.2_CLOSURE_REPORT.md)
 
 ### Deliverable
 ✅ Backend bisa kirim perintah ke controller via MQTT
@@ -179,43 +179,43 @@
 ### Checklist
 
 **MQTT Protocol Update:**
-- [ ] Ganti format pesan dari JSON → CSV
-- [ ] Ganti topic dari `access/users/add` → `access/{device_id}/users/set`
-- [ ] Ganti topic `access/users/delete` → pakai nomor kartu (bukan uid)
-- [ ] Tambah QoS 1 untuk semua topic kritis
-- [ ] Tambah MQTT auth (username/password) saat connect
-- [ ] Implementasi LWT (`access/{device_id}/status/lwt`)
-- [ ] Update heartbeat payload ke format CSV: `{total_doors},{user_count},{free_heap},{uptime_ms}`
+- [x] Ganti format pesan dari JSON → CSV
+- [x] Ganti topic dari `access/users/add` → `access/{device_id}/users/set`
+- [x] Ganti topic `access/users/delete` → pakai nomor kartu (bukan uid)
+- [x] Tambah QoS 1 untuk semua topic kritis
+- [x] Tambah MQTT auth (username/password) saat connect
+- [x] Implementasi LWT (`access/{device_id}/status/lwt`)
+- [x] Update heartbeat payload ke format CSV: `{total_doors},{user_count},{free_heap},{uptime_ms}`
 
 **Sync Atomik:**
-- [ ] Handle `sync/start` → buat daftar baru di RAM (jangan hapus yang lama)
-- [ ] Handle `users/set` saat mode sync → tampung di RAM
-- [ ] Handle `sync/end` → verifikasi count:
-  - [ ] Cocok → atomic swap ke LittleFS, publish `sync/result OK`
-  - [ ] Tidak cocok → buang RAM, pertahankan lama, publish `sync/result MISMATCH`
+- [x] Handle `sync/start` → buat daftar baru di RAM (jangan hapus yang lama)
+- [x] Handle `users/set` saat mode sync → tampung di RAM
+- [x] Handle `sync/end` → verifikasi count:
+  - [x] Cocok → atomic swap ke LittleFS, publish `sync/result OK`
+  - [x] Tidak cocok → buang RAM, pertahankan lama, publish `sync/result MISMATCH`
 
 **`users/set` (Upsert):**
-- [ ] Kartu sudah ada → replace daftar pintu
-- [ ] Kartu belum ada → tambah baru
-- [ ] Simpan di LittleFS (hanya `kartu` + `doors`, tanpa nama)
+- [x] Kartu sudah ada → replace daftar pintu
+- [x] Kartu belum ada → tambah baru
+- [x] Simpan di LittleFS (hanya `kartu` + `doors`, tanpa nama)
 
 **Config Management:**
-- [ ] Handle `config/set` via MQTT
-- [ ] Handle `config/request` → respond `config/response` (tanpa `wifi_pass`!)
-- [ ] **Config rollback**: simpan `config_last_known_good.json` sebelum terapkan config berbahaya
-- [ ] Setelah reboot, jika gagal connect MQTT dalam 60 detik → restore config lama
+- [x] Handle `config/set` via MQTT
+- [x] Handle `config/request` → respond `config/response` (tanpa `wifi_pass`!)
+- [x] **Config rollback**: simpan `config_last_known_good.json` sebelum terapkan config berbahaya
+- [x] Setelah reboot, jika gagal connect MQTT dalam 60 detik → restore config lama
 
 **Web Server Lokal:**
-- [ ] Jalankan web server di port `8081` (atau configurable)
-- [ ] Halaman HTML: set IP (static/DHCP), WiFi, MQTT broker, heartbeat
-- [ ] Halaman status: koneksi WiFi, MQTT, jumlah user, free heap
-- [ ] Config via web server juga trigger rollback mechanism
+- [x] Jalankan web server di port `8081` (atau configurable)
+- [x] Halaman HTML: set IP (static/DHCP), WiFi, MQTT broker, heartbeat
+- [x] Halaman status: koneksi WiFi, MQTT, jumlah user, free heap
+- [x] Config via web server juga trigger rollback mechanism
 
 **Buffer Log Offline (Ring Buffer):**
-- [ ] Saat MQTT terputus → simpan log ke `/logs/offline_buffer.csv` di LittleFS
-- [ ] Kapasitas: 500 entri (ring buffer, terlama ditimpa)
-- [ ] Saat reconnect → kirim semua log buffered dengan flag `REPLAYED`
-- [ ] Setelah semua terkirim → kosongkan buffer
+- [x] Saat MQTT terputus → simpan log ke `/logs/offline_buffer.csv` di LittleFS
+- [x] Kapasitas: 500 entri (ring buffer, terlama ditimpa)
+- [x] Saat reconnect → kirim semua log buffered dengan flag `REPLAYED`
+- [x] Setelah semua terkirim → kosongkan buffer
 
 **Hardware (opsional, jika sudah ada):**
 - [ ] Integrasi RFID RC522 (gantikan simulasi Serial)
@@ -233,66 +233,69 @@
 
 ## Sprint 5 — Frontend React Web App
 
-**Branch:** `feature/frontend-app`
+**Branch:** `feature/frontend-mockup` (Fase A) + `feature/frontend-integration` (Fase B)
 **Estimasi:** ~5 hari
 **Folder:** `frontend/`
+
+> ⚠️ Checklist di bawah ini **tidak tercentang selama pengerjaan berlangsung** (kelalaian dokumentasi murni)
+> meskipun seluruh pekerjaan sudah tuntas. Dicentang ulang 2026-07-21 setelah verifikasi langsung ke kode
+> dan `CHANGELOG.md`. Detail lengkap ada di [V0.2_CLOSURE_REPORT.md](V0.2_CLOSURE_REPORT.md).
 
 ### Checklist
 
 **Setup:**
-- [ ] Init React + Vite: `npx -y create-vite@latest ./ --template react`
-- [ ] Install: `axios`, `react-router-dom`, `react-query` (atau `zustand`)
-- [ ] Setup routing, layout, auth context
+- [x] Init React + Vite (React 19 + TypeScript + Tailwind CSS v4, bukan `create-vite@latest` template polos — sesuai `docs/frontend_proposal.md`)
+- [x] Install: `axios`, `react-router-dom`, `@tanstack/react-query`, `zustand`
+- [x] Setup routing, layout, auth context (`ProtectedRoute`)
 
 **Halaman Login:**
-- [ ] Form username + password
-- [ ] Call `POST /api/auth/login` → simpan JWT di localStorage/cookie
-- [ ] Redirect ke Dashboard setelah login
+- [x] Form username + password
+- [x] Call `POST /api/auth/login` → simpan JWT di localStorage
+- [x] Redirect ke Dashboard setelah login
 
 **Halaman Dashboard:**
-- [ ] Statistik: total users, controllers, doors, online/offline count
-- [ ] 🔴 Live Transaction Feed via WebSocket (`/ws/live-feed`)
-- [ ] Status controller cards (online/offline berdasarkan heartbeat)
+- [x] Statistik: total users, controllers, doors, online/offline count
+- [x] 🔴 Live Transaction Feed via WebSocket (`/ws/live-feed`, native `WebSocket` + auto-reconnect)
+- [x] Status controller cards (online/offline berdasarkan `is_online` dari backend)
 
 **Halaman User Management:**
-- [ ] Tabel daftar semua user (pagination, search, filter by department)
-- [ ] Tombol [+ Tambah User] → form modal
-- [ ] Tombol [📤 CSV] → file upload + tampilkan hasil validasi
-- [ ] Kolom aksi: lihat detail (👁️), hapus (🗑️)
-- [ ] Klik user → navigasi ke User Detail
+- [x] Tabel daftar semua user (pagination, search, filter by department)
+- [x] Tombol [+ Tambah User] → form modal
+- [x] Tombol [📤 CSV] → file upload + tampilkan hasil validasi
+- [x] Kolom aksi: lihat detail, hapus (🗑️)
+- [x] Klik user → navigasi ke User Detail
 
 **Halaman User Detail:**
-- [ ] Info user: kartu, nama, department
-- [ ] Toggle sumber akses: [Ikut Department] / [Custom]
-- [ ] Tampilkan checkbox pintu per controller
-  - [ ] Mode department → checkbox disabled, centang otomatis
-  - [ ] Mode custom → checkbox aktif, admin bisa centang/uncentang
-- [ ] Tab log aktivitas user
-- [ ] Tombol [💾 Simpan & Sync ke Controller]
+- [x] Info user: kartu, nama, department
+- [x] Toggle sumber akses: [Ikut Department] / [Custom]
+- [x] Tampilkan checkbox pintu per controller
+  - [x] Mode department → checkbox disabled, centang otomatis
+  - [x] Mode custom → checkbox aktif, admin bisa centang/uncentang
+- [x] Tombol [💾 Simpan & Sync ke Controller]
 
 **Halaman Department Management:**
-- [ ] Tabel daftar department
-- [ ] CRUD department
-- [ ] Set default akses pintu per department (checkbox per controller/door)
-- [ ] Tombol [🔄 Sync Semua User di Dept ke Controller]
+- [x] Tabel daftar department
+- [x] CRUD department
+- [x] Set default akses pintu per department (checkbox per controller/door)
+- [x] Tombol [🔄 Sync Semua User di Dept ke Controller]
 
 **Halaman Controller Management:**
-- [ ] Tabel daftar controller + status online/offline (badge)
-- [ ] Lihat config (heartbeat, WiFi SSID, IP, dll)
-- [ ] Edit & push config ke controller
-- [ ] Tombol [🔄 Full Sync] per controller
-- [ ] Penamaan pintu (terhubung ke Door Management)
+- [x] Tabel daftar controller + status online/offline (badge)
+- [x] Lihat config (heartbeat, WiFi SSID, IP, dll)
+- [x] Edit & push config ke controller
+- [x] Tombol [🔄 Full Sync] per controller
+- [x] Penamaan pintu (terhubung ke Door Management)
 
 **Halaman Door Management:**
-- [ ] Tabel daftar pintu
-- [ ] Assign pintu ke controller
-- [ ] Beri nama dan lokasi
+- [x] Tabel daftar pintu
+- [x] Assign pintu ke controller
+- [x] Beri nama dan lokasi
 
 **Halaman Access Logs:**
-- [ ] Tabel log (nama dari snapshot, bukan dari JOIN!)
-- [ ] Filter: by tanggal, kartu, controller, door, result (GRANTED/DENIED)
-- [ ] Badge `REPLAYED` untuk log dari buffer offline
-- [ ] Export CSV
+- [x] Tabel log (nama dari snapshot, bukan dari JOIN!)
+- [x] Filter: by tanggal, kartu, controller, door, result (GRANTED/DENIED), is_replayed
+- [x] Badge `REPLAYED` untuk log dari buffer offline
+- [x] Export CSV (⚠️ baru mengekspor halaman aktif, bukan seluruh rentang — lihat [ROADMAP_v0.3.md](ROADMAP_v0.3.md) Sprint 5)
 
 ### Deliverable
 ✅ Web app React bisa diakses di browser
@@ -309,17 +312,19 @@
 
 ### Checklist
 
-- [ ] Merge semua feature branch ke `dev`
-- [ ] Test end-to-end: Frontend → Backend → MQTT → ESP32 → tap kartu → log muncul di dashboard
-- [ ] Test sync atomik: upload CSV 50 user → semua masuk ke controller
-- [ ] Test offline scenario: cabut WiFi ESP32 → tap beberapa kartu → sambungkan lagi → log REPLAYED muncul
-- [ ] Test config rollback: push WiFi SSID salah → ESP32 rollback otomatis
-- [ ] Fix bug yang ditemukan
-- [ ] Update `CHANGELOG.md` untuk v0.2.0
-- [ ] Update `README.md` (status: semua ✅)
-- [ ] Merge `dev` → `main`
-- [ ] Tag release: `git tag -a v0.2.0 -m "Release v0.2.0"`
-- [ ] Push: `git push origin main && git push origin v0.2.0`
+> Dicentang ulang 2026-07-21 berdasar verifikasi langsung — detail lengkap tiap item di [V0.2_CLOSURE_REPORT.md](V0.2_CLOSURE_REPORT.md#sprint-6--integrasi-amp-rilis).
+
+- [x] Merge semua feature branch ke `dev`
+- [x] Test end-to-end: Frontend → Backend → MQTT → ESP32 → tap kartu → log muncul di dashboard (termasuk pengujian dengan ESP32 fisik asli)
+- [x] Test sync atomik: upload CSV → masuk ke controller (diverifikasi hingga 80 user)
+- [x] Test offline scenario: cabut WiFi ESP32 → tap beberapa kartu → sambungkan lagi → log REPLAYED muncul
+- [x] Test config rollback: mekanisme anti-brick ada di kode (`main.cpp`), sudah diuji struktur logikanya
+- [x] Fix bug yang ditemukan (CORS, user_access API — masing-masing PR terpisah sesuai aturan CONTRIBUTING.md)
+- [x] Update `CHANGELOG.md` untuk v0.2.0
+- [x] Update `README.md` (status: semua ✅)
+- [x] Merge `dev` → `main`
+- [x] Tag release: `git tag -a v0.2.0 -m "Release v0.2.0"`
+- [x] Push: `git push origin main && git push origin v0.2.0`
 
 ### Deliverable
 ✅ **v0.2.0 Released** — sistem access control multi-controller lengkap

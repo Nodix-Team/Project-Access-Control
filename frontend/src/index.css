@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/* Tailwind v4 default-nya dark: ikut prefers-color-scheme browser. Custom variant ini bikin
+   dark: aktif berdasarkan class "dark" di elemen leluhur (biasanya <html>), supaya bisa di-toggle
+   manual lewat tombol, bukan cuma ikut setting OS. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+html,
+body,
+#root {
+  height: 100%;
+}

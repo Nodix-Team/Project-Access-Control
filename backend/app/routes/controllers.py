@@ -1,0 +1,129 @@
+# Route CRUD Controller + baca/push config + status online (dihitung, bukan disimpan)
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import case, func, literal_column, select
+from sqlalchemy.orm import Session
+
+from app.auth.dependencies import get_current_admin
+from app.database import get_db
+from app.models.controller import Controller
+from app.mqtt import client as mqtt_client
+from app.mqtt.publisher import publish
+from app.schemas.controller import (
+    ControllerConfigOut,
+    ControllerConfigUpdate,
+    ControllerOut,
+    SyncResultOut,
+)
+from app.services.sync_service import run_full_sync
+
+# Semua route di sini wajib JWT (dependencies di level router)
+router = APIRouter(
+    prefix="/api/controllers", tags=["controllers"], dependencies=[Depends(get_current_admin)]
+)
+
+# Config yang aman di-push langsung tanpa konfirmasi (lihat architecture_review.md P1-2).
+# wifi_*/mqtt_* SENGAJA tidak masuk sini - butuh mekanisme rollback firmware
+# (config_last_known_good.json) yang belum ada di jalur MQTT ini; perubahan itu tetap
+# tersimpan di DB, diterapkan manual lewat web server lokal controller (jaring pengaman).
+_SAFE_CONFIG_KEYS = {"heartbeat_s", "total_doors"}
+
+# is_online = last_seen > NOW() - INTERVAL (heartbeat_s * 3) SECOND, dihitung ulang tiap query —
+# lihat blok "is_online Dihitung, Bukan Disimpan" di architecture_proposal_v0.2.md
+_seconds_since_last_seen = func.timestampdiff(
+    literal_column("SECOND"), Controller.last_seen, func.now()
+)
+_is_online_expr = case(
+    (Controller.last_seen.is_(None), False),
+    (_seconds_since_last_seen < Controller.heartbeat_s * 3, True),
+    else_=False,
+).label("is_online")
+
+
+def _to_controller_out(controller: Controller, is_online: bool) -> ControllerOut:
+    return ControllerOut(
+        id=controller.id,
+        device_id=controller.device_id,
+        nama=controller.nama,
+        lokasi=controller.lokasi,
+        ip_mode=controller.ip_mode,
+        ip_address=controller.ip_address,
+        total_doors=controller.total_doors,
+        heartbeat_s=controller.heartbeat_s,
+        web_port=controller.web_port,
+        last_seen=controller.last_seen,
+        created_at=controller.created_at,
+        updated_at=controller.updated_at,
+        is_online=bool(is_online),
+    )
+
+
+def _to_config_out(controller: Controller) -> ControllerConfigOut:
+    return ControllerConfigOut(
+        device_id=controller.device_id,
+        nama=controller.nama,
+        lokasi=controller.lokasi,
+        wifi_ssid=controller.wifi_ssid,
+        mqtt_broker=controller.mqtt_broker,
+        mqtt_port=controller.mqtt_port,
+        mqtt_user=controller.mqtt_user,
+        total_doors=controller.total_doors,
+        heartbeat_s=controller.heartbeat_s,
+        ip_mode=controller.ip_mode,
+        ip_address=controller.ip_address,
+        web_port=controller.web_port,
+    )
+
+
+def _get_controller_or_404(db: Session, controller_id: int) -> Controller:
+    controller = db.get(Controller, controller_id)
+    if controller is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Controller tidak ditemukan"
+        )
+    return controller
+
+
+@router.get("", response_model=List[ControllerOut])
+def list_controllers(db: Session = Depends(get_db)) -> List[ControllerOut]:
+    rows = db.execute(select(Controller, _is_online_expr).order_by(Controller.id)).all()
+    return [_to_controller_out(controller, is_online) for controller, is_online in rows]
+
+
+@router.get("/{controller_id}/config", response_model=ControllerConfigOut)
+def get_controller_config(controller_id: int, db: Session = Depends(get_db)) -> ControllerConfigOut:
+    controller = _get_controller_or_404(db, controller_id)
+    return _to_config_out(controller)
+
+
+@router.put("/{controller_id}/config", response_model=ControllerConfigOut)
+def update_controller_config(
+    controller_id: int, payload: ControllerConfigUpdate, db: Session = Depends(get_db)
+) -> ControllerConfigOut:
+    controller = _get_controller_or_404(db, controller_id)
+
+    updates = payload.model_dump(exclude_unset=True)
+    for field, value in updates.items():
+        setattr(controller, field, value)
+
+    db.commit()
+    db.refresh(controller)
+
+    for key, value in updates.items():
+        if key in _SAFE_CONFIG_KEYS:
+            publish(f"access/{controller.device_id}/config/set", f"{key},{value}", qos=1)
+
+    return _to_config_out(controller)
+
+
+@router.post("/{controller_id}/sync", response_model=SyncResultOut)
+def sync_controller(controller_id: int, db: Session = Depends(get_db)) -> SyncResultOut:
+    controller = _get_controller_or_404(db, controller_id)
+
+    if not mqtt_client.is_connected():
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Broker MQTT offline")
+
+    # MISMATCH/TIMEOUT bukan error request - controller mempertahankan daftar lama (pintu tetap
+    # bisa diakses), jadi status jujur dibalas apa adanya lewat 200, bukan dianggap sukses/dipaksa.
+    return SyncResultOut(**run_full_sync(db, controller))
