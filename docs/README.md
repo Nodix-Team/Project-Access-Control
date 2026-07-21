@@ -16,9 +16,10 @@ Peta seluruh dokumen di folder ini, dikelompokkan per kategori. Lihat juga [`../
 | Dokumen | Isi |
 |---|---|
 | [`PROPOSAL-RANCANGAN-HARDWARE-V0.3.md`](PROPOSAL-RANCANGAN-HARDWARE-V0.3.md) | **[PROPOSAL]** Rancangan Arsitektur Hardware v0.3 (ESP32-S3 + MCP23017 + W5500) |
+| [`ARCHITECTURE-PROPOSAL-V0.3.md`](ARCHITECTURE-PROPOSAL-V0.3.md) | **[PROPOSAL]** Spesifikasi Arsitektur Terintegrasi v0.3 (Revisi 1) |
 | [`PRD_v0.2.md`](PRD_v0.2.md) | Product Requirement Document awal — tujuan, ukuran keberhasilan, cakupan |
 | [`KEPUTUSAN_ARSITEKTUR_v0.2.md`](KEPUTUSAN_ARSITEKTUR_v0.2.md) | Rekonsiliasi proposal vs review jadi satu kontrak yang dibekukan (penomoran pintu, keamanan MQTT, protokol sync, dst) |
-| [`architecture_proposal_v0.2.md`](architecture_proposal_v0.2.md) | Spesifikasi arsitektur final (Rev 3), rujukan utama implementasi |
+| [`architecture_proposal_v0.2.md`](architecture_proposal_v0.2.md) | Spesifikasi arsitektur final v0.2 (Rev 3), rujukan utama implementasi v0.2 |
 | [`architecture_review.md`](architecture_review.md) | Review kritis terhadap proposal v0.1 → v0.2 |
 | [`ERD_v0.2.mermaid`](ERD_v0.2.mermaid) | Diagram ER 8 tabel (sumber `database/schema.sql`) |
 | [`JOBDESK_BACKEND_v0.2.md`](JOBDESK_BACKEND_v0.2.md) | Pembagian kerja awal backend |

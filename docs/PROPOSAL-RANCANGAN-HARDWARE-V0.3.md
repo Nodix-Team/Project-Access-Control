@@ -38,7 +38,11 @@ Penyimpanan data user dan log (~3,4 MB) ditangani langsung oleh **Internal Flash
 * **2 GPIO**: I2C Bus (SDA & SCL) ke MCP23017-E/SO & RTC DS3231SN.
 * **4 GPIO**: 4 Relay Lock Utama (Output via Driver ULN2003ADR).
 * **4 GPIO**: **4 Input REX** (REX 1, 2, 3, 4 via Optocoupler TLP291-4 - ditaruh di pin native agar ESP32-S3 bisa merespon tombol exit secara instan via interrupt).
-* **8 GPIO**: 8 Pin Wiegand Data (D0 & D1 untuk 4 reader - wajib native interrupt).
+* **8 GPIO**: 8 Pin Wiegand Data (wajib native interrupt) dengan alokasi khusus:
+  * Reader 1: `GPIO15` (D0), `GPIO16` (D1)
+  * Reader 2: `GPIO17` (D0), `GPIO18` (D1)
+  * Reader 3: **`GPIO38`** (D0), **`GPIO39`** (D1) *(Dipindahkan dari GPIO19/20 untuk membebaskan port USB Native JTAG/OTG agar bebas konflik)*
+  * Reader 4: `GPIO21` (D0), `GPIO22` (D1)
 * **1 GPIO**: Tamper Input (via Optocoupler EL817).
 * **1 GPIO**: Fire Alarm Input (via Optocoupler EL817).
 * **1 GPIO**: Tombol Hotspot.
@@ -104,16 +108,21 @@ Setiap blok komponen pada PCB memiliki peran spesifik untuk menjamin sistem acce
 
 ## 5. Logika Monitoring Status Pintu (Door Sensor State-Machine)
 
-Saat pengguna menempelkan kartu akses dan terverifikasi secara sah (*access granted*), sirkuit *Door Sensor* (magnetic reed switch) akan memantau kondisi fisik pintu dalam durasi *unlock delay* (contoh: 5 detik). Berikut adalah teks notifikasi log yang dikirim ke server pusat:
+Saat terjadi transaksi akses atau alarm, sirkuit *Door Sensor* (magnetic reed switch) memantau kondisi fisik pintu dalam durasi waktu tunggu tertentu. Berikut adalah status kejadian (*reason code*) terstandardisasi dalam bahasa Inggris yang dikirimkan ke server pusat:
 
-1. **Akses Diterima - Pintu Dibuka (Access Granted - Door Opened)**:
-   * Terjadi ketika kartu valid di-tap, relay lock terbuka, dan pengguna secara fisik membuka pintu lalu masuk.
-2. **Akses Diterima - Pintu Tidak Dibuka (Access Granted - Door Not Opened)**:
-   * Terjadi ketika kartu valid di-tap dan relay lock terbuka, tetapi pengguna membatalkan masuk (pintu tetap tertutup hingga waktu delay habis). Sistem akan langsung mengunci kembali (*relock*) kunci pintu demi keamanan.
-3. **Pintu Dibuka Paksa! (Forced Open Alarm!)**:
-   * Alarm terpicu jika sensor mendeteksi pintu terbuka secara fisik tanpa adanya transaksi tap kartu atau penekanan tombol keluar REX.
-4. **Pintu Terbuka Terlalu Lama (Door Held Open Warning)**:
-   * Peringatan aktif jika pintu telah dibuka secara sah tetapi dibiarkan terbuka melebihi batas waktu toleransi maksimal (misal: lebih dari 30 detik).
+1. **`Valid Access`**:
+   * Pengguna melakukan tap kartu sah, kunci terbuka, dan sensor mendeteksi pintu berhasil dibuka fisik sebelum timeout.
+2. **`Valid Access - Unopened`**:
+   * Pengguna melakukan tap kartu sah, kunci terbuka, tetapi pintu tidak dibuka secara fisik hingga batas waktu `door_open_timeout_s` (10s) habis. Kunci pintu langsung dikunci kembali (*relock*).
+3. **`Exit via REX`**:
+   * Tombol keluar REX ditekan, kunci terbuka, dan pintu berhasil dibuka secara fisik sebelum timeout.
+4. **`Exit REX - Unopened`**:
+   * Tombol REX ditekan, kunci terbuka, tetapi pintu tetap tertutup hingga timeout habis.
+5. **`Door Forced Open`** (Status: `ALARM`):
+   * Sensor mendeteksi pintu terbuka secara fisik tanpa diawali tap kartu sah atau penekanan tombol REX (indikasi pembukaan paksa/sabotase). Memicu alarm buzzer fisik di reader selama 30 detik.
+6. **`Door Held Open`** (Status: `ALARM`):
+   * Pintu telah dibuka secara sah (via kartu/REX) namun dibiarkan terbuka terus-menerus melebihi batas waktu toleransi `door_held_timeout_s` (30s). Memicu alarm buzzer fisik di reader.
+
 
 ---
 

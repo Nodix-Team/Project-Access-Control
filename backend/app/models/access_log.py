@@ -32,8 +32,8 @@ class AccessLog(Base):
     door_nama: Mapped[Optional[str]] = mapped_column(String(100))  # SNAPSHOT saat kejadian
     # Sengaja BUKAN foreign key (lihat ERD_v0.2.md) -> log tetap tercatat walau controller dihapus.
     controller_id: Mapped[Optional[int]] = mapped_column(Integer)
-    result: Mapped[str] = mapped_column(Enum("GRANTED", "DENIED", name="access_result"), nullable=False)
-    reason: Mapped[Optional[str]] = mapped_column(String(50))  # 'UNKNOWN_CARD', 'NO_ACCESS', 'OK'
+    result: Mapped[str] = mapped_column(Enum("GRANTED", "DENIED", "ALARM", name="access_result"), nullable=False)
+    reason: Mapped[Optional[str]] = mapped_column(String(50))  # e.g., 'Valid Access', 'Door Forced Open'
     server_ts: Mapped[datetime] = mapped_column(MySQLDateTime(fsp=3), nullable=False)  # otoritatif, dari backend
     device_uptime_ms: Mapped[Optional[int]] = mapped_column(BigInteger)  # hanya untuk diagnosa
     is_replayed: Mapped[bool] = mapped_column(Boolean, server_default=text("0"))

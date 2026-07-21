@@ -17,7 +17,13 @@ from app.ws.manager import manager
 
 logger = logging.getLogger(__name__)
 
-VALID_REASONS = {"OK", "UNKNOWN_CARD", "NO_ACCESS", "INVALID_DOOR"}
+VALID_REASONS = {
+    # v0.2.0 old reasons
+    "OK", "UNKNOWN_CARD", "NO_ACCESS", "INVALID_DOOR",
+    # v0.3.0 new English reasons
+    "Valid Access", "Valid Access - Unopened", "Exit via REX", "Exit REX - Unopened",
+    "Door Forced Open", "Door Held Open", "Unauthorized Door", "Unknown Card", "Invalid Door Number"
+}
 
 # device_id -> perkiraan waktu boot (dari status.uptime_ms terakhir, lihat handle_status).
 # Dipakai handle_log untuk merekonstruksi server_ts log REPLAYED. In-memory saja (hilang kalau

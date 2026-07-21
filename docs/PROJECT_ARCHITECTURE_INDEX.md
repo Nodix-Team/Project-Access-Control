@@ -37,9 +37,9 @@
 
 *`{device_id}` default: `esp32-ac-001`*
 
-1. **Log Akses Kartu**: `access/{device_id}/logs`
-   * Format: `<card_id>,<door_number>,<GRANTED|DENIED>,<uptime_ms>[,REPLAYED]`
-   * *Catatan Card ID: Selalu pad 10-digit numerik dengan leading zero (contoh: `0000123456`)*
+1. **Log Akses & Kejadian Pintu**: `access/{device_id}/logs`
+   * Format: `<card_id>,<door_number>,<GRANTED|DENIED|ALARM>,<reason>,<timestamp_epoch>[,REPLAYED]`
+   * *Catatan: `<card_id>` dikosongkan jika dipicu tombol REX atau alarm door sensor.*
 
 2. **Upsert Hak Akses User**: `access/{device_id}/users/set`
    * Format: `<card_id>,<door1|door2|door3>` (contoh: `0000123456,1|2|3`)
@@ -54,12 +54,13 @@
    * Respon ESP32: `access/{device_id}/sync/result` → `<session_id>,<OK|MISMATCH>,<count>`
 
 5. **Heartbeat ESP32**: `access/{device_id}/heartbeat`
-   * Format: Status uptime, RSSI, free RAM, total user.
+   * Format: `<uptime_s>,<rssi>,<free_heap>,<total_users>`
 
 6. **Config via MQTT**:
    * Set: `access/{device_id}/config/set` → `key,value`
    * Request: `access/{device_id}/config/request`
    * Response: `access/{device_id}/config/response`
+   * Bulk Sync: `access/{device_id}/config/sync` → `key1:value1|key2:value2|...` (Untuk force sync konfigurasi per pintu `dX_` dan network saat online).
 
 ---
 
@@ -105,6 +106,7 @@ Project-Access_control/
 │   │   └── ws/liveFeed.ts          ← Real-time WebSocket listener
 │   └── package.json
 └── docs/                           ← Archive & Detailed Specifications
+    ├── ARCHITECTURE-PROPOSAL-V0.3.md ← Spesifikasi proposal arsitektur v0.3
     ├── PROPOSAL-RANCANGAN-HARDWARE-V0.3.md ← Proposal rancangan hardware v0.3
     ├── ROADMAP_v0.3.md             ← Draft proposal roadmap v0.3
     └── PROJECT_ARCHITECTURE_INDEX.md← Dokumen acuan ringkas arsitektur ini
@@ -159,6 +161,14 @@ Project-Access_control/
     - Mengganti nama rancangan hardware menjadi [`docs/PROPOSAL-RANCANGAN-HARDWARE-V0.3.md`](file:///C:/Users/tech/Documents/GitHub/Project-Access_control/docs/PROPOSAL-RANCANGAN-HARDWARE-V0.3.md) dan menerbitkannya di remote `dev` branch.
     - Melakukan transisi alur kerja remote menggunakan **GitHub CLI (`gh`)** via REST API untuk menghindari kendala cache proxy.
     - Menambahkan banner status **DRAFT / PROPOSAL** pada dokumen [`docs/ROADMAP_v0.3.md`](file:///C:/Users/tech/Documents/GitHub/Project-Access_control/docs/ROADMAP_v0.3.md) untuk menghindari kesalahpahaman tim.
+    - Menyusun dan menerbitkan berkas [`docs/ARCHITECTURE-PROPOSAL-V0.3.md`](file:///C:/Users/tech/Documents/GitHub/Project-Access_control/docs/ARCHITECTURE-PROPOSAL-V0.3.md) yang memuat spesifikasi teknis lengkap migrasi sistem ke versi 0.3.
+  - **Sprint 1: Backend Testing Infrastructure Setup (v0.3)**:
+    - Membuat berkas [`backend/requirements-dev.txt`](file:///C:/Users/tech/Documents/GitHub/Project-Access_control/backend/requirements-dev.txt) dan menginstal pustaka `pytest`, `pytest-asyncio`, dan `httpx`.
+    - Membuat berkas konfigurasi [`backend/pytest.ini`](file:///C:/Users/tech/Documents/GitHub/Project-Access_control/backend/pytest.ini) untuk mendeteksi rute testing otomatis.
+    - Membuat berkas fixture [`backend/tests/conftest.py`](file:///C:/Users/tech/Documents/GitHub/Project-Access_control/backend/tests/conftest.py) untuk melakukan mocking database menggunakan file SQLite `test.db` lokal pada masa import-time dan menyuntikkan data seed uji coba.
+    - Memverifikasi pengujian backend berhasil lulus 100% (20/20 test cases pass).
+
+
 
 
 
