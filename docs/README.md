@@ -11,10 +11,11 @@ Peta seluruh dokumen di folder ini, dikelompokkan per kategori. Lihat juga [`../
 | [`ROADMAP_v0.2.md`](ROADMAP_v0.2.md) | Roadmap v0.2 (historis, sudah rilis — lihat tag `v0.2.0`) |
 | [`BACKLOG_PENGEMBANGAN.md`](BACKLOG_PENGEMBANGAN.md) | Ide/temuan yang sengaja ditunda dari sprint berjalan, belum semua masuk roadmap resmi |
 
-## Arsitektur &amp; Keputusan Desain (asal-usul v0.2)
+## Arsitektur & Keputusan Desain (v0.2 & v0.3)
 
 | Dokumen | Isi |
 |---|---|
+| [`PROPOSAL-RANCANGAN-HARDWARE-V0.3.md`](PROPOSAL-RANCANGAN-HARDWARE-V0.3.md) | **[PROPOSAL]** Rancangan Arsitektur Hardware v0.3 (ESP32-S3 + MCP23017 + W5500) |
 | [`PRD_v0.2.md`](PRD_v0.2.md) | Product Requirement Document awal — tujuan, ukuran keberhasilan, cakupan |
 | [`KEPUTUSAN_ARSITEKTUR_v0.2.md`](KEPUTUSAN_ARSITEKTUR_v0.2.md) | Rekonsiliasi proposal vs review jadi satu kontrak yang dibekukan (penomoran pintu, keamanan MQTT, protokol sync, dst) |
 | [`architecture_proposal_v0.2.md`](architecture_proposal_v0.2.md) | Spesifikasi arsitektur final (Rev 3), rujukan utama implementasi |
