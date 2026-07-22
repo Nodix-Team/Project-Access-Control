@@ -114,23 +114,49 @@ Adaptor 12V / Aki 12V 7Ah (Reverse Polarity P-MOSFET AO4407A + TVS SMBJ15CA + Fu
 * **Level Shifter 5V → 3.3V**: Sinyal D0/D1 5V TTL dari reader luar diturunkan ke 3.3V via IC Buffer **74LVC245ADW** (VCC 3.3V) dan dilindungi TVS Diode **PESD5V0U1BA**.
 * **Proteksi ESD USB Native**: Port USB Native ESP32-S3 dilindungi IC ESD khusus **USBLC6-2SC6** pada jalur D+ dan D-.
 * **Bob Smith Termination RJ45**: Port Ethernet RJ45 dilindungi terminasi Bob Smith (4x R 75Ω + C 2kV 1nF) yang dihubungkan ke Chassis Earth Ground untuk kelulusan uji EMC/EMI.
-* **RTC Battery Backup**: Dilengkapi **SMD Holder Baterai CR2032** + Dioda BAT54C agar jam RTC DS3231 tetap berjalan presisi saat listrik mati total.
+### C. Sirkuit Sensing Tegangan Input Daya 12V (Deteksi POWER_NORMAL & POWER_LOW)
+1. **Dua Terminal Input Daya Utama (+12V & GND)**:
+   * Board controller hanya menerima 2 baut input daya utama **`+12V`** dan **`GND`**. Fungsi pengisian baterai dan pemindahan baterai cadangan ditangani secara terpisah oleh **External Access Control Power Supply Unit (PSU 12V 5A / Smart UPS)**. Suku cadang charger internal CN3768 ditiadakan dari PCB untuk menghemat ruang board.
+2. **Rangkaian Hardware Pembagi Tegangan ADC (`GPIO2`)**:
+   * Tegangan Rel 12V utama dibaca oleh **`GPIO2`** (ADC Internal ESP32-S3) via pembagi tegangan $R_1=100\text{ k}\Omega$ / $R_2=10\text{ k}\Omega$ (Faktor skala $\frac{1}{11}$, aman untuk kisaran 0–3.3V ADC), dilindungi TVS Diode `PESD5V0U1BA`.
+3. **Logika 2 Parameter Status Catu Daya (Simple Threshold)**:
+   * **$V_{\text{IN}} \ge 11.5\text{V}$**: 🟢 **`POWER_NORMAL`** (Listrik PLN hidup dari PSU 12V atau Baterai Backup eksternal terisi penuh).
+   * **$V_{\text{IN}} < 11.5\text{V}$**: 🔴 **`POWER_LOW`** (Listrik PLN mati dan Baterai Backup eksternal di PSU melemah di bawah 11.5V, memicu alarm log MQTT `POWER_LOW` ke server).
 
 ---
 
-## 6. Desain Sirkuit Output Relay & Lock Control (Wet/Dry Terminal 2-Pin)
+## 6. Desain Sirkuit Output Relay & Selektor Terminal Pintu (Single Jumper WET/DRY & Terminal NO/NC/COM)
 
-Baut terminal luar untuk kunci pintu tetap menggunakan **2-pin saja** (L+ dan L-). Pemilihan Wet/Dry contact dipindahkan ke dalam board menggunakan jumper header 2x3 per pintu.
+Untuk efisiensi PCB dan kemudahan instalasi 100% di lapangan, tiap output pintu (Pintu 1–4) dilengkapi **Terminal Block Screw 3-Pin (`NO`, `NC`, `COM/GND`)** dan **1 buah Header Jumper `JP_MODE` (WET vs DRY)**:
 
 ```text
-       COL 1         COL 2          COL 3
-     +---------+   +----------+   +-----------+
-Row 1| (1) +12V|   | (2) COM  |   | (3) L+    | ---> Ke Pin 1 Terminal luar L+
-Row 2| (4) GND |   | (5) NO   |   | (6) L-    | ---> Ke Pin 2 Terminal luar L-
-     +---------+   +----------+   +-----------+
+               ┌─────────────────────────────────────────────────────────────┐
+               │           TERMINAL SCREW BLOCK PINTU (3-PIN)                │
+               │                                                             │
+               │        [  NO  ]           [  NC  ]        [  COM / GND  ]   │
+               │    (Normally Open)    (Normally Closed)   (Common / Ground) │
+               └───────────┬───────────────────┬────────────────────┬────────┘
+                           │                   │                    │
+                           ▼                   ▼                    ▼
+                    Electric Strike /   Magnetic Lock /        Return Ground (WET)
+                    Barrier Gate (DRY)  Dropbolt 12V (WET)    atau Common (DRY)
 ```
-1. **WET CONTACT (Mengeluarkan Tegangan 12V)**: Jumper dipasang horisontal pada **Pin [1-2]**, **Pin [3-5]**, dan **Pin [4-6]**.
-2. **DRY CONTACT (Kontak Kering - Sakelar Murni)**: Jumper dipasang horisontal pada **Pin [2-3]** dan **Pin [5-6]**.
+
+### A. Satu Selektor Jumper Mode di PCB (`JP_MODE` per Pintu 1–4)
+* **[Mode WET] (Header Pin 1-2)**:
+  * Terminal **`NO`** ➔ Berfungsi sebagai **NO (+12V Active-HIGH)** untuk *Electric Strike*.
+  * Terminal **`NC`** ➔ Berfungsi sebagai **NC (+12V Active-LOW)** untuk *Magnetic Lock / Dropbolt*.
+  * Terminal **`COM/GND`** ➔ Berfungsi sebagai **Ground 0V Power Return**.
+* **[Mode DRY] (Header Pin 2-3)**:
+  * Terminal **`NO`** ➔ Berfungsi sebagai **NO (Dry Normally Open)** untuk *Barrier Gate / Sliding Door*.
+  * Terminal **`NC`** ➔ Berfungsi sebagai **NC (Dry Normally Closed)** untuk *Power Supply Eksternal*.
+  * Terminal **`COM/GND`** ➔ Berfungsi sebagai **Dry Common (Potential-Free)**.
+
+### B. Pengabelan Terminal Screw 3-Pin oleh Teknisi Lapangan
+1. **Magnetic Lock 12V (Mode WET)**: Jumper `WET`. Colok Kabel `+` ke **`NC`**, Kabel `-` ke **`COM/GND`**.
+2. **Electric Strike 12V (Mode WET)**: Jumper `WET`. Colok Kabel `+` ke **`NO`**, Kabel `-` ke **`COM/GND`**.
+3. **Barrier Gate / Sliding Door (Mode DRY NO)**: Jumper `DRY`. Colok Kabel 1 ke **`COM/GND`**, Kabel 2 ke **`NO`**.
+4. **External Power Maglock (Mode DRY NC)**: Jumper `DRY`. Colok Kabel 1 ke **`COM/GND`**, Kabel 2 ke **`NC`**.
 
 ---
 
@@ -140,8 +166,13 @@ Row 2| (4) GND |   | (5) NO   |   | (6) L-    | ---> Ke Pin 2 Terminal luar L-
 * **LED Daya**: 12V (Merah), 5V (Kuning), 3.3V (Hijau).
 * **LED Status**: Relay 1–4 (Hijau), REX 1–4 (Biru), Door Sensor 1–4 (Kuning), AP Mode (Biru).
 
-### C. Pemeliharaan Lapangan: Web Config Local, Test Output, & Dual-Network OTA Update
-* **Portal Web Config Local (Port 8081)**: Dapat diakses via **Ethernet LAN W5500** maupun **WiFi Hotspot AP (GPIO37)**. Berisi konfigurasi jaringan/MQTT, tab **Test Output (tombol manual uji coba Relay Lock Pintu 1–4)** untuk mempermudah teknisi tanpa tap kartu, tab **Web Serial Monitor live** (`/ws/serial`), dan tab **Firmware Upgrade**. *(Parameter spesifik pintu `dX_` dikelola terpusat dari Web Dashboard Frontend)*.
+### C. Pemeliharaan Lapangan: Web Config Local, System Status, Test Output, & OTA Update
+* **Aturan Jaringan Communication Role**: **Ethernet W5500 SPI adalah SATU-SATUNYA jalur komunikasi MQTT & Backend Server**. Fitur WiFi **TIDAK DIGUNAKAN UNTUK TRAFIK MQTT**, dan hanya difungsikan secara terisolasi sebagai WiFi Hotspot AP Lokal saat tombol **`GPIO37`** ditekan untuk kebutuhan diagnosa Web Config Port 8081 teknisi.
+* **Portal Web Config Local (Port 8081)**: Dapat diakses via **Ethernet LAN W5500** maupun **WiFi Hotspot AP (GPIO37)**. Menyediakan:
+  * **Tab System Status & Hardware Health**: Menampilkan **Jumlah User Terdaftar (`total_users`)**, status memori Flash 16MB (LittleFS 10MB), Free Heap RAM, status Link Ethernet W5500, MAC Address, Uptime RTC DS3231, serta *health check* IC peripheral (MCP23017, DS3231, W5500).
+  * **Tab Konfigurasi Jaringan & Broker MQTT**: Pengaturan IP/DHCP dan kredensial EMQX Broker *(Parameter spesifik pintu `dX_` dikelola terpusat dari Web Dashboard Frontend)*.
+  * **Tab Test Output**: Tombol manual uji coba Relay Lock Pintu 1–4 untuk mempermudah teknisi di lapangan tanpa tap kartu.
+  * **Tab Web Serial Monitor Live** (`/ws/serial`) & **Tab Firmware Upgrade** (HTTP OTA).
 * **Dual-Network OTA Update**: Mendukung pembaruan firmware Over-The-Air (`firmware.bin`) baik melalui koneksi **W5500 Ethernet SPI** maupun **WiFi Hotspot AP (GPIO37)**. Dilengkapi mekanisme *Safe OTA Rollback* otomatis ke partisi pabrik jika firmware baru mengalami crash.
 
 ---

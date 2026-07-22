@@ -38,7 +38,7 @@
 ### ✨ Ringkasan Pembaruan Utama (v0.2.0 ──► v0.3.0)
 
 1. **Mikrokontroler & Hardware (ESP32-S3)**: Migrasi dari ESP32 Klasik 4MB ke **ESP32-S3-WROOM-1-N16** dengan **16MB Flash Internal**. Menghapus kebutuhan chip memori SPI eksternal pada PCB.
-2. **Koneksi Utama Ethernet (W5500)**: Menggunakan chip Ethernet SPI **W5500** onboard sebagai jalur backbone komunikasi utama. Koneksi WiFi AP/Client diposisikan sebagai cadangan otomatis (*failsafe*).
+2. **Koneksi Tunggal Ethernet W5500 untuk MQTT**: Menggunakan chip Ethernet SPI **W5500** onboard sebagai **satu-satunya jalur komunikasi MQTT & Backend Server**. Fitur WiFi **TIDAK DIGUNAKAN UNTUK TRAFIK MQTT**, dan hanya difungsikan secara terisolasi sebagai WiFi Hotspot AP Lokal saat tombol **`GPIO37`** ditekan untuk akses Web Config Local Port 8081 teknisi.
 3. **I/O Expander Tunggal (MCP23017)**: Menggunakan 1 chip MCP23017 pada bus I2C untuk membaca door sensor, auxiliary input, buzzer onboard, dan LED indikator. Pin native ESP32-S3 dihemat untuk interupsi kecepatan tinggi (Wiegand Data & tombol REX).
 4. **Sirkuit Pengondisian Logika Wiegand**: Menambahkan chip **74LVC245ADW** sebagai pengondisi logika Wiegand 5V ke 3.3V GPIO ESP32-S3, dilindungi TVS diode dari lonjakan statis.
 5. **Real Time Clock (DS3231)**: Menambahkan modul RTC DS3231 via I2C untuk penanda waktu riil saat perangkat offline. Log offline kini menggunakan **Timestamp Unix Epoch** menggantikan relative `uptime_ms`.
@@ -82,12 +82,14 @@ Digunakan untuk jalur komunikasi cepat, interupsi hardware (Wiegand & REX), dan 
 | **`GPIO17`, `GPIO18`** | Input (Interrupt)| Wiegand Rdr 2 D0 & D1 | Reader Pintu 2 (Native Interrupt) |
 | **`GPIO38`, `GPIO39`** | Input (Interrupt)| Wiegand Rdr 3 D0 & D1 | Reader Pintu 3 (Dipindah dari GPIO19/20 - Bebas Konflik USB) |
 | **`GPIO21`, `GPIO22`** | Input (Interrupt)| Wiegand Rdr 4 D0 & D1 | Reader Pintu 4 (Native Interrupt) |
+| **`GPIO1`** | Analog Input (ADC)| Sensing Tegangan PLN 12V| Pembagi Tegangan R1=100k/R2=10k |
+| **`GPIO2`** | Analog Input (ADC)| Sensing Tegangan Aki 12V| Deteksi Low Battery & Missing Battery |
 | **`GPIO35`** | Input | Tamper Box Input | Sakelar Limit Box (Optocoupler EL817) |
 | **`GPIO36`** | Input | Fire Alarm Input | Input Failsafe (Optocoupler EL817) |
 | **`GPIO37`** | Input | Tombol Fungsi Lokal | Uji coba manual lapangan / AP toggle |
 
 > [!NOTE]
-> Pemindahan pin Reader 3 dari `GPIO19/20` ke `GPIO38/39` dilakukan agar modul USB Native JTAG/OTG internal ESP32-S3 tetap dapat digunakan secara aman untuk flashing program kecepatan tinggi dan debugging serial tanpa memicu benturan elektrikal dengan sinyal Wiegand.
+> Pemindahan pin Reader 3 dari `GPIO19/20` ke `GPIO38/39` dilakukan agar modul USB Native JTAG/OTG internal ESP32-S3 tetap dapat digunakan secara aman untuk flashing program kecepatan tinggi dan debugging serial tanpa memicu benturan elektrikal dengan sinyal Wiegand. `GPIO2` (ADC) membaca masukan daya 12V dari External PSU untuk mengategorikan 2 status sederhana: `POWER_NORMAL` (≥ 11.5V) dan `POWER_LOW` (< 11.5V).
 
 ---
 
@@ -119,6 +121,12 @@ Saat status offline, logger tidak lagi membubuhkan uptime relative `millis()`. C
 1. **Portal Web Config Local & Diagnostic Tools (Port 8081)**:
    * Portal web admin lokal (`HTTP Port 8081`) dapat diakses via **Ethernet LAN W5500** maupun via **WiFi Hotspot AP** (saat tombol `GPIO37` ditekan).
    * **Cakupan Menu Web Config Local**:
+     *   **Tab System Status & Hardware Health**: Menampilkan diagnosa lengkap kesehatan controller:
+         *   *Database User*: **Jumlah User Terdaftar** (`total_users`) dalam memori internal controller & status sinkronisasi.
+         *   *Internal Flash & LittleFS*: Memori Total Flash (16MB), Partisi LittleFS (10MB), Terpakai (KB / %), Sisa Kapasitas Buffer Log Offline.
+         *   *RAM Memory*: Free Heap RAM (KB), Minimum Free Heap, Sisa SRAM Internal.
+         *   *Konektivitas & Network*: Status Ethernet W5500 (Link UP 100Mbps / Down), IP Address, Subnet, Gateway, MAC Address (`EC:64:C9:87:1C:74`), WiFi AP SSID, Jumlah Client Terhubung.
+         *   *Kesehatan Perangkat Peripheral*: Status I2C MCP23017 (`OK`/`ERR`), RTC DS3231 (`OK`/`ERR`), SPI W5500 (`OK`/`ERR`), Uptime RTC Timestamp.
      *   **Tab Konfigurasi Jaringan**: Mengatur IP address, DHCP/Static, subnet, gateway, serta kredensial MQTT Broker (parameter spesifik pintu `dX_` dikelola terpusat via Web Dashboard Frontend).
      *   **Tab Test Output (Diagnosa Lapangan)**: Menyediakan tombol-tombol interaktif (*Test Relay 1–4*) untuk menguji pembukaan relay kunci pintu 1, 2, 3, dan 4 secara manual tanpa perlu tap kartu RFID.
      *   **Tab Web Serial Monitor Live**: Memantau log debug serial secara *real-time* via WebSocket (`/ws/serial`).
@@ -248,7 +256,7 @@ Berikut adalah tabel pembanding antara arsitektur dan sistem lama (v0.2.0) denga
 | Komponen / Fitur | Sebelum (v0.2.0) | Sesudah (v0.3.0) |
 |---|---|---|
 | **MCU & Flash Board** | ESP32 Klasik (4MB Flash Internal + 16MB SPI Flash eksternal pada PCB) | **ESP32-S3-WROOM-1-N16** (16MB Flash Internal, sirkuit memori eksternal PCB dihapus) |
-| **Konektivitas Backbone** | Wi-Fi (Utama) | **W5500 Ethernet SPI** (Utama, Wi-Fi sebagai cadangan otomatis / failsafe) |
+| **Konektivitas Backbone** | Wi-Fi (Utama) | **W5500 Ethernet SPI** (Satu-satunya jalur komunikasi MQTT/Backend. WiFi tidak dipakai untuk MQTT, hanya untuk Hotspot AP via tombol GPIO37) |
 | **I/O Expander** | 2x MCP23017 (Address 0x20 & 0x21) | **1x MCP23017** (Address 0x20, pin native dihemat untuk interrupt REX & Wiegand) |
 | **Logika Pembukaan Pintu** | Langsung mengirim log `GRANTED` saat tap kartu (tanpa mendeteksi status fisik pintu) | Menunggu sensor magnetik mendeteksi pintu dibuka atau timeout habis sebelum mengirim log status |
 | **Logika Keluar (REX)** | Hanya memicu relay lokal | Memantau sensor pintu, mengirim log **`VALID_EXIT`** jika pintu dibuka, atau **`VALID_EXIT_UNOPENED`** jika tidak dibuka |
