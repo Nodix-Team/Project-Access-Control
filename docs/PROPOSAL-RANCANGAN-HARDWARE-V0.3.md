@@ -140,8 +140,8 @@ Row 2| (4) GND |   | (5) NO   |   | (6) L-    | ---> Ke Pin 2 Terminal luar L-
 * **LED Daya**: 12V (Merah), 5V (Kuning), 3.3V (Hijau).
 * **LED Status**: Relay 1–4 (Hijau), REX 1–4 (Biru), Door Sensor 1–4 (Kuning), AP Mode (Biru).
 
-### C. Pemeliharaan Lapangan: Web Config Local, Web Serial, & Dual-Network OTA Update
-* **Portal Web Config Local & Web Serial Console (Port 8081)**: Fitur web server lokal Port 8081 **tetap dipertahankan 100%**. Dapat diakses melalui **Ethernet LAN W5500** maupun melalui **WiFi Hotspot AP Lokal** yang dipancarkan mandiri oleh ESP32-S3 ketika **Tombol Hotspot (`GPIO37`)** ditekan. Menyediakan fitur konfigurasi parameter, tab **Web Serial Monitor live** via WebSocket (`/ws/serial`), dan tab **Firmware Upgrade**.
+### C. Pemeliharaan Lapangan: Web Config Local, Test Output, & Dual-Network OTA Update
+* **Portal Web Config Local (Port 8081)**: Dapat diakses via **Ethernet LAN W5500** maupun **WiFi Hotspot AP (GPIO37)**. Berisi konfigurasi jaringan/MQTT, tab **Test Output (tombol manual uji coba Relay Lock Pintu 1–4)** untuk mempermudah teknisi tanpa tap kartu, tab **Web Serial Monitor live** (`/ws/serial`), dan tab **Firmware Upgrade**. *(Parameter spesifik pintu `dX_` dikelola terpusat dari Web Dashboard Frontend)*.
 * **Dual-Network OTA Update**: Mendukung pembaruan firmware Over-The-Air (`firmware.bin`) baik melalui koneksi **W5500 Ethernet SPI** maupun **WiFi Hotspot AP (GPIO37)**. Dilengkapi mekanisme *Safe OTA Rollback* otomatis ke partisi pabrik jika firmware baru mengalami crash.
 
 ---

@@ -114,16 +114,15 @@ Saat status offline, logger tidak lagi membubuhkan uptime relative `millis()`. C
 ```
 *Contoh*: `1784567890,0000123456,1,GRANTED,Valid Access`
 
-### F. Fitur Web Serial Monitor & Dual-Network OTA Update
+### F. Fitur Web Serial Monitor, Test Output, & Dual-Network OTA Update
 
-1. **Portal Web Config Local & Web Serial Monitor (Port 8081)**:
-   * Portal web admin lokal (`HTTP Port 8081`) **tetap dipertahankan penuh** dan dapat diakses melalui:
-     *   Jalur **Ethernet LAN W5500**.
-     *   Jalur **WiFi Hotspot AP Lokal** yang dipancarkan secara mandiri oleh ESP32-S3 ketika **Tombol Hotspot (`GPIO37`)** pada board ditekan.
-   * Portal web ini menyediakan antarmuka lengkap untuk:
-     *   Konfigurasi parameter sistem (IP, MQTT Broker, credentials, setup per-pintu `dX_`).
-     *   Tab **Web Serial Monitor Live** berbasis WebSocket (`/ws/serial`) untuk memantau log debug tanpa kabel USB.
-     *   Tab **Firmware Upgrade** untuk mengunggah file `firmware.bin` (HTTP OTA).
+1. **Portal Web Config Local & Diagnostic Tools (Port 8081)**:
+   * Portal web admin lokal (`HTTP Port 8081`) dapat diakses via **Ethernet LAN W5500** maupun via **WiFi Hotspot AP** (saat tombol `GPIO37` ditekan).
+   * **Cakupan Menu Web Config Local**:
+     *   **Tab Konfigurasi Jaringan**: Mengatur IP address, DHCP/Static, subnet, gateway, serta kredensial MQTT Broker (parameter spesifik pintu `dX_` dikelola terpusat via Web Dashboard Frontend).
+     *   **Tab Test Output (Diagnosa Lapangan)**: Menyediakan tombol-tombol interaktif (*Test Relay 1–4*) untuk menguji pembukaan relay kunci pintu 1, 2, 3, dan 4 secara manual tanpa perlu tap kartu RFID.
+     *   **Tab Web Serial Monitor Live**: Memantau log debug serial secara *real-time* via WebSocket (`/ws/serial`).
+     *   **Tab Firmware Upgrade**: Mengunggah file `firmware.bin` (HTTP OTA Update).
 
 2. **Dual-Network OTA Update (Ethernet W5500 & WiFi Hotspot AP)**:
    * **Skema Partisi Dual-APP (16MB Flash)**:
