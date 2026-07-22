@@ -136,12 +136,39 @@ Dua buah port **Auxiliary Input** (Dry Contact terisolasi optokopler) dirancang 
 
 ---
 
-## 7. Solusi Level Shifter Wiegand D0 & D1
+## 7. Arsitektur Distribusi Daya & Level Shifter Sinyal (Power & Signal Architecture)
 
-Reader Wiegand standar industri bekerja pada level logika **5V**, sedangkan pin input GPIO ESP32 hanya toleran terhadap tegangan **3.3V**.
+Untuk menjamin keandalan operasional,board membagi penyaluran daya (*power distribution*) menjadi **3 Rel Tegangan Utama (12V, 5V, dan 3.3V)** serta mengisolasi sinyal input/output:
 
-* **Komponen**: Gunakan IC **74LVC245ADW** (8-channel buffer dengan input 5V-tolerant) yang diberi catu daya VCC **3.3V**.
-* **Cara Kerja**: Input IC menerima sinyal logika 5V dari kabel D0/D1 reader Wiegand, lalu pin output IC mengeluarkan sinyal 3.3V yang aman menuju pin interupsi native ESP32. Proteksi ESD pada sirkuit ini dilengkapi TVS diode **PESD5V0U1BA**.
+```text
+Adaptor 12V / Aki 12V 7Ah
+          │
+          ├──► [Rel 12V DC] ───► Power Kunci Pintu (WET Contact 12V L+/L-) & Charger Aki
+          │
+          └──► [DC-DC Buck Converter] ──► [Rel 5V DC] ──► Koil Relay, Optocoupler, & Reader VCC
+                                                 │
+                                                 └──► [LDO 3.3V Regulator] ──► [Rel 3.3V DC]
+                                                                                      │
+                                                                 ┌────────────────────┴────────────────────┐
+                                                                 ▼                                         ▼
+                                                         ESP32-S3, W5500,                         VCC Level Shifter
+                                                         MCP23017, DS3231                           (74LVC245ADW)
+```
+
+### A. Rincian Rel Tegangan Utama
+1. **Rel Tegangan 12V DC (Power Utama & Aktuator)**:
+   * **Sumber**: Input adaptor luar 12V DC atau Aki Kering (*Sealed Lead Acid*) 12V 7Ah via sirkuit otomatis switchover (Dioda Schottky SS34).
+   * **Beban**: Menyuplai catu daya pengunci pintu (*Magnetic Lock* / *Dropbolt*) pada terminal L+/L- (Mode WET Contact), pengisian aki via LM317T (13.8V), dan catu daya RFID Reader luar (12V).
+2. **Rel Tegangan 5V DC (Penggerak Relay & Indikator)**:
+   * **Sumber**: Diturunkan dari Rel 12V menggunakan **DC-DC Buck Converter 5V** (LM2596 / MP1584).
+   * **Beban**: Menyuplai koil relay mekanis 5V/12V (via IC Driver Transistor ULN2003ADR), sirkuit LED indikator, dan port VCC reader 5V.
+3. **Rel Tegangan 3.3V DC (Mikrokontroler & Komunikasi)**:
+   * **Sumber**: Diturunkan dari Rel 5V menggunakan **LDO Regulator 3.3V** (AMS1117-3.3).
+   * **Beban**: Menyuplai mikrokontroler **ESP32-S3-WROOM-1-N16**, chip Ethernet **WIZnet W5500**, I/O Expander **MCP23017**, RTC **DS3231**, serta tegangan referensi VCC IC Level Shifter.
+
+### B. Proteksi & Level Shifter Sinyal Wiegand (D0 & D1)
+* **Pengondisian Logika 5V ke 3.3V**: Sinyal masukan D0 dan D1 dari RFID Reader di luar pintu bernilai **5V TTL (5V Logic)**. Sinyal ini diturunkan secara aman menjadi **3.3V** menggunakan IC Buffer **74LVC245ADW** (8-channel buffer 5V-tolerant) yang diberi daya VCC 3.3V sebelum masuk ke GPIO native ESP32-S3.
+* **Proteksi Statis (ESD Protection)**: Setiap jalur data D0 dan D1 dilindungi oleh TVS Diode **PESD5V0U1BA** untuk meredam lonjakan listrik statis (ESD) dari lingkungan luar.
 
 ---
 
