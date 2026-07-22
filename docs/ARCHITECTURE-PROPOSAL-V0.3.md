@@ -114,10 +114,30 @@ Saat status offline, logger tidak lagi membubuhkan uptime relative `millis()`. C
 ```
 *Contoh*: `1784567890,0000123456,1,GRANTED,Valid Access`
 
-Dengan ruang 10MB LittleFS, buffer offline secara teoritis dapat menampung hingga **~330.000 log**. Namun, nilai `MAX_LOG_LINES` pada firmware dibatasi secara default ke **5.000** entri untuk membatasi overhead pemindaian berkas CSV saat melakukan pencarian dan penulisan ulang ring buffer.
+### F. Fitur Web Serial Monitor & Dual-Network OTA Update
 
+1. **Portal Web Config Local & Web Serial Monitor (Port 8081)**:
+   * Portal web admin lokal (`HTTP Port 8081`) **tetap dipertahankan penuh** dan dapat diakses melalui:
+     *   Jalur **Ethernet LAN W5500**.
+     *   Jalur **WiFi Hotspot AP Lokal** yang dipancarkan secara mandiri oleh ESP32-S3 ketika **Tombol Hotspot (`GPIO37`)** pada board ditekan.
+   * Portal web ini menyediakan antarmuka lengkap untuk:
+     *   Konfigurasi parameter sistem (IP, MQTT Broker, credentials, setup per-pintu `dX_`).
+     *   Tab **Web Serial Monitor Live** berbasis WebSocket (`/ws/serial`) untuk memantau log debug tanpa kabel USB.
+     *   Tab **Firmware Upgrade** untuk mengunggah file `firmware.bin` (HTTP OTA).
 
-### C. Logika Mesin Keadaan Pintu & REX (State Machine)
+2. **Dual-Network OTA Update (Ethernet W5500 & WiFi Hotspot AP)**:
+   * **Skema Partisi Dual-APP (16MB Flash)**:
+     ```ini
+     # Partisi Flash ESP32-S3 16MB
+     # nvs (20KB), otadata (8KB), app0 (3MB), app1 (3MB), littlefs (10MB)
+     ```
+   * **Dukungan Jalur Ganda**: Pembaruan firmware berkas `.bin` dapat diunggah secara Over-The-Air (OTA) baik melalui antarmuka **Ethernet LAN W5500** maupun melalui **WiFi Hotspot AP** (pancaran mandiri tombol `GPIO37`).
+   * **Dua Metode Pengkinian**:
+     * *Metode Web Upload*: Pengunggahan langsung berkas `firmware.bin` melalui form portal admin web lokal (Port 8081) menggunakan modul `Update.h`.
+     * *Metode Push Network OTA*: Pengunggahan jarak jauh dari server backend pusat.
+   * **Perlindungan Safe Rollback**: Jika firmware baru gagal booting atau memicu reset watchdog dalam 30 detik pasca-update, ESP32-S3 akan otomatis melakukan *rollback* ke partisi firmware sebelumnya yang aman.
+
+---
 Untuk mendeteksi apakah pintu benar-benar dimasuki atau tidak, controller menerapkan logika waktu tunggu sensor magnet:
 1. **Otorisasi valid (Card Tap / REX)**:
    * Ketika otorisasi disetujui (`GRANTED`), controller mengaktifkan relay lock dan memulai timer **`door_open_timeout_s`** (default 10 detik).

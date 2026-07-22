@@ -140,8 +140,9 @@ Row 2| (4) GND |   | (5) NO   |   | (6) L-    | ---> Ke Pin 2 Terminal luar L-
 * **LED Daya**: 12V (Merah), 5V (Kuning), 3.3V (Hijau).
 * **LED Status**: Relay 1–4 (Hijau), REX 1–4 (Biru), Door Sensor 1–4 (Kuning), AP Mode (Biru).
 
-### B. Manufaktur Pabrik & Test Point Jig (Production QC)
-* Disediakan **Pogo-Pin Test Point Pad 6-Pin (VCC, GND, TX0, RX0, IO0, EN)** di *bottom layer* PCB untuk flashing firmware massal dan otomatisasi pengujian QC di pabrik tanpa menyolder header pin.
+### C. Pemeliharaan Lapangan: Web Config Local, Web Serial, & Dual-Network OTA Update
+* **Portal Web Config Local & Web Serial Console (Port 8081)**: Fitur web server lokal Port 8081 **tetap dipertahankan 100%**. Dapat diakses melalui **Ethernet LAN W5500** maupun melalui **WiFi Hotspot AP Lokal** yang dipancarkan mandiri oleh ESP32-S3 ketika **Tombol Hotspot (`GPIO37`)** ditekan. Menyediakan fitur konfigurasi parameter, tab **Web Serial Monitor live** via WebSocket (`/ws/serial`), dan tab **Firmware Upgrade**.
+* **Dual-Network OTA Update**: Mendukung pembaruan firmware Over-The-Air (`firmware.bin`) baik melalui koneksi **W5500 Ethernet SPI** maupun **WiFi Hotspot AP (GPIO37)**. Dilengkapi mekanisme *Safe OTA Rollback* otomatis ke partisi pabrik jika firmware baru mengalami crash.
 
 ---
 
