@@ -112,7 +112,7 @@ CREATE TABLE access_logs (
     door_nama        VARCHAR(100) NULL,            -- SNAPSHOT saat kejadian
     controller_id    INT NULL,
     result           ENUM('GRANTED', 'DENIED', 'ALARM') NOT NULL,
-    reason           VARCHAR(50) NULL,             -- e.g., 'Valid Access', 'Door Forced Open'
+    reason           VARCHAR(50) NULL,             -- e.g., 'VALID_ACCESS', 'VALID_EXIT', 'DOOR_FORCED_OPEN'
     server_ts        DATETIME(3) NOT NULL,         -- otoritatif (UTC), dari Backend
     device_uptime_ms BIGINT NULL,                  -- untuk diagnosa
     is_replayed      BOOLEAN DEFAULT FALSE,        -- TRUE jika dari buffer offline

@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 VALID_REASONS = {
     # v0.2.0 old reasons
     "OK", "UNKNOWN_CARD", "NO_ACCESS", "INVALID_DOOR",
-    # v0.3.0 new English reasons
-    "Valid Access", "Valid Access - Unopened", "Exit via REX", "Exit REX - Unopened",
-    "Door Forced Open", "Door Held Open", "Unauthorized Door", "Unknown Card", "Invalid Door Number"
+    # v0.3.0 approved database codes
+    "VALID_ACCESS", "VALID_ACCESS_UNOPENED", "VALID_EXIT", "VALID_EXIT_UNOPENED",
+    "DOOR_FORCED_OPEN", "DOOR_HELD_OPEN", "UNAUTHORIZED_DOOR", "UNKNOWN_CARD", "INVALID_DOOR_NUMBER"
 }
 
 # device_id -> perkiraan waktu boot (dari status.uptime_ms terakhir, lihat handle_status).

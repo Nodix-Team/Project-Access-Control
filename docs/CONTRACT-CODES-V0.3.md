@@ -1,78 +1,63 @@
 # 📇 Kontrak Kode Status & Reason — v0.3
 
 > [!IMPORTANT]
-> **Status dokumen: DRAFT / USULAN** — belum disepakati final. Tabel ini disusun sebagai bahan diskusi
-> antara @rizzalaulia dan @danskiv menyusul usulan Danas untuk memakai **kode angka** (bukan teks) pada
-> payload MQTT. Perlu review & persetujuan bersama sebelum jadi kontrak resmi dan sebelum firmware/backend
-> mulai mengimplementasikannya.
-
-Dokumen ini adalah **satu-satunya sumber kebenaran** pemetaan kode `status` dan `reason` untuk v0.3.
-Dirujuk oleh **firmware** (angka → kirim), **backend** (angka → kode simpan), dan **frontend** (kode → teks tampil).
-Semangatnya melanjutkan konvensi kode pendek v0.2 (`UNKNOWN_CARD`, `NO_ACCESS`, dst) — bukan perombakan,
-hanya menambah anggota baru + lapisan encoding angka di atasnya untuk menghemat payload/memory ESP32.
+> **Status Dokumen: FINAL / DISENTUJUI (APPROVED)** — Kontrak ini telah disetujui bersama oleh @danskiv dan @rizzalaulia pada 22 Juli 2026. Tabel ini adalah **satu-satunya sumber kebenaran (Single Source of Truth)** untuk pemetaan kode status dan reason antara firmware ESP32-S3, backend FastAPI, dan frontend React.
 
 ---
 
 ## Latar Belakang Keputusan
 
-Di v0.2, `reason` dikirim sebagai kode string pendek (`OK`, `UNKNOWN_CARD`, ...). Draft awal v0.3 sempat
-mengubahnya jadi kalimat Inggris (`Valid Access`, `Door Forced Open`) — ini menimbulkan 2 masalah:
+Di v0.2, `reason` dikirim sebagai kode string pendek (`OK`, `UNKNOWN_CARD`, ...). Draft awal v0.3 sempat mengubahnya jadi kalimat Inggris (`Valid Access`, `Door Forced Open`) — ini menimbulkan 2 masalah:
 
-1. Kalimat mengandung spasi/karakter bebas → berisiko merusak parsing CSV MQTT (sampai perlu aturan "reason
-   tidak boleh mengandung koma").
-2. Kalimat Inggris di-hardcode ke payload + DB → menyulitkan tampilan UI Bahasa Indonesia (dan multi-bahasa
-   ke depan).
+1. Kalimat mengandung spasi/karakter bebas → berisiko merusak parsing CSV MQTT.
+2. Hardcode teks kalimat Inggris di payload → menyulitkan penyesuaian bahasa UI di masa depan.
 
-**Keputusan (usulan):** pakai **3 lapisan representasi** — angka di kabel, kode pendek di DB, teks lokal di layar.
-Ini menyelesaikan kedua masalah di atas **sekaligus** menghemat ukuran payload (target memory ESP32, salah satu
-isu v0.2).
+**Keputusan Final:** Memakai **3 Lapisan Representasi** — Angka di kabel MQTT, Kode Pendek Uppercase di Database, dan Teks Uppercase (Keminggris) di Frontend SPA.
 
-```
+```text
    MQTT (di kabel)        DB (disimpan)              Frontend (ditampilkan)
-        5          →       DOOR_FORCED_OPEN     →     "Pintu Dibuka Paksa"
-    (angka,                (kode pendek,              (teks Indonesia,
-     hemat byte)            stabil & netral bahasa)    bebas diganti bahasa)
+        3,5        →     DOOR_FORCED_OPEN     →     "DOOR FORCED OPEN"
+    (Angka 1-byte,       (Kode pendek netral,        (Teks Uppercase Keminggris,
+     super hemat RAM)     stabil & aman untuk SQL)    bebas disesuaikan UI)
 
      └── backend translate angka→kode ──┘   └── frontend translate kode→teks ──┘
 ```
 
-- **Firmware** hanya tahu & mengirim **angka**.
-- **Backend** menerjemahkan angka → **kode pendek**, lalu menyimpan **kode pendek** itu ke kolom DB (bukan angka, bukan kalimat).
-- **Frontend** menerjemahkan **kode pendek** → **teks Bahasa Indonesia** saat menampilkan.
+- **Firmware ESP32-S3**: hanya tahu & mengirim **Angka Integer** (super hemat memori & cepat).
+- **Backend FastAPI**: menerjemahkan **Angka → Kode Pendek**, lalu menyimpan **Kode Pendek** tersebut ke kolom `access_logs.reason` DB.
+- **Frontend React**: menerjemahkan **Kode Pendek → Teks Uppercase** saat menampilkan log di dashboard.
 
 ---
 
 ## Tabel STATUS
 
-Dikirim sebagai field `<status>` pada payload log. Disimpan di kolom `access_logs.result`
-(ENUM sudah diperbarui: `GRANTED`, `DENIED`, `ALARM`).
+Dikirim sebagai field `<status>` pada payload log. Disimpan di kolom `access_logs.result` (ENUM: `GRANTED`, `DENIED`, `ALARM`).
 
-| Angka | Kode (DB) | Teks Indonesia | Keterangan |
+| Angka | Kode (DB) | Teks Tampilan (Frontend) | Keterangan |
 |:---:|---|---|---|
-| `0` | `UNKNOWN` | Tidak Dikenal | **Cadangan** — dipakai kalau backend menerima angka status yang belum terdaftar (mis. firmware lebih baru). Jangan crash, catat sebagai unknown. |
-| `1` | `GRANTED` | Diizinkan | Akses atau permintaan keluar yang sah |
-| `2` | `DENIED` | Ditolak | Akses ditolak |
-| `3` | `ALARM` | Alarm | Kejadian sabotase / pelanggaran sensor pintu |
+| `0` | `UNKNOWN` | `UNKNOWN` | **Cadangan (Failsafe)** — dipakai jika backend menerima angka status yang belum terdaftar. Jangan crash. |
+| `1` | `GRANTED` | `GRANTED` | Akses atau permintaan keluar yang sah |
+| `2` | `DENIED` | `DENIED` | Akses ditolak |
+| `3` | `ALARM` | `ALARM` | Kejadian sabotase / pelanggaran sensor pintu |
 
 ---
 
 ## Tabel REASON
 
-Dikirim sebagai field `<reason>` pada payload log. Disimpan di kolom `access_logs.reason` (VARCHAR — isi
-dengan **Kode**, bukan teks). Kolom "Status" menunjukkan pasangan status alami tiap reason.
+Dikirim sebagai field `<reason>` pada payload log. Disimpan di kolom `access_logs.reason` (VARCHAR — diisi **Kode DB**, bukan angka mentah/teks UI).
 
-| Angka | Kode (DB) | Status | Teks Indonesia | Kapan terjadi |
+| Angka | Kode (DB) | Status | Teks Tampilan (Frontend) | Kapan Terjadi |
 |:---:|---|:---:|---|---|
-| `0` | `UNKNOWN` | — | Tidak Dikenal | **Cadangan** — angka reason belum terdaftar (firmware lebih baru). Jangan crash. |
-| `1` | `VALID_ACCESS` | GRANTED | Akses Sah | Kartu valid di-tap, pintu dibuka sebelum `door_open_timeout_s` habis |
-| `2` | `VALID_ACCESS_UNOPENED` | GRANTED | Akses Sah — Tak Dibuka | Kartu valid di-tap, tapi pintu tetap tertutup sampai timeout; relay dikunci lagi |
-| `3` | `EXIT_VIA_REX` | GRANTED | Keluar via REX | Tombol REX ditekan, pintu dibuka sebelum timeout |
-| `4` | `EXIT_REX_UNOPENED` | GRANTED | Keluar REX — Tak Dibuka | Tombol REX ditekan, tapi pintu tetap tertutup sampai timeout |
-| `5` | `DOOR_FORCED_OPEN` | ALARM | Pintu Dibuka Paksa | Sensor mendeteksi pintu terbuka fisik tanpa tap kartu / REX yang sah |
-| `6` | `DOOR_HELD_OPEN` | ALARM | Pintu Terlalu Lama Terbuka | Pintu sah dibuka tapi tak ditutup melewati `door_held_timeout_s` |
-| `7` | `UNAUTHORIZED_DOOR` | DENIED | Tak Ada Akses ke Pintu Ini | Kartu terdaftar tapi tak punya hak akses ke pintu lokal itu |
-| `8` | `UNKNOWN_CARD` | DENIED | Kartu Tak Terdaftar | Kartu tidak ada di memori internal controller |
-| `9` | `INVALID_DOOR_NUMBER` | DENIED | Nomor Pintu Tidak Valid | Permintaan akses pintu di luar jangkauan lokal 1–4 |
+| `0` | `UNKNOWN` | — | `UNKNOWN` | **Cadangan (Failsafe)** — angka reason belum terdaftar. |
+| `1` | `VALID_ACCESS` | GRANTED | `VALID ACCESS` | Kartu valid di-tap, pintu dibuka sebelum `door_open_timeout_s` habis |
+| `2` | `VALID_ACCESS_UNOPENED` | GRANTED | `VALID ACCESS UNOPENED` | Kartu valid di-tap, tapi pintu tetap tertutup sampai timeout; relay dikunci lagi |
+| `3` | `VALID_EXIT` | GRANTED | `VALID EXIT` | Tombol REX ditekan, pintu dibuka sebelum timeout |
+| `4` | `VALID_EXIT_UNOPENED` | GRANTED | `VALID EXIT UNOPENED` | Tombol REX ditekan, tapi pintu tetap tertutup sampai timeout |
+| `5` | `DOOR_FORCED_OPEN` | ALARM | `DOOR FORCED OPEN` | Sensor mendeteksi pintu terbuka fisik tanpa tap kartu / REX yang sah |
+| `6` | `DOOR_HELD_OPEN` | ALARM | `DOOR HELD OPEN` | Pintu sah dibuka tapi tak ditutup melewati `door_held_timeout_s` |
+| `7` | `UNAUTHORIZED_DOOR` | DENIED | `UNAUTHORIZED DOOR` | Kartu terdaftar tapi tak punya hak akses ke pintu lokal itu |
+| `8` | `UNKNOWN_CARD` | DENIED | `UNKNOWN CARD` | Kartu tidak ada di memori internal controller |
+| `9` | `INVALID_DOOR_NUMBER` | DENIED | `INVALID DOOR NUMBER` | Permintaan akses pintu di luar jangkauan lokal 1–4 |
 
 ---
 
@@ -80,7 +65,7 @@ dengan **Kode**, bukan teks). Kolom "Status" menunjukkan pasangan status alami t
 
 Topik: `access/{device_id}/logs` (QoS 1).
 
-```
+```text
 <card_id>,<door_number>,<status>,<reason>,<timestamp_epoch>[,REPLAYED]
 ```
 
@@ -88,68 +73,33 @@ Topik: `access/{device_id}/logs` (QoS 1).
 |---|---|
 | `<card_id>` | String numerik 10-digit (padding nol di depan). **Dikosongkan** untuk kejadian tanpa kartu (REX, alarm sensor) → payload diawali koma. |
 | `<door_number>` | Nomor pintu lokal 1–4 |
-| `<status>` | Angka status (lihat tabel STATUS) |
-| `<reason>` | Angka reason (lihat tabel REASON) |
+| `<status>` | Angka status (1 = GRANTED, 2 = DENIED, 3 = ALARM) |
+| `<reason>` | Angka reason (1–9, lihat tabel REASON) |
 | `<timestamp_epoch>` | Unix epoch UTC (10 digit) dari RTC controller |
 | `[,REPLAYED]` | Ditambahkan bila log diambil dari buffer offline |
 
-### Contoh
+### Contoh Payload Real & Terbaca
 
-| Kejadian | Payload | Terbaca sebagai |
-|---|---|---|
-| Kartu valid masuk pintu 1 | `0000123456,1,1,1,1784567890` | GRANTED · Akses Sah |
-| Pintu 3 dibuka paksa (tanpa kartu) | `,3,3,5,1784567890` | ALARM · Pintu Dibuka Paksa |
-| Keluar via REX pintu 2 | `,2,1,3,1784567890` | GRANTED · Keluar via REX |
-| Kartu asing di pintu 4 | `0099887766,4,2,8,1784567890` | DENIED · Kartu Tak Terdaftar |
-| Replay dari buffer offline | `0000123456,1,1,1,1784560000,REPLAYED` | GRANTED · Akses Sah (REPLAYED) |
-
----
-
-## Aturan Pemeliharaan Kontrak (WAJIB dijaga)
-
-1. **Angka `0` = "UNKNOWN" disisakan di kedua tabel.** Kalau firmware/backend/frontend menerima kode yang
-   belum dikenal (mis. sisi lain sudah versi lebih baru), catat sebagai "Tidak Dikenal" — **jangan pernah
-   crash / tolak pesan**. Ini yang membuat sistem tahan beda-versi antar-komponen.
-
-2. **Append-only, jangan pernah menomori ulang.** Kode baru dapat angka berikutnya (`10`, `11`, ...). Dilarang
-   menyisipkan di tengah atau mengubah arti angka yang sudah ada — itu merusak log historis dan membuat
-   firmware/backend beda versi saling salah paham diam-diam.
-
-3. **DB menyimpan kolom "Kode", bukan "Teks Indonesia" maupun angka mentah.** Alasan: kode pendek stabil &
-   netral bahasa, kebaca langsung saat query DB, dan aman kalau terjemahan diubah (log lama tak ikut berubah).
-   Angka murni optimasi transport di kabel — tidak perlu masuk DB.
-
-4. **Tabel ini satu-satunya sumber kebenaran.** Firmware & backend WAJIB merujuk angka yang sama persis dari
-   sini. Jangan ada tabel tandingan yang di-hardcode terpisah.
-
-5. **Sadar ongkos debugging.** Payload angka (`1,1`) tak sejelas teks saat mengintip MQTT mentah. Mitigasi:
-   backend menuliskan log yang meng-expand angka → teks, dan tabel ini ditaruh di tempat mudah dijangkau.
+| Kejadian | Payload | Terbaca di DB | Terbaca di UI Frontend |
+|---|---|---|---|
+| Kartu valid masuk pintu 1 | `0000123456,1,1,1,1784567890` | `GRANTED` · `VALID_ACCESS` | `GRANTED` · `VALID ACCESS` |
+| Pintu 3 dibuka paksa (tanpa kartu) | `,3,3,5,1784567890` | `ALARM` · `DOOR_FORCED_OPEN` | `ALARM` · `DOOR FORCED OPEN` |
+| Keluar via REX pintu 2 | `,2,1,3,1784567890` | `GRANTED` · `VALID_EXIT` | `GRANTED` · `VALID EXIT` |
+| Kartu asing di pintu 4 | `0099887766,4,2,8,1784567890` | `DENIED` · `UNKNOWN_CARD` | `DENIED` · `UNKNOWN CARD` |
+| Replay dari buffer offline | `0000123456,1,1,1,1784560000,REPLAYED` | `GRANTED` · `VALID_ACCESS` | `GRANTED` · `VALID ACCESS (REPLAYED)` |
 
 ---
 
-## Migrasi dari Log v0.2 (referensi bila memetakan data lama)
+## Aturan Pemeliharaan Kontrak (WAJIB Dijaga)
 
-Kode v0.2 lama vs padanan v0.3-nya:
-
-| Reason v0.2 lama | → | Kode v0.3 | Catatan |
-|---|:---:|---|---|
-| `OK` | → | `VALID_ACCESS` | v0.3 memecah lagi jadi opened/unopened; log lama tak punya info itu → petakan ke `VALID_ACCESS` |
-| `NO_ACCESS` | → | `UNAUTHORIZED_DOOR` | |
-| `UNKNOWN_CARD` | → | `UNKNOWN_CARD` | tak berubah |
-| `INVALID_DOOR` | → | `INVALID_DOOR_NUMBER` | |
-
-`VALID_REASONS` di `backend/app/mqtt/handlers.py` saat ini masih menerima **gabungan** kode lama v0.2 + kalimat
-Inggris draft v0.3. Setelah kontrak ini disepakati, daftar itu perlu diselaraskan ke **kode** di tabel di atas
-(bukan kalimat), dan handler diubah untuk menerjemahkan **angka → kode**.
+1. **Angka `0` = "UNKNOWN" disisakan di kedua tabel.** Jika firmware/backend/frontend menerima kode yang belum dikenal, catat sebagai `UNKNOWN` — **jangan pernah crash / menolak pesan**.
+2. **Append-Only, Dilarang Menomori Ulang.** Kode baru dapat angka berikutnya (`10`, `11`, ...). Dilarang mengubah arti angka lama.
+3. **DB menyimpan kolom "Kode", bukan Teks UI maupun Angka Mentah.** Kode pendek stabil & netral bahasa.
+4. **Tabel ini satu-satunya sumber kebenaran.** Firmware & backend WAJIB merujuk angka yang sama dari sini.
 
 ---
 
-## Catatan Terbuka (perlu diputuskan bersama)
+## Keputusan Catatan Terbuka
 
-- **`status` vs `reason` — apakah keduanya perlu dikirim terpisah?** Tiap reason sudah menyiratkan status-nya
-  (mis. `DOOR_FORCED_OPEN` pasti `ALARM`). Bisa dipertimbangkan status diturunkan dari reason di backend agar
-  hemat 1 field. Tetap mengirim keduanya lebih eksplisit/aman. Belum diputuskan.
-- **Timezone timestamp** — `<timestamp_epoch>` bersifat UTC (sifat bawaan Unix epoch). Keputusan apakah DB
-  menyimpan UTC (konversi ke GMT+7 hanya saat tampil) atau menyimpan GMT+7 langsung **masih dalam diskusi
-  terpisah** — lihat catatan di [`ARCHITECTURE-PROPOSAL-V0.3.md`](ARCHITECTURE-PROPOSAL-V0.3.md) §4B. Yang wajib:
-  jangan menyimpan campur UTC & lokal di DB yang sama.
+1. **Pengiriman Dua Field (`status` dan `reason`)**: **TETAP DIKIRIM KEDUANYA** pada payload MQTT untuk memberikan *redundancy validation* dan proses parsing instan di backend tanpa lookup tambahan.
+2. **Timezone Timestamp**: `<timestamp_epoch>` di kabel bersifat UTC murni. Backend menyimpan dan menampilkan waktu secara **dinamis mengikuti zona waktu lokal Server & Browser User** (tidak di-hardcode kaku ke GMT+7).

@@ -232,30 +232,30 @@ Berikut adalah tabel pembanding antara arsitektur dan sistem lama (v0.2.0) denga
 | **Konektivitas Backbone** | Wi-Fi (Utama) | **W5500 Ethernet SPI** (Utama, Wi-Fi sebagai cadangan otomatis / failsafe) |
 | **I/O Expander** | 2x MCP23017 (Address 0x20 & 0x21) | **1x MCP23017** (Address 0x20, pin native dihemat untuk interrupt REX & Wiegand) |
 | **Logika Pembukaan Pintu** | Langsung mengirim log `GRANTED` saat tap kartu (tanpa mendeteksi status fisik pintu) | Menunggu sensor magnetik mendeteksi pintu dibuka atau timeout habis sebelum mengirim log status |
-| **Logika Keluar (REX)** | Hanya memicu relay lokal | Memantau sensor pintu, mengirim log **`Exit via REX`** jika pintu dibuka, atau **`Exit REX - Unopened`** jika tidak dibuka |
-| **Logika Alarm Pintu** | Deteksi lokal tanpa pencatatan status formal di log MQTT | Mengirimkan log status `ALARM` dengan reason **`Door Forced Open`** & **`Door Held Open`** ke server |
+| **Logika Keluar (REX)** | Hanya memicu relay lokal | Memantau sensor pintu, mengirim log **`VALID_EXIT`** jika pintu dibuka, atau **`VALID_EXIT_UNOPENED`** jika tidak dibuka |
+| **Logika Alarm Pintu** | Deteksi lokal tanpa pencatatan status formal di log MQTT | Mengirimkan log status `ALARM` dengan reason **`DOOR_FORCED_OPEN`** & **`DOOR_HELD_OPEN`** ke server |
 | **Akurasi Waktu Log Offline** | Uptime relatif (`uptime_ms` menggunakan `millis()`) | **Unix Epoch Timestamp** riil yang dipasok dari chip RTC **DS3231** onboard |
-| **Format Log Transaksi (MQTT)**| `<card_id>,<door_number>,<status>,<uptime_ms>` | `<card_id>,<door_number>,<status>,<reason>,<timestamp_epoch>` (Card ID kosong untuk REX/Alarm) |
+| **Format Log Transaksi (MQTT)**| `<card_id>,<door_number>,<status>,<uptime_ms>` | `<card_id>,<door_number>,<status_code>,<reason_code>,<timestamp_epoch>` (Encoding Angka 3-Lapis per [`CONTRACT-CODES-V0.3.md`](CONTRACT-CODES-V0.3.md)) |
 | **Format Status/Heartbeat (MQTT)**| `total_doors,user_count,free_heap,uptime_ms` (Topik `status`) | `uptime_s,rssi,free_heap,total_users` (Topik `heartbeat`) |
-| **Pilihan Nilai Reason (Logs)** | `OK`, `Tidak punya akses ke pintu ini`, `Kartu tidak terdaftar`, `Nomor pintu tidak valid` | `Valid Access`, `Valid Access - Unopened`, `Exit via REX`, `Exit REX - Unopened`, `Door Forced Open`, `Door Held Open`, `Unauthorized Door`, `Unknown Card`, `Invalid Door Number` |
+| **Pilihan Nilai Reason (Logs)** | `OK`, `Tidak punya akses ke pintu ini`, `Kartu tidak terdaftar`, `Nomor pintu tidak valid` | `VALID_ACCESS`, `VALID_ACCESS_UNOPENED`, `VALID_EXIT`, `VALID_EXIT_UNOPENED`, `DOOR_FORCED_OPEN`, `DOOR_HELD_OPEN`, `UNAUTHORIZED_DOOR`, `UNKNOWN_CARD`, `INVALID_DOOR_NUMBER` |
 | **Parameter Konfigurasi Baru** | - | **`dX_active`**, **`dX_open_timeout_s`**, **`dX_held_timeout_s`**, **`dX_alarm_duration_s`** (diatur spesifik per pintu `dX` 1–4) |
-| **Skema Database (Logs)** | Hanya mencatat status `GRANTED`/`DENIED` dan `is_replayed` | Mendukung status `GRANTED`/`DENIED`/`ALARM` dengan reason bahasa Inggris lengkap, serta time zone **GMT+7 (UTC+7)** terstandardisasi |
+| **Skema Database (Logs)** | Hanya mencatat status `GRANTED`/`DENIED` dan `is_replayed` | Mendukung status `GRANTED`/`DENIED`/`ALARM` dengan kode DB netral, serta penyesuaian zona waktu dinamis |
 
 ### A. Perbandingan Detail Reason Code (Sebelum vs Sesudah)
 
 Berikut adalah matriks pemetaan alasan status akses (*reason code*) antara protokol v0.2.0 dengan v0.3.0 untuk acuan implementasi:
 
-| Skenario Kejadian / Event | Status Sebelum | Reason Sebelum (v0.2.0) | Status Sesudah | Reason Sesudah (v0.3.0) |
-|---|---|---|---|---|
-| Tap kartu disetujui, pintu fisik dibuka | `GRANTED` | `OK` | `GRANTED` | **`Valid Access`** |
-| Tap kartu disetujui, pintu tetap tertutup hingga timeout | `GRANTED` | `OK` | `GRANTED` | **`Valid Access - Unopened`** |
-| Tombol REX ditekan, pintu fisik dibuka | - (tidak ada log MQTT) | - | `GRANTED` | **`Exit via REX`** |
-| Tombol REX ditekan, pintu tetap tertutup hingga timeout | - (tidak ada log MQTT) | - | `GRANTED` | **`Exit REX - Unopened`** |
-| Pintu dibuka paksa tanpa otorisasi (Sabotase) | - (tidak ada log MQTT) | - | `ALARM` | **`Door Forced Open`** |
-| Pintu tertahan terbuka melebihi durasi batas waktu | - (tidak ada log MQTT) | - | `ALARM` | **`Door Held Open`** |
-| Kartu terdaftar, tetapi tidak punya izin untuk pintu tersebut | `DENIED` | `Tidak punya akses ke pintu ini` | `DENIED` | **`Unauthorized Door`** |
-| Kartu tidak terdaftar dalam memori internal | `DENIED` | `Kartu tidak terdaftar` | `DENIED` | **`Unknown Card`** |
-| Permintaan nomor pintu lokal di luar jangkauan 1–4 | `DENIED` | `Nomor pintu tidak valid` | `DENIED` | **`Invalid Door Number`** |
+| Skenario Kejadian / Event | Status Sebelum | Reason Sebelum (v0.2.0) | Status Sesudah | Reason Kode DB (v0.3.0) | Teks Display UI |
+|---|---|---|---|---|---|
+| Tap kartu disetujui, pintu fisik dibuka | `GRANTED` | `OK` | `GRANTED` | **`VALID_ACCESS`** | `VALID ACCESS` |
+| Tap kartu disetujui, pintu tetap tertutup hingga timeout | `GRANTED` | `OK` | `GRANTED` | **`VALID_ACCESS_UNOPENED`** | `VALID ACCESS UNOPENED` |
+| Tombol REX ditekan, pintu fisik dibuka | - (tidak ada log MQTT) | - | `GRANTED` | **`VALID_EXIT`** | `VALID EXIT` |
+| Tombol REX ditekan, pintu tetap tertutup hingga timeout | - (tidak ada log MQTT) | - | `GRANTED` | **`VALID_EXIT_UNOPENED`** | `VALID EXIT UNOPENED` |
+| Pintu dibuka paksa tanpa otorisasi (Sabotase) | - (tidak ada log MQTT) | - | `ALARM` | **`DOOR_FORCED_OPEN`** | `DOOR FORCED OPEN` |
+| Pintu tertahan terbuka melebihi durasi batas waktu | - (tidak ada log MQTT) | - | `ALARM` | **`DOOR_HELD_OPEN`** | `DOOR HELD OPEN` |
+| Kartu terdaftar, tetapi tidak punya izin untuk pintu tersebut | `DENIED` | `Tidak punya akses ke pintu ini` | `DENIED` | **`UNAUTHORIZED_DOOR`** | `UNAUTHORIZED DOOR` |
+| Kartu tidak terdaftar dalam memori internal | `DENIED` | `Kartu tidak terdaftar` | `DENIED` | **`UNKNOWN_CARD`** | `UNKNOWN CARD` |
+| Permintaan nomor pintu lokal di luar jangkauan 1–4 | `DENIED` | `Nomor pintu tidak valid` | `DENIED` | **`INVALID_DOOR_NUMBER`** | `INVALID DOOR NUMBER` |
 
 ### B. Riwayat Perbaikan Spesifikasi v0.3 (Changelog)
 
