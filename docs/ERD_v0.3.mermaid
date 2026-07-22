@@ -1,0 +1,172 @@
+%% ERD Access Control System — v0.3 (USULAN, menunggu ACK @danskiv)
+%% Turunan dari ERD_v0.2.mermaid + delta v0.3 (lihat KEPUTUSAN_ARSITEKTUR_v0.3.md §4)
+%%
+%% Perubahan v0.2 -> v0.3:
+%%   [UBAH]  doors            : + 4 kolom config per-pintu (dX_ di MQTT)
+%%   [UBAH]  controllers      : + state sync, + snapshot telemetry & health, + config_version
+%%   [UBAH]  access_logs      : kartu jadi NULLABLE, + device_ts, + door_number, + device_id
+%%   [BARU]  controller_events: kejadian NON-akses (tamper/fire/power/aux/system)
+%%   [BARU]  alarms           : antrian "butuh perhatian admin" + acknowledge
+%%   [BARU]  admin_logs       : jejak audit aksi admin (sudah ada di ERD v0.2, belum pernah dibuat)
+%%   [UBAH]  admins           : role + 'viewer' (RBAC minimal)
+%%
+%% CATATAN: ERD v0.2 menamai tabel auth "ADMIN_USERS", tapi schema.sql yang jalan
+%% memakai nama "admins". ERD ini mengikuti schema.sql (yang nyata), bukan ERD lama.
+
+erDiagram
+    CONTROLLERS ||--o{ DOORS : "punya"
+    CONTROLLERS ||..o{ ACCESS_LOGS : "mengirim (bukan FK)"
+    CONTROLLERS ||..o{ CONTROLLER_EVENTS : "melaporkan (bukan FK)"
+    DOORS ||--o{ DEPARTMENT_ACCESS : "diizinkan-untuk"
+    DOORS ||--o{ USER_ACCESS : "diizinkan-untuk"
+    DOORS ||--o{ ACCESS_LOGS : "dicatat-di"
+    DEPARTMENTS ||--o{ DEPARTMENT_ACCESS : "punya-default"
+    DEPARTMENTS ||--o{ USERS : "menaungi"
+    USERS ||--o{ USER_ACCESS : "override"
+    USERS ||--o{ ACCESS_LOGS : "pelaku"
+    ACCESS_LOGS ||..o| ALARMS : "memicu (polymorphic)"
+    CONTROLLER_EVENTS ||..o| ALARMS : "memicu (polymorphic)"
+    ADMINS ||--o{ ALARMS : "acknowledge"
+    ADMINS ||--o{ ADMIN_LOGS : "melakukan"
+
+    CONTROLLERS {
+        int id PK
+        varchar device_id UK "ctrl-A"
+        varchar nama
+        varchar lokasi
+        varchar wifi_ssid "TANPA password"
+        varchar mqtt_broker
+        int mqtt_port
+        varchar mqtt_user
+        int total_doors "default 4"
+        int heartbeat_s "default 30"
+        enum ip_mode "dhcp / static"
+        varchar ip_address
+        int web_port "default 8081"
+        datetime last_seen "is_online DIHITUNG dari sini"
+        int config_version "BARU - dinaikkan tiap config berubah, dibandingkan vs laporan controller"
+        enum sync_state "BARU - UNKNOWN/IN_SYNC/SYNC_PENDING/SYNCING/SYNC_ERROR_ATTENTION_REQUIRED"
+        tinyint sync_fail_count "BARU - anti-loop, 3x gagal = auto-sync OFF"
+        datetime last_sync_at "BARU"
+        varchar last_sync_error "BARU - TIMEOUT / MISMATCH"
+        enum link_state "BARU - dari LWT: ONLINE/OFFLINE/UNKNOWN"
+        datetime link_changed_at "BARU"
+        varchar fw_version "BARU"
+        int uptime_s "BARU - snapshot heartbeat"
+        int free_heap "BARU - snapshot heartbeat"
+        smallint rssi "BARU - snapshot heartbeat (0 bila Ethernet)"
+        int total_users_reported "BARU - untuk drift check vs DB"
+        enum tamper_state "BARU - OK/TAMPER/UNKNOWN"
+        enum fire_state "BARU - OK/FIRE/UNKNOWN"
+        enum power_state "BARU - POWER_NORMAL/POWER_LOW/UNKNOWN"
+        datetime created_at
+        datetime updated_at
+    }
+
+    DOORS {
+        int id PK "GLOBAL - tidak pernah keluar dari Backend"
+        int controller_id FK
+        int door_number "LOKAL 1-4 - ini yang dikirim ke Controller (dX_)"
+        varchar nama "Ruang Server"
+        varchar lokasi
+        bool is_active "BARU - d1_active, default TRUE"
+        smallint open_timeout_s "BARU - d1_open_timeout_s, default 10, 1-120"
+        smallint held_timeout_s "BARU - d1_held_timeout_s, default 30, 1-600, >= open"
+        smallint alarm_duration_s "BARU - d1_alarm_duration_s, default 30, 0-600"
+    }
+
+    DEPARTMENTS {
+        int id PK
+        varchar nama UK "IT / HRD / Security"
+        varchar deskripsi
+        datetime created_at
+        datetime updated_at
+    }
+
+    DEPARTMENT_ACCESS {
+        int id PK
+        int department_id FK
+        int door_id FK
+    }
+
+    USERS {
+        int uid PK
+        varchar kartu UK "10 digit ternormalisasi, collation _ci"
+        varchar nama "TIDAK pernah dikirim ke Controller"
+        int department_id FK "NULL = tanpa dept"
+        bool is_custom_access "TRUE = pakai user_access"
+        datetime created_at
+        datetime updated_at
+    }
+
+    USER_ACCESS {
+        int id PK
+        int user_id FK
+        int door_id FK
+    }
+
+    ACCESS_LOGS {
+        bigint id PK
+        varchar kartu "UBAH - NULLABLE (REX/alarm tanpa kartu)"
+        int user_id FK "NULL jika kartu tak dikenal"
+        varchar user_nama "SNAPSHOT saat kejadian"
+        int door_id FK "NULL jika pintu dihapus"
+        int door_number "BARU - SNAPSHOT nomor lokal, tetap terbaca walau door_id NULL"
+        varchar door_nama "SNAPSHOT saat kejadian"
+        int controller_id "bukan FK - log tetap ada walau controller dihapus"
+        varchar device_id "BARU - SNAPSHOT ctrl-A"
+        enum result "GRANTED / DENIED / ALARM"
+        varchar reason "Kode DB: VALID_ACCESS / DOOR_FORCED_OPEN / ..."
+        datetime server_ts "OTORITATIF - waktu KEJADIAN (UTC)"
+        datetime device_ts "BARU - epoch RTC controller (UTC), diagnosa/rekonsiliasi"
+        bigint device_uptime_ms "DEPRECATED - NULL untuk log v0.3"
+        bool is_replayed "log dari buffer offline"
+        datetime created_at "waktu baris DITULIS backend (= waktu terima)"
+    }
+
+    CONTROLLER_EVENTS {
+        bigint id PK "BARU - kejadian NON-akses, tanpa kartu & (biasanya) tanpa pintu"
+        int controller_id "bukan FK - konsisten dgn access_logs"
+        varchar device_id "SNAPSHOT"
+        enum event_type "TAMPER / FIRE / POWER / AUX / SYNC / SYSTEM"
+        varchar event_code "TAMPER_OPEN / FIRE_ACTIVE / POWER_LOW / BOOT / OTA_ROLLBACK"
+        enum severity "INFO / WARNING / ALARM"
+        int door_number "NULL kecuali event terkait 1 pintu (mis. AUX)"
+        varchar detail "opsional, mis. tegangan terbaca"
+        datetime server_ts "waktu KEJADIAN (UTC)"
+        datetime device_ts "epoch RTC controller"
+        bool is_replayed
+        datetime created_at
+    }
+
+    ALARMS {
+        bigint id PK "BARU - antrian kerja admin, BUKAN duplikat log"
+        enum source "ACCESS_LOG / CONTROLLER_EVENT"
+        bigint source_id "id baris sumber - UNIQUE(source, source_id) = idempoten"
+        int controller_id
+        varchar device_id "SNAPSHOT"
+        int door_number "NULL untuk alarm level controller"
+        varchar alarm_code "DOOR_FORCED_OPEN / TAMPER_OPEN / SYNC_ERROR_ATTENTION_REQUIRED"
+        datetime raised_at
+        datetime acked_at "NULL = ALARM MASIH AKTIF"
+        int acked_by FK "admins.id, ON DELETE SET NULL"
+        varchar ack_note
+    }
+
+    ADMINS {
+        int id PK
+        varchar username UK
+        varchar password "bcrypt hash"
+        enum role "UBAH - admin / viewer (RBAC minimal v0.3)"
+        datetime created_at
+    }
+
+    ADMIN_LOGS {
+        bigint id PK "BARU - sudah direncanakan di ERD v0.2, belum pernah dibuat"
+        int admin_id FK "ON DELETE SET NULL"
+        varchar admin_username "SNAPSHOT"
+        varchar aksi "RELAY_TEST / DOOR_CONFIG_UPDATE / SYNC_TRIGGER / ALARM_ACK"
+        varchar target "device_id / kartu"
+        json detail "before/after"
+        datetime server_ts
+    }
