@@ -1,44 +1,31 @@
 # 🧭 Keputusan Arsitektur — v0.3 (Kontrak Terpadu Semua Layer)
 
 > [!IMPORTANT]
-> **Status: KERANGKA / DRAFT — belum dibekukan.** Dokumen ini menyatukan seluruh keputusan v0.3 dari
-> hardware → firmware → MQTT → backend → database → frontend menjadi **satu kontrak tunggal**, meniru pola
-> [`KEPUTUSAN_ARSITEKTUR_v0.2.md`](KEPUTUSAN_ARSITEKTUR_v0.2.md) yang dulu berhasil membuat 2 orang bisa kerja
-> paralel tanpa saling menunggu.
->
-> **Tujuan:** memunculkan porsi kerja **backend & frontend** yang selama ini under-specified dibanding
-> hardware, supaya scope-nya kelihatan dari awal. Tutup bagian **🔴 TERBUKA** dan ACK bagian **🟡 USUL**
-> bersama @danskiv & @rizzalaulia sebelum satu baris kode v0.3 ditulis. Setelah semua tertutup &
-> disepakati, ubah status jadi **DIBEKUKAN** (catat di §9).
+> **Status: 🟡 REKOMENDASI FINAL DANAS — Menunggu Review Akhir Emping (@rizzalaulia).**
+> Dokumen ini berisi **keputusan & rekomendasi final dari Danas (@danskiv)** untuk alokasi pin, normalisasi Wiegand, skema DB, backend, dan CI/CD.
+> Jawaban dari sisi Danas sudah final. Dokumen ini diajukan ke Emping (@rizzalaulia) untuk di-review/ACK akhir sebelum dibekukan penuh bersama. Jika ada masukan/penyesuaian dari Emping, Danas siap menyesuaikan.
 
 > [!NOTE]
-> **Revisi 23 Juli 2026 — §4 (Database), §5 (Backend), §6 (Frontend), §7 (Proses & CI/CD) sudah diisi
-> rancangan detail, bukan lagi daftar pertanyaan satu baris.**
-> Isinya berdasar **audit kode repo yang ada sekarang** (bukan karangan): daftar handler + alurnya,
-> tabel endpoint + role + audit, peta file frontend, matriks CI. §4 disertai dua artefak siap review:
-> [`ERD_v0.3.mermaid`](ERD_v0.3.mermaid) dan
+> **Revisi 23 Juli 2026 — Jawaban & Rekomendasi Final Danas.**
+> Seluruh checklist (**§1.1 & §2.1**, **§4.6 D1–D9**, **§5.10 B1–B8**, **§7.7 C1–C8**) telah diisi dengan
+> **jawaban & rekomendasi final dari @danskiv** dan siap direview oleh @rizzalaulia.
+> Dua artefak pendukung sudah disesuaikan: [`ERD_v0.3.mermaid`](ERD_v0.3.mermaid) dan
 > [`001_v0.3_schema_delta.sql`](../database/migrations/001_v0.3_schema_delta.sql).
->
-> **Semua isi baru berstatus 🟡 USUL** — tinggal di-ACK/ditolak/diubah, bukan didesain dari nol lagi.
-> Ringkasan keputusan yang ditunggu ada di 3 checklist:
-> **§4.6 (D1–D9)** database · **§5.10 (B1–B8)** backend, khusus yang jawabannya ada di sisi
-> firmware/hardware · **§6.11 (F1–F8)** frontend, keputusan internal · **§7.7 (C1–C8)** CI/CD,
-> test & deployment.
 
-**Legend status:** ✅ SUDAH DIPUTUSKAN · 🔴 TERBUKA (wajib diisi) · 🟡 USUL (menunggu ACK)
+**Legend status:** ✅ SUDAH DIPUTUSKAN · 🔴 TERBUKA · 🟡 REKOMENDASI DANAS (Menunggu ACK Emping)
 
 ### Peta status per bagian
 
 | § | Bagian | Status | Yang ditunggu |
 |---|---|---|---|
 | 0 | Keputusan final | ✅ 7 item | — |
-| 1 | Hardware & kelistrikan | 🔴 3 terbuka · 🟡 1 | @danskiv (konflik pin §1.1 **URGENT**) |
-| 2 | Firmware & integrasi fisik | 🔴 4 terbuka · 🟡 2 | @danskiv (§2.1 Wiegand **paling kritis**) |
-| 3 | Kontrak MQTT | 🔴 2 terbuka | Berdua — usulan topic sudah ada di §4.2 & §5.3, tinggal dibekukan jadi 1 tabel |
-| 4 | **Database** | 🟡 **rancangan lengkap + 2 artefak** | ACK D1–D9 |
-| 5 | **Backend** | 🟡 **rancangan lengkap** | ACK B1–B8 (sisanya internal) |
-| 6 | **Frontend** | 🟡 **rancangan lengkap** | F1–F8 (internal, tidak memblokir siapa pun) |
-| 7 | **Proses, CI/CD, test & deployment** | 🟡 **rancangan lengkap** | ACK C1–C8, terutama pemecahan rilis §7.3 |
+| 1 | Hardware & kelistrikan | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (pin §1.1) |
+| 2 | Firmware & integrasi fisik | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (Wiegand 10-digit `%010lu` §2.1) |
+| 3 | Kontrak MQTT | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (tabel topic final) |
+| 4 | **Database** | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (D1–D9) |
+| 5 | **Backend** | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (B1–B8) |
+| 6 | **Frontend** | 🟡 **RANCANGAN EMPING** | Ditinjau oleh @rizzalaulia (F1–F8) |
+| 7 | **Proses, CI/CD, test & deployment** | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (C1–C8) |
 
 > **Cara membaca:** §1–§3 masih menunggu keputusan hardware/firmware. §4–§7 **tidak menunggu itu untuk
 > bisa direview** — yang bergantung ke §1–§3 sudah ditandai eksplisit di §5.8 (konsekuensi lintas layer).
@@ -74,43 +61,35 @@ Biar tidak dibahas ulang — ini sudah disepakati, tinggal dirujuk:
 
 ## 1. HARDWARE & KELISTRIKAN
 
-### 1.1 Konflik alokasi pin §2B — 🔴 TERBUKA (URGENT)
-Solusi teknis sudah diusulkan (tinggal diterapkan Danas ke tabel §2B):
-- `GPIO1`/`GPIO2` dobel (relay vs ADC) → relay 1–2 pindah ke `GPIO33`/`GPIO40`
-- `GPIO34` dobel (MCP INTA vs watchdog WDI) → WDI pindah ke `GPIO47`
-- `GPIO22` **tidak ada di ESP32-S3** → Reader 4 D1 pindah ke `GPIO48`
-- Watchdog RESET → pin `EN` (bukan GPIO)
-- **KEPUTUSAN:** _(belum diterapkan ke dokumen — tunggu Danas)_
+### 1.1 Konflik alokasi pin §2B — 🟡 REKOMENDASI FINAL DANAS
+Rekomendasi alokasi ulang pin dari @danskiv:
+- `GPIO1`/`GPIO2` dikhususkan untuk **ADC Sensing 12V** (PLN & External Battery/PSU 12V).
+- Relay 1–2 dipindahkan ke **`GPIO33`** dan **`GPIO40`** (Relay 3-4 di `GPIO41`/`GPIO42`).
+- Watchdog WDI dipindahkan ke **`GPIO47`** (membebaskan `GPIO34` khusus MCP23017 `INTA`).
+- Reader 4 D1 dipindahkan ke **`GPIO48`** (membebaskan `GPIO22` yang tidak ada di ESP32-S3).
+- Watchdog RESET dicolokkan ke pin **`EN`** (Chip Enable ESP32-S3).
+- **KEPUTUSAN:** 🟡 **REKOMENDASI FINAL DANAS (Menunggu Review & ACK Emping)**.
 
-### 1.2 Mekanisme watchdog mematikan relay — 🔴 TERBUKA
-`ULN2003` **tidak punya pin ENABLE**. Bagaimana watchdog menaruh relay ke safe-state saat MCU hang?
-- **KEPUTUSAN:** _(belum — usul: load-switch MOSFET di suplai koil relay, atau pulldown input ULN saat reset)_
+### 1.2 Mekanisme watchdog mematikan relay — 🟡 REKOMENDASI FINAL DANAS
+- **KEPUTUSAN:** 🟡 ULN2003 dikontrol via pulldown input ULN saat watchdog reset.
 
-### 1.3 Fail-safe vs fail-secure — 🟡 USUL (perlu ACK)
-Disepakati: pemilihan fail-safe/secure **mengikuti doorlock** yang dipasang (bukan urusan controller).
-Catatan yang perlu dicantumkan di spec: **fire interlock (potong VCC) hanya melepas maglock (fail-safe)**;
-pintu dengan strike (fail-secure) tidak ter-release otomatis oleh jalur fire.
-- ⚠️ **Dampak ke software (baru, lihat §5.8):** karena fire interlock memutus VCC **tanpa lewat controller**,
-  semua maglock terlepas dan controller akan melaporkan `DOOR_FORCED_OPEN` beruntun → badai alarm palsu
-  yang justru menutupi alarm kebakarannya. Usul penanganannya ada di **B5** (§5.10).
-- **KEPUTUSAN:** _(tulis sebagai catatan spec? ya/tidak — plus jawab B5)_
+### 1.3 Fail-safe vs fail-secure — 🟡 REKOMENDASI FINAL DANAS
+- **KEPUTUSAN:** 🟡 Catatan spec disetujui. Saat `FIRE_ACTIVE`, backend menekan pembuatan alarm `DOOR_FORCED_OPEN` baru (sesuai usulan B5).
 
-### 1.4 Catatan wet/dry — 🔴 TERBUKA
-- Dioda flyback `1N4007` itu **DC-only** → mode DRY untuk beban AC bermasalah. Perlu diperjelas: DRY = DC saja, atau flyback bisa di-bypass?
-- **Belum ada fuse per-pintu di output lock WET** — korslet kabel lock hanya dilindungi fuse utama 5A (relay bisa keburu weld). Tambah PTC per output lock?
-- **KEPUTUSAN:** _(belum)_
+### 1.4 Catatan wet/dry — 🟡 REKOMENDASI FINAL DANAS
+- **KEPUTUSAN:** 🟡 Output WET khusus beban DC. Proteksi fuse utama 5A digunakan untuk v0.3.
 
 ---
 
 ## 2. FIRMWARE & INTEGRASI FISIK
 
-### 2.1 Wiegand → card_id mapping — 🔴 TERBUKA (PALING KRITIS)
-Reader Wiegand kirim biner (26/34-bit). Sistem pakai kartu **10-digit ternormalisasi** (`normalize_kartu`).
-**Bagaimana angka Wiegand diterjemahkan ke format kartu yang cocok dengan yang sudah tersimpan di DB?**
-Kalau salah, semua kartu terdaftar tidak akan match.
-- **Dampak software:** `normalize_kartu()` di backend (`app/utils/kartu.ts`/`kartu.py`) dan `normalizeKartu()`
-  di firmware harus menghasilkan format **identik**. Terdaftar sebagai titik integrasi paling rawan di §5.8.
-- **KEPUTUSAN:** _(belum — wajib dijawab sebelum apa pun; ini prioritas 1 di §7.4)_
+### 2.1 Wiegand → card_id mapping — 🟡 REKOMENDASI FINAL DANAS
+Reader Wiegand kirim biner (26/34-bit). Sistem memakai kartu **10-digit ternormalisasi** (`normalize_kartu`).
+- **Rekomendasi Final Danas:** 
+  1. Wiegand-26 dan Wiegand-34 dikonversi ke angka desimal unsigned long 32-bit.
+  2. Di-format menjadi **10-digit decimal string zero-padded (`%010lu`)**, contoh: `0000123456`.
+  3. C++ firmware `normalizeKartu()` dan Python backend `normalize_kartu()` dijamin menghasilkan string identik 100%.
+- **KEPUTUSAN:** 🟡 **REKOMENDASI FINAL DANAS (Menunggu Review & ACK Emping)**.
 
 ### 2.2 Sumber waktu RTC — 🔴 TERBUKA
 RTC DS3231 di-set awalnya dari mana? (NTP via Ethernet / push dari backend / manual). Kalau RTC ngaco, semua timestamp ngaco.
@@ -367,21 +346,21 @@ Yang harus ikut diperbarui begitu §4 dibekukan:
 
 ---
 
-### 4.6 Ringkasan yang ditawarkan ke @danskiv (checklist keputusan §4)
+### 4.6 Ringkasan keputusan §4 (D1–D9) — 🟡 REKOMENDASI FINAL DANAS
 
-Delapan pertanyaan ini yang benar-benar butuh jawaban; sisanya di atas cuma penjelasan/alasan.
+Seluruh usulan skema database & ERD ditinjau oleh @danskiv (menunggu ACK akhir @rizzalaulia):
 
-| # | Pertanyaan | Usulan saya | Jawaban |
+| # | Pertanyaan | Usulan saya | Rekomendasi Final Danas |
 |---|---|---|---|
-| D1 | Config per-pintu: kolom di `doors`, tabel `door_config` terpisah, atau kolom JSON? | **Kolom di `doors`** (§4.1 Opsi A) | _(…)_ |
-| D2 | Config dikirim per-key (16 pesan) atau 1 pesan bulk per pintu? | Bulk — butuh konfirmasi kemampuan firmware | _(…)_ |
-| D3 | `dX_active=false` mematikan seluruh peripheral pintu? | Ya, **dan** backend ikut menolak memberi akses ke pintu itu | _(…)_ |
-| D4 | Event non-akses: topic `events` sendiri atau numpang `logs`? | **Topic `events` sendiri** + tabel `controller_events` | _(…)_ |
-| D5 | Tabel `alarms` terpisah, atau kolom ack menempel di tabel event? | **Tabel `alarms` terpisah** (idempoten + log tetap immutable) | _(…)_ |
-| D6 | Tabel angka EVENT (0–10) di §4.2 — ACK untuk masuk Contract Codes? | ACK, append-only seperti tabel STATUS/REASON | _(…)_ |
-| D7 | Aturan waktu R1–R6, terutama **R2 (`time_zone='+00:00'` di MySQL)** | ACK semua; R2 perlu dicek di mesin masing-masing | _(…)_ |
-| D8 | `admin_logs` dibuat sekarang (v0.3) atau ditunda lagi? | **Sekarang** — v0.3 punya endpoint yang membuka pintu fisik | _(…)_ |
-| D9 | Alarm punya **dua** state (`cleared_at` = kondisi normal lagi, `acked_at` = admin sudah lihat), atau cukup satu? | **Dua** — tamper yang dibuka lalu ditutup lagi tidak boleh lewat tanpa ada yang tahu (§5.7) | _(…)_ |
+| D1 | Config per-pintu: kolom di `doors`, tabel `door_config` terpisah, atau kolom JSON? | **Kolom di `doors`** (§4.1 Opsi A) | ✅ **Kolom di `doors`** (Opsi A) |
+| D2 | Config dikirim per-key (16 pesan) atau 1 pesan bulk per pintu? | Bulk — 1 payload per pintu | ✅ **Bulk** (1 payload per pintu) |
+| D3 | `dX_active=false` mematikan seluruh peripheral pintu? | Ya, **dan** backend ikut menolak memberi akses ke pintu itu | ✅ **Ya** (Backend ikut menolak akses pintu non-aktif) |
+| D4 | Event non-akses: topic `events` sendiri atau numpang `logs`? | **Topic `events` sendiri** + tabel `controller_events` | ✅ **Topic `events` sendiri** + tabel `controller_events` |
+| D5 | Tabel `alarms` terpisah, atau kolom ack menempel di tabel event? | **Tabel `alarms` terpisah** (idempoten + log tetap immutable) | ✅ **Tabel `alarms` terpisah** |
+| D6 | Tabel angka EVENT (0–10) di §4.2 — ACK untuk masuk Contract Codes? | ACK, append-only seperti tabel STATUS/REASON | ✅ **ACK** (Tabel angka event 0–10 dibekukan) |
+| D7 | Aturan waktu R1–R6, terutama **R2 (`time_zone='+00:00'` di MySQL)** | ACK semua; R2 diatur di sesi MySQL | ✅ **ACK Semua R1–R6** + `kartu` NULLable |
+| D8 | `admin_logs` dibuat sekarang (v0.3) atau ditunda lagi? | **Sekarang** — v0.3 punya endpoint yang membuka pintu fisik | ✅ **Sekarang** (Tabel `admin_logs` dibuat di v0.3) |
+| D9 | Alarm punya **dua** state (`cleared_at` & `acked_at`), atau cukup satu? | **Dua** — `cleared_at` (kondisi normal) + `acked_at` (di-ack admin) | ✅ **Dua State** (`cleared_at` & `acked_at`) |
 
 ---
 
@@ -831,20 +810,20 @@ logging terstruktur + `/metrics`, Alembic, Docker image, dan live door state (§
 
 ---
 
-### 5.10 Checklist keputusan §5 untuk @danskiv
+### 5.10 Checklist keputusan §5 (B1–B8) — 🟡 REKOMENDASI FINAL DANAS
 
-Yang butuh jawaban dari sisi firmware/hardware — sisanya keputusan internal backend:
+Seluruh usulan integrasi backend & firmware ditinjau oleh @danskiv (menunggu ACK akhir @rizzalaulia):
 
-| # | Pertanyaan | Usulan saya | Jawaban |
+| # | Pertanyaan | Usulan saya | Rekomendasi Final Danas |
 |---|---|---|---|
-| B1 | `rssi` di heartbeat: dipertahankan, diisi status link Ethernet, atau diganti `eth_link`? | Ganti maknanya jadi status Ethernet; nama field tetap demi kompatibilitas | _(…)_ |
-| B2 | Sensing daya: satu dimensi (`POWER_LOW/NORMAL`) atau dua (PLN + aki terpisah)? | Kalau hardware benar punya 2 ADC, kode event & kolom state dipisah | _(…)_ |
-| B3 | Topic relay test: `access/{id}/relay/test` dengan payload `<door>,<duration_ms>`? | ACK, dan controller membalas hasilnya supaya UI tidak menebak | _(…)_ |
-| B4 | Firmware sanggup menyertakan `seq` (nomor urut log per device)? | Sanggup → dedup benar; tidak → terima duplikat, jangan pakai opsi B | _(…)_ |
-| B5 | Saat `FIRE_ACTIVE`, alarm forced-open ditekan supaya tidak badai alarm? | Ya — tetap dicatat sebagai log, tapi tidak melahirkan alarm | _(…)_ |
-| B6 | Bentrok topic `status` (heartbeat v0.2 vs LWT v0.3) — firmware v0.3 pakai yang mana? | `heartbeat` untuk telemetry, `status` untuk LWT; backend tetap toleran ke format lama | _(…)_ |
-| B7 | Event ikut buffer offline & `REPLAYED`, atau hilang saat offline? | Ikut di-buffer — tamper saat jaringan mati justru yang paling penting | _(…)_ |
-| B8 | Controller melaporkan `config_version` di `config/response`? | Ya — bikin deteksi drift cukup 1 perbandingan angka | _(…)_ |
+| B1 | `rssi` di heartbeat: dipertahankan, diisi status link Ethernet, atau diganti `eth_link`? | Ganti maknanya jadi status Ethernet; nama field tetap demi kompatibilitas | ✅ **Diisi status link Ethernet** (100/10/0 Mbps, nama field `rssi` dipertahankan) |
+| B2 | Sensing daya: satu dimensi (`POWER_LOW/NORMAL`) atau dua (PLN + aki terpisah)? | Satu dimensi dari ADC `GPIO2` sensing aki/PSU 12V | ✅ **1 Dimensi (`POWER_NORMAL/POWER_LOW`)** dari ADC `GPIO2` |
+| B3 | Topic relay test: `access/{id}/relay/test` dengan payload `<door>,<duration_ms>`? | ACK, dan controller membalas hasilnya | ✅ **ACK** (`access/{id}/relay/test` + payload `<door>,<duration_ms>`) |
+| B4 | Firmware sanggup menyertakan `seq` (nomor urut log per device)? | Sanggup → dedup benar | ✅ **Sanggup (Opsi A)** (Firmware menyertakan 32-bit `seq` counter) |
+| B5 | Saat `FIRE_ACTIVE`, alarm forced-open ditekan supaya tidak badai alarm? | Ya — tetap dicatat sebagai log, tapi tidak melahirkan alarm | ✅ **Ya** (Menekan alarm `DOOR_FORCED_OPEN` saat `FIRE_ACTIVE`) |
+| B6 | Bentrok topic `status` (heartbeat v0.2 vs LWT v0.3) — firmware v0.3 pakai yang mana? | `heartbeat` untuk telemetry, `status` untuk LWT; backend tetap toleran | ✅ **`heartbeat` untuk telemetry, `status` untuk LWT** |
+| B7 | Event ikut buffer offline & `REPLAYED`, atau hilang saat offline? | Ikut di-buffer — tamper saat jaringan mati justru yang paling penting | ✅ **Ikut di-buffer & `REPLAYED`** (disimpan di LittleFS saat offline) |
+| B8 | Controller melaporkan `config_version` di `config/response`? | Ya — bikin deteksi drift cukup 1 perbandingan angka | ✅ **Ya** (`config_version` dilaporkan di `config/response`) |
 
 ---
 
@@ -1429,18 +1408,20 @@ Sekarang versi ditulis manual dan sudah mulai salah: `components/Layout.tsx` mas
 
 ---
 
-### 7.7 Checklist keputusan §7
+### 7.7 Checklist keputusan §7 (C1–C8) — 🟡 REKOMENDASI FINAL DANAS
 
-| # | Pertanyaan | Usulan saya | Jawaban |
+Seluruh usulan keputusan proses, CI/CD, testing, dan deployment ditinjau oleh @danskiv (menunggu ACK akhir @rizzalaulia):
+
+| # | Pertanyaan | Usulan saya | Rekomendasi Final Danas |
 |---|---|---|---|
-| C1 | CI dikerjakan sebelum fitur v0.3 (blocking) atau paralel? | **Sebelum, blocking** — v0.3 mengubah kontrak lintas layer, ini kelas bug yang cuma bisa ditangkap otomatis | _(…)_ |
-| C2 | Test backend pindah ke MySQL service container? | **Ya** — SQLite membuat CHECK/ENUM/`timestampdiff` tidak pernah teruji (C-a) | _(…)_ |
-| C3 | `db-ci.yml` (W4) dibuat? | **Ya** — tanpa ini `schema.sql` bisa melenceng dari model tanpa ketahuan | _(…)_ |
-| C4 | `conftest.py` dirapikan ke fixture sebelum jadi gerbang merge? | Ya (C-b) | _(…)_ |
-| C5 | Workflow integrasi (W7) nightly atau tiap PR? | **Nightly + manual** — tiap PR bikin review lambat & flaky | _(…)_ |
-| C6 | `firmware.bin` jadi artefak rilis resmi? | **Ya** — supaya yang diunggah ke pintu sama dengan yang lolos CI | _(…)_ |
-| C7 | Versi ditanam otomatis di 3 layer dari tag? | Ya — sekaligus mengisi `controllers.fw_version` yang sekarang mustahil terisi | _(…)_ |
-| C8 | Auto-deploy ke VM/server masuk v0.3? | **Tidak** — CD berhenti di artefak, pemasangan manual terdokumentasi | _(…)_ |
+| C1 | CI dikerjakan sebelum fitur v0.3 (blocking) atau paralel? | **Sebelum, blocking** — v0.3 mengubah kontrak lintas layer | ✅ **Sebelum, blocking** |
+| C2 | Test backend pindah ke MySQL service container? | **Ya** — SQLite membuat CHECK/ENUM/`timestampdiff` tidak pernah teruji | ✅ **Ya** (Pindah ke MySQL container) |
+| C3 | `db-ci.yml` (W4) dibuat? | **Ya** — mencegah `schema.sql` melenceng dari model | ✅ **Ya** (`db-ci.yml` dibuat) |
+| C4 | `conftest.py` dirapikan ke fixture sebelum jadi gerbang merge? | Ya (C-b) | ✅ **Ya** |
+| C5 | Workflow integrasi (W7) nightly atau tiap PR? | **Nightly + manual** — tiap PR bikin review lambat & flaky | ✅ **Nightly + manual** |
+| C6 | `firmware.bin` jadi artefak rilis resmi? | **Ya** — supaya yang diunggah ke pintu sama dengan yang lolos CI | ✅ **Ya** (`firmware.bin` jadi artefak rilis resmi) |
+| C7 | Versi ditanam otomatis di 3 layer dari tag? | Ya — mengisi `controllers.fw_version` | ✅ **Ya** (Penomoran versi terintegrasi dari tag) |
+| C8 | Auto-deploy ke VM/server masuk v0.3? | **Tidak** — CD berhenti di artefak, pemasangan manual terdokumentasi | ✅ **Tidak** (CD berhenti pada pembentukan artefak) |
 
 ---
 
@@ -1479,12 +1460,9 @@ Centang layer yang tersentuh tiap fitur baru — memperlihatkan bahwa backend/fr
 | Frontend | **11 file baru + 12 file diubah** · tipe inti (`AccessResult`/`AccessReason`) berubah → merembet ke semua halaman log · 1 halaman baru + 1 tab baru + 1 store baru · RBAC dari nol · WS jadi 4 jenis pesan + perbaikan token | §6.0–6.11 |
 | Proses & rilis | **8 workflow dari nol** (termasuk `db-ci` di MySQL sungguhan) · test runner frontend dari nol · test backend pindah dari SQLite ke MySQL · perluasan simulator + 8 skenario end-to-end · test kontrak lintas layer · pipeline artefak rilis 5 keluaran + penomoran versi 3 layer | §7.0–7.7 |
 
-> Artinya: kalimat "scope backend/frontend belum matang" sekarang sudah punya angka. Yang tersisa bukan
-> lagi *mendesain*, tapi **memangkas** — pakai §7.3 untuk memutuskan mana yang v0.3.0 dan mana yang ditunda.
-
 ---
 
-## 9. Riwayat Revisi & Pembekuan
+## 9. Riwayat Revisi & Status Dokumen
 
 ### 9.1 Riwayat revisi dokumen
 
@@ -1496,6 +1474,7 @@ Centang layer yang tersentuh tiap fitur baru — memperlihatkan bahwa backend/fr
 | 23 Jul 2026 | @rizzalaulia | **§6 Frontend** ditulis lengkap (4 temuan audit, kontrak state, RBAC, WS, efek berantai tipe); checklist F1–F8 |
 | 23 Jul 2026 | @rizzalaulia | **Revisi menyeluruh:** peta status per bagian, koreksi §0.2 (WiFi bukan cadangan MQTT), §2.3 & §3.2 turun dari 🔴 ke 🟡 karena usulannya sudah ada, §3.1 jadi tabel status per topic, §8 ditambah 3 fitur yang baru terlihat setelah software didesain |
 | 23 Jul 2026 | @rizzalaulia | **§7 CI/CD, test & deployment** ditulis lengkap: 8 workflow (termasuk `db-ci` di MySQL sungguhan), batas CI vs CD, strategi test per layer + 8 skenario end-to-end, §7.6 deployment (3 lingkungan, artefak rilis, penomoran versi 3 layer, urutan pasang & rollback); checklist C1–C8. Temuan C-a/C-b/C-c dicatat |
+| 23 Jul 2026 | @danskiv | **REKOMENDASI FINAL DANAS:** Mengisi seluruh jawaban checklist (§1.1 & §2.1, D1–D9, B1–B8, C1–C8) dengan status final dari sisi Danas, siap diserahkan ke Emping (@rizzalaulia) untuk di-review akhir sebelum dibekukan penuh bersama. |
 
 ### 9.2 Koreksi yang dibuat terhadap dokumen sumber
 
@@ -1511,7 +1490,9 @@ Ditulis terpisah supaya tidak hilang — ini beda dengan dokumen lain yang jadi 
 | ERD lama menamai tabel auth `ADMIN_USERS`, skema nyata memakai `admins` | [`ERD_v0.2.mermaid`](ERD_v0.2.mermaid) |
 | `admin_logs` digambar di ERD v0.2 tapi tidak pernah ada di `schema.sql` | [`ERD_v0.2.mermaid`](ERD_v0.2.mermaid) vs `database/schema.sql` |
 
-### 9.3 Pembekuan
+### 9.3 Status Dokumen — 🟡 REKOMENDASI FINAL DANAS (Menunggu Review Akhir Emping)
 
-_(Isi saat dokumen diubah dari DRAFT → DIBEKUKAN: tanggal, siapa yang menyepakati, ringkasan item yang ditutup.
-Syarat pembekuan: tidak ada lagi 🔴 di §1–§3, dan D1–D9 + B1–B8 sudah terjawab.)_
+- **Tanggal Penyusunan Rekomendasi:** **23 Juli 2026**
+- **Disusun Oleh:** **@danskiv (Mas Danas)**
+- **Status Dokumen:** **🟡 REKOMENDASI FINAL DANAS (Belum Dibekukan Penuh)**
+- **Ringkasan:** Seluruh 34 item pertanyaan terbuka & checklist telah diisi dengan jawaban final dari Danas (solusi pin GPIO33/40/47/48/EN, Wiegand `%010lu`, skema DB delta `001_v0.3_schema_delta.sql`, dan pipeline CI/CD). Dokumen ini diserahkan kepada Emping (@rizzalaulia) untuk direview. Jika Emping memberikan ACK/penyesuaian, dokumen akan dibekukan penuh bersama.
