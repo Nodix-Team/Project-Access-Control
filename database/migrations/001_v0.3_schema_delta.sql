@@ -137,7 +137,13 @@ CREATE TABLE alarms (
     door_number   TINYINT UNSIGNED NULL,          -- NULL untuk alarm level controller
     alarm_code    VARCHAR(40) NOT NULL,           -- DOOR_FORCED_OPEN / TAMPER_OPEN / SYNC_ERROR_ATTENTION_REQUIRED
     raised_at     DATETIME(3) NOT NULL,
-    acked_at      DATETIME(3) NULL,               -- NULL = ALARM MASIH AKTIF
+    -- DUA state yang sengaja DIPISAH (lihat §5.7):
+    --   cleared_at = kondisi fisiknya sudah normal lagi (TAMPER_CLOSED/FIRE_CLEARED dari device)
+    --   acked_at   = ADMIN sudah melihat & menerima alarm ini
+    -- Alarm yang sudah clear TAPI belum di-ack tetap wajib tampil - kalau tidak, tamper
+    -- yang dibuka lalu ditutup lagi akan lewat tanpa ada yang tahu.
+    cleared_at    DATETIME(3) NULL,               -- NULL = kondisi masih aktif di lapangan
+    acked_at      DATETIME(3) NULL,               -- NULL = BELUM dilihat admin
     acked_by      INT NULL,
     ack_note      VARCHAR(255) NULL,
     -- Idempoten: pesan MQTT QoS 1 bisa datang dua kali / ikut REPLAYED. Tanpa UNIQUE ini,

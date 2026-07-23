@@ -148,7 +148,8 @@ erDiagram
         int door_number "NULL untuk alarm level controller"
         varchar alarm_code "DOOR_FORCED_OPEN / TAMPER_OPEN / SYNC_ERROR_ATTENTION_REQUIRED"
         datetime raised_at
-        datetime acked_at "NULL = ALARM MASIH AKTIF"
+        datetime cleared_at "NULL = kondisi masih aktif di lapangan (TAMPER_CLOSED/FIRE_CLEARED)"
+        datetime acked_at "NULL = BELUM dilihat admin - beda dari cleared_at"
         int acked_by FK "admins.id, ON DELETE SET NULL"
         varchar ack_note
     }

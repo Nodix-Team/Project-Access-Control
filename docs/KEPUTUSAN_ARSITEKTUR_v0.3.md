@@ -7,21 +7,41 @@
 > paralel tanpa saling menunggu.
 >
 > **Tujuan:** memunculkan porsi kerja **backend & frontend** yang selama ini under-specified dibanding
-> hardware, supaya scope-nya kelihatan dari awal. Isi bagian **🔴 TERBUKA** bersama @danskiv & @rizzalaulia
-> sebelum satu baris kode v0.3 ditulis. Setelah semua terisi & disepakati, ubah status jadi **DIBEKUKAN**.
+> hardware, supaya scope-nya kelihatan dari awal. Tutup bagian **🔴 TERBUKA** dan ACK bagian **🟡 USUL**
+> bersama @danskiv & @rizzalaulia sebelum satu baris kode v0.3 ditulis. Setelah semua tertutup &
+> disepakati, ubah status jadi **DIBEKUKAN** (catat di §9).
 
 > [!NOTE]
-> **Revisi 22 Juli 2026 — §4 (Database), §5 (Backend), §6 (Frontend), §7 (Proses & CI/CD) sudah diisi usulan detail.**
-> §4 kini disertai dua artefak siap review: [`ERD_v0.3.mermaid`](ERD_v0.3.mermaid) dan
+> **Revisi 23 Juli 2026 — §4 (Database), §5 (Backend), §6 (Frontend), §7 (Proses & CI/CD) sudah diisi
+> rancangan detail, bukan lagi daftar pertanyaan satu baris.**
+> Isinya berdasar **audit kode repo yang ada sekarang** (bukan karangan): daftar handler + alurnya,
+> tabel endpoint + role + audit, peta file frontend, matriks CI. §4 disertai dua artefak siap review:
+> [`ERD_v0.3.mermaid`](ERD_v0.3.mermaid) dan
 > [`001_v0.3_schema_delta.sql`](../database/migrations/001_v0.3_schema_delta.sql).
-> Checklist keputusan yang ditawarkan ke @danskiv ada di **§4.6 (D1–D8)**.
-> Sebelumnya tiga bagian itu cuma daftar pertanyaan satu baris, sementara hardware/firmware sudah punya
-> tabel pin, skema partisi, dan daftar komponen. Sekarang isinya sudah setara: daftar handler, tabel
-> endpoint + skema request/response, daftar file frontend yang tersentuh, dan matriks CI.
-> **Semua isi baru berstatus 🟡 USUL** — hasil audit kode repo saat ini (bukan karangan), tinggal
-> di-ACK/ditolak/diubah, bukan didesain dari nol lagi.
+>
+> **Semua isi baru berstatus 🟡 USUL** — tinggal di-ACK/ditolak/diubah, bukan didesain dari nol lagi.
+> Ringkasan keputusan yang ditunggu ada di 3 checklist:
+> **§4.6 (D1–D9)** database · **§5.10 (B1–B8)** backend, khusus yang jawabannya ada di sisi
+> firmware/hardware · **§6.11 (F1–F8)** frontend, keputusan internal · **§7.7 (C1–C8)** CI/CD,
+> test & deployment.
 
 **Legend status:** ✅ SUDAH DIPUTUSKAN · 🔴 TERBUKA (wajib diisi) · 🟡 USUL (menunggu ACK)
+
+### Peta status per bagian
+
+| § | Bagian | Status | Yang ditunggu |
+|---|---|---|---|
+| 0 | Keputusan final | ✅ 7 item | — |
+| 1 | Hardware & kelistrikan | 🔴 3 terbuka · 🟡 1 | @danskiv (konflik pin §1.1 **URGENT**) |
+| 2 | Firmware & integrasi fisik | 🔴 4 terbuka · 🟡 2 | @danskiv (§2.1 Wiegand **paling kritis**) |
+| 3 | Kontrak MQTT | 🔴 2 terbuka | Berdua — usulan topic sudah ada di §4.2 & §5.3, tinggal dibekukan jadi 1 tabel |
+| 4 | **Database** | 🟡 **rancangan lengkap + 2 artefak** | ACK D1–D9 |
+| 5 | **Backend** | 🟡 **rancangan lengkap** | ACK B1–B8 (sisanya internal) |
+| 6 | **Frontend** | 🟡 **rancangan lengkap** | F1–F8 (internal, tidak memblokir siapa pun) |
+| 7 | **Proses, CI/CD, test & deployment** | 🟡 **rancangan lengkap** | ACK C1–C8, terutama pemecahan rilis §7.3 |
+
+> **Cara membaca:** §1–§3 masih menunggu keputusan hardware/firmware. §4–§7 **tidak menunggu itu untuk
+> bisa direview** — yang bergantung ke §1–§3 sudah ditandai eksplisit di §5.8 (konsekuensi lintas layer).
 
 **Dokumen sumber yang dirujuk:**
 [`ARCHITECTURE-PROPOSAL-V0.3.md`](ARCHITECTURE-PROPOSAL-V0.3.md) ·
@@ -29,6 +49,10 @@
 [`HARDWARE-AUDIT-REVIEW-V0.3.md`](HARDWARE-AUDIT-REVIEW-V0.3.md) ·
 [`CONTRACT-CODES-V0.3.md`](CONTRACT-CODES-V0.3.md) ·
 [`ROADMAP_v0.3.md`](ROADMAP_v0.3.md)
+
+**Artefak yang dihasilkan dokumen ini:**
+[`ERD_v0.3.mermaid`](ERD_v0.3.mermaid) ·
+[`../database/migrations/001_v0.3_schema_delta.sql`](../database/migrations/001_v0.3_schema_delta.sql)
 
 ---
 
@@ -39,7 +63,7 @@ Biar tidak dibahas ulang — ini sudah disepakati, tinggal dirujuk:
 | # | Aspek | Keputusan | Sumber |
 |---|---|---|---|
 | 0.1 | Mikrokontroler | **ESP32-S3-WROOM-1-N16** (Opsi A, 16MB flash internal, tanpa PSRAM) | Hardware §1 |
-| 0.2 | Konektivitas | **W5500 Ethernet** utama, WiFi AP cadangan | Arsitektur §Ringkasan |
+| 0.2 | Konektivitas | **W5500 Ethernet satu-satunya jalur MQTT/backend.** WiFi **bukan cadangan MQTT** — hanya Hotspot AP lokal saat tombol `GPIO37` ditekan, untuk Web Config 8081 | Arsitektur §Ringkasan-2 |
 | 0.3 | IO Expander | **1× MCP23017** (address 0x20) | Hardware §2A |
 | 0.4 | Kode status/reason | **3-lapis: angka (MQTT) → kode (DB) → teks (UI)** | Contract Codes |
 | 0.5 | Proteksi hardware | **18 poin audit APPROVED** (fire interlock, snubber, watchdog, charger CN3768, dst) | Hardware Audit |
@@ -66,7 +90,10 @@ Solusi teknis sudah diusulkan (tinggal diterapkan Danas ke tabel §2B):
 Disepakati: pemilihan fail-safe/secure **mengikuti doorlock** yang dipasang (bukan urusan controller).
 Catatan yang perlu dicantumkan di spec: **fire interlock (potong VCC) hanya melepas maglock (fail-safe)**;
 pintu dengan strike (fail-secure) tidak ter-release otomatis oleh jalur fire.
-- **KEPUTUSAN:** _(tulis sebagai catatan spec? ya/tidak)_
+- ⚠️ **Dampak ke software (baru, lihat §5.8):** karena fire interlock memutus VCC **tanpa lewat controller**,
+  semua maglock terlepas dan controller akan melaporkan `DOOR_FORCED_OPEN` beruntun → badai alarm palsu
+  yang justru menutupi alarm kebakarannya. Usul penanganannya ada di **B5** (§5.10).
+- **KEPUTUSAN:** _(tulis sebagai catatan spec? ya/tidak — plus jawab B5)_
 
 ### 1.4 Catatan wet/dry — 🔴 TERBUKA
 - Dioda flyback `1N4007` itu **DC-only** → mode DRY untuk beban AC bermasalah. Perlu diperjelas: DRY = DC saja, atau flyback bisa di-bypass?
@@ -81,47 +108,76 @@ pintu dengan strike (fail-secure) tidak ter-release otomatis oleh jalur fire.
 Reader Wiegand kirim biner (26/34-bit). Sistem pakai kartu **10-digit ternormalisasi** (`normalize_kartu`).
 **Bagaimana angka Wiegand diterjemahkan ke format kartu yang cocok dengan yang sudah tersimpan di DB?**
 Kalau salah, semua kartu terdaftar tidak akan match.
-- **KEPUTUSAN:** _(belum — ini titik integrasi paling rawan, wajib dijawab sebelum apa pun)_
+- **Dampak software:** `normalize_kartu()` di backend (`app/utils/kartu.ts`/`kartu.py`) dan `normalizeKartu()`
+  di firmware harus menghasilkan format **identik**. Terdaftar sebagai titik integrasi paling rawan di §5.8.
+- **KEPUTUSAN:** _(belum — wajib dijawab sebelum apa pun; ini prioritas 1 di §7.4)_
 
 ### 2.2 Sumber waktu RTC — 🔴 TERBUKA
 RTC DS3231 di-set awalnya dari mana? (NTP via Ethernet / push dari backend / manual). Kalau RTC ngaco, semua timestamp ngaco.
+- **Mitigasi sisi backend sudah dirancang:** sanity guard **R4** (§4.3) menolak `device_ts` di luar
+  `2025-01-01 .. NOW()+5 menit` dan jatuh ke `NOW()`. Ini **menahan kerusakan, bukan menggantikan** jawaban
+  pertanyaan ini — RTC yang ngaco tetap membuat log offline salah waktu.
 - **KEPUTUSAN:** _(belum)_
 
-### 2.3 Otoritas waktu untuk log LIVE — 🔴 TERBUKA
-Log REPLAYED jelas pakai epoch RTC. Tapi untuk log **live**, waktu otoritatif = backend `NOW()` atau epoch controller?
-Catatan: kolom DB `device_uptime_ms` sekarang akan menerima epoch (mismatch makna) — perlu penyesuaian skema/handler.
-- **KEPUTUSAN:** _(belum)_
+### 2.3 Otoritas waktu untuk log LIVE — 🟡 USUL (usulan sudah ada, tinggal ACK)
+Pertanyaan awal: untuk log **live**, waktu otoritatif = backend `NOW()` atau epoch controller?
+- **USUL (§4.3 R3):** **LIVE → `server_ts = NOW()` backend** (controller tetap mengirim epoch, disimpan di
+  kolom baru `device_ts` untuk diagnosa). **REPLAYED → `server_ts = device_ts`** dari RTC, supaya log
+  offline terurut kronologis.
+- **`device_uptime_ms` (jawaban catatan lama):** **jangan** diisi epoch — nama kolomnya berarti "milidetik
+  sejak boot". Kolom dipertahankan untuk log v0.2, diisi `NULL` untuk log v0.3; penggantinya `device_ts`.
+- **KEPUTUSAN:** _(ACK R3 + perlakuan `device_uptime_ms`? — ini bagian dari D7)_
 
 ### 2.4 Door state machine — 🟡 USUL
 Logika sudah dijelaskan (forced-open, held-open, granted-unopened). Yang belum: timing, debouncing sensor,
 edge-case (REX saat forced-open, sensor bounce).
-- **KEPUTUSAN:** _(perlu detail implementasi + edge case)_
+- ⚠️ **Permintaan dari sisi test (§7.2):** supaya state machine ini bisa ditest di `[env:native]` tanpa
+  board, ia harus ditulis sebagai **kelas yang tidak memanggil `digitalWrite`/`millis` langsung** (waktu &
+  IO di-inject). Ini keputusan desain yang harus diambil **sebelum** kode ditulis, bukan sesudah.
+- **Sensor bounce → badai alarm:** debouncing yang longgar akan mengirim puluhan `DOOR_FORCED_OPEN`.
+  Backend sudah menyiapkan peredam (§5.7 #4), tapi sumber masalahnya tetap di firmware.
+- **KEPUTUSAN:** _(perlu detail implementasi + edge case + ACK desain testable)_
 
 ### 2.5 Aux input & cross-controller trigger — 🔴 TERBUKA
 Aux "software-configurable" termasuk **kirim perintah ke controller lain** (MQTT antar-controller). Ini jalur komunikasi baru.
-- **KEPUTUSAN:** _(belum — desain topic + siapa broker perantaranya)_
+- **Batas scope yang diusulkan:** aux **dicatat** sebagai event (`AUX_ACTIVE`/`AUX_CLEARED`, §4.2) di v0.3,
+  tapi **cross-controller trigger lewat backend TIDAK masuk v0.3** (§5.9). Kalau triggernya murni
+  controller↔controller lewat broker, itu jalur firmware yang tidak menyentuh backend sama sekali —
+  perlu ditegaskan yang mana yang dimaksud.
+- **KEPUTUSAN:** _(belum — desain topic + siapa broker perantaranya + apakah backend terlibat)_
 
 ### 2.6 OTA rollback — 🟡 USUL
 Disebut "Safe OTA Rollback ke partisi pabrik". Mekanismenya (A/B partition, health check) belum detail.
+- **Batas scope:** **OTA push dari backend TIDAK masuk v0.3** (§5.9). Untuk v0.3 cukup jalur Web Config
+  lokal 8081, jadi pertanyaan ini tidak memblokir backend/frontend.
 - **KEPUTUSAN:** _(belum)_
 
 ---
 
 ## 3. KONTRAK MQTT (harus dibekukan lengkap, bukan cuma reason code)
 
-### 3.1 Daftar topic lengkap v0.3 — 🔴 TERBUKA
-Contract Codes baru mencakup payload `logs`. Yang belum dibekukan sebagai satu daftar:
-- `access/{id}/logs` (✅ format sudah di Contract Codes)
-- `access/{id}/status` → LWT ONLINE/OFFLINE (perubahan dari v0.2)
-- `access/{id}/heartbeat` → format baru `uptime_s,rssi,free_heap,total_users` (ganti dari `status` v0.2)
-- `access/{id}/config/*` → request/response/sync (per-pintu `dX_`)
-- `access/{id}/users/*` → sync (masih sama v0.2?)
-- topic tamper / fire / aux / relay-test → **belum didefinisikan**
-- **KEPUTUSAN:** _(buat 1 tabel kontrak topic lengkap: topic | arah | payload | QoS | retained?)_
+### 3.1 Daftar topic lengkap v0.3 — 🔴 TERBUKA (bahan usulan sudah lengkap)
 
-### 3.2 Event non-akses (tamper/fire/aux) dikirim lewat topic apa? — 🔴 TERBUKA
-Masuk `logs` (dengan status ALARM) atau topic sendiri?
-- **KEPUTUSAN:** _(belum)_
+Contract Codes baru mencakup payload `logs`. Status tiap topic setelah §4–§6 dirancang:
+
+| Topic | Arah | Status | Rujukan usulan |
+|---|---|---|---|
+| `access/{id}/logs` | C→S | ✅ format final | Contract Codes |
+| `access/{id}/heartbeat` | C→S | 🟡 `uptime_s,rssi,free_heap,total_users` — **makna `rssi` dipertanyakan** | §5.1(d), **B1** |
+| `access/{id}/status` | C→S | ⚠️ **BENTROK** dengan heartbeat v0.2 | §5.1(a), **B6** |
+| `access/{id}/events` | C→S | 🟡 usulan baru + tabel angka event 0–10 | §4.2, **D4/D6** |
+| `access/{id}/config/request` · `/response` · `/sync` | 2 arah | 🟡 +`config_version` | §5.2(d)(f), **B8** |
+| `access/{id}/users/sync/*` · `users/set` · `users/delete` | S→C | ✅ sama seperti v0.2 | KEPUTUSAN v0.2 §2 |
+| `access/{id}/relay/test` | S→C | 🟡 usulan baru `<door>,<duration_ms>` | §5.3, **B3** |
+| Prefix versi `v1,` (aturan v0.2 #11) | — | 🔴 **belum ditegaskan** apakah masih dipakai di v0.3 | KEPUTUSAN v0.2 §2 |
+
+- **KEPUTUSAN:** _(gabungkan jadi 1 tabel kontrak final: topic | arah | payload | QoS | retained.
+  Bahannya sudah ada semua di kolom "rujukan" — tinggal dibekukan)_
+
+### 3.2 Event non-akses (tamper/fire/aux) dikirim lewat topic apa? — 🟡 USUL (usulan sudah ada)
+- **USUL:** **topic `access/{id}/events` sendiri**, bukan numpang `logs`. Alasan lengkap + tabel angka
+  event (0–10) + aturan penempatan ke tabel DB ada di **§4.2**; ini pertanyaan **D4** & **D6**.
+- **KEPUTUSAN:** _(ACK topic terpisah + tabel angka event?)_
 
 ---
 
@@ -325,6 +381,7 @@ Delapan pertanyaan ini yang benar-benar butuh jawaban; sisanya di atas cuma penj
 | D6 | Tabel angka EVENT (0–10) di §4.2 — ACK untuk masuk Contract Codes? | ACK, append-only seperti tabel STATUS/REASON | _(…)_ |
 | D7 | Aturan waktu R1–R6, terutama **R2 (`time_zone='+00:00'` di MySQL)** | ACK semua; R2 perlu dicek di mesin masing-masing | _(…)_ |
 | D8 | `admin_logs` dibuat sekarang (v0.3) atau ditunda lagi? | **Sekarang** — v0.3 punya endpoint yang membuka pintu fisik | _(…)_ |
+| D9 | Alarm punya **dua** state (`cleared_at` = kondisi normal lagi, `acked_at` = admin sudah lihat), atau cukup satu? | **Dua** — tamper yang dibuka lalu ditutup lagi tidak boleh lewat tanpa ada yang tahu (§5.7) | _(…)_ |
 
 ---
 
@@ -333,7 +390,9 @@ Delapan pertanyaan ini yang benar-benar butuh jawaban; sisanya di atas cuma penj
 > Bagian ini ditulis ulang berdasar **audit kode `backend/` yang ada sekarang**, bukan dari nol.
 > Semua path file di bawah nyata dan sudah dicek.
 
-### 5.0 Titik awal: apa yang SUDAH ada di backend (✅ fakta, bukan rencana)
+### 5.0 Kerangka
+
+#### (a) Titik awal: apa yang SUDAH ada di backend (✅ fakta, bukan rencana)
 
 | Komponen | File | Kondisi sekarang |
 |---|---|---|
@@ -347,6 +406,52 @@ Delapan pertanyaan ini yang benar-benar butuh jawaban; sisanya di atas cuma penj
 
 > **Konsekuensi penting:** v0.3 backend adalah **rework**, bukan greenfield. Setiap keputusan di bawah
 > harus menyebut apakah ia *mengubah* file yang ada atau *menambah* file baru.
+
+#### (b) Peta modul backend v0.3 — 🟡 USUL
+
+| Aksi | File | Isi |
+|---|---|---|
+| **BARU** | `app/mqtt/codes.py` | Terjemahan angka ↔ kode DB (STATUS, REASON, **EVENT**) — cermin [`CONTRACT-CODES-V0.3.md`](CONTRACT-CODES-V0.3.md) |
+| **BARU** | `app/services/alarm_service.py` | Siklus hidup alarm: raise / clear / ack (§5.7) |
+| **BARU** | `app/services/reconcile_service.py` | Worker thread + queue, state machine sync (§5.2) |
+| **BARU** | `app/services/config_service.py` | Susun & push payload config (jaringan + `dX_`), naikkan `config_version` |
+| **BARU** | `app/services/audit_service.py` | Tulis `admin_logs` (§4.4) |
+| **BARU** | `app/models/{controller_event,alarm,admin_log}.py` | Model 3 tabel baru |
+| **BARU** | `app/routes/alarms.py` | Endpoint E8/E9 |
+| **BARU** | `app/schemas/{event,alarm,door_config}.py` | Skema Pydantic |
+| **UBAH** | `app/mqtt/handlers.py` | 4 handler di-rework + 1 baru (§5.1) |
+| **UBAH** | `app/mqtt/subscriber.py` | +`heartbeat`, +`events`; `status` jadi dispatcher |
+| **UBAH** | `app/services/sync_service.py` | Dipanggil worker, bukan langsung dari thread request/paho |
+| **UBAH** | `app/routes/controllers.py` | +CRUD, +config pintu, +2 aksi sync, +relay test |
+| **UBAH** | `app/routes/doors.py` | Validasi `is_active` ikut memengaruhi pemberian akses (D3) |
+| **UBAH** | `app/services/user_service.py` | `resolve_user_access()` **membuang pintu non-aktif** (D3) |
+| **UBAH** | `app/ws/manager.py` | Amplop `{v,type,data}` (§5.4) |
+| **UBAH** | `app/auth/dependencies.py` | `require_role("admin")` untuk aksi fisik (§5.5) |
+
+#### (c) Model threading — kontrak yang harus dipatuhi semua kode baru 🟡 USUL
+
+Ini sumber bug paling mahal di aplikasi ini (sudah pernah kena sekali: komentar `expire_on_commit`
+di `handlers.py:76-79` lahir dari kejadian nyata). Ditulis eksplisit supaya tidak terulang:
+
+```
+  thread paho (1 buah, milik MQTT)          worker reconcile (1 buah, BARU)
+  ────────────────────────────────          ──────────────────────────────
+  on_message                                 queue.get()  ──► run_full_sync()
+    └─ handler: parse + 1 transaksi DB           (boleh blocking 30 dtk, tidak
+       cepat, LALU return                         mengganggu thread paho)
+       └─ butuh kerja lama? queue.put()
+       └─ mau kirim ke UI? broadcast_threadsafe()
+                                     │
+  event loop asyncio (FastAPI)  ◄────┘
+    └─ WS broadcast, request HTTP
+```
+
+**Tiga aturan wajib:**
+1. **Handler MQTT tidak boleh blocking.** Tidak ada `Event.wait()`, tidak ada `run_full_sync()`
+   langsung di dalamnya. Kerja panjang → `queue.put()`.
+2. **Satu handler = satu transaksi DB pendek**, sesi selalu ditutup di `finally` (pola yang sudah dipakai sekarang).
+3. **Nilai yang dipakai setelah `commit()` harus di-snapshot dulu** ke variabel biasa — objek ORM
+   sudah kedaluwarsa setelah commit.
 
 ---
 
@@ -369,34 +474,108 @@ Ini belum tertulis di mana pun dan bisa membuat backend diam-diam salah parse:
 
 #### (b) Daftar handler final v0.3
 
-| Topic | Handler | File | Sifat |
+| Topic | Handler | Sifat | Menulis ke tabel |
 |---|---|---|---|
-| `access/+/logs` | `handle_log` | `handlers.py` | **REWORK** — 5 field angka + epoch |
-| `access/+/heartbeat` | `handle_heartbeat` | `handlers.py` | **BARU** |
-| `access/+/status` | `handle_status` (dispatcher LWT/legacy) | `handlers.py` | **REWORK** |
-| `access/+/sync/result` | `handle_sync_result` | tetap | Tidak berubah |
-| `access/+/config/response` | `handle_config_response` | `handlers.py` | **REWORK** — sekarang cuma di-`logger.info`, harus divalidasi vs DB (§5.2) |
-| `access/+/events` | `handle_event` | `handlers.py` | **BARU** — tamper/fire/aux/power (lihat §3.2 & §4.2) |
+| `access/+/logs` | `handle_log` | **REWORK** — 5 field angka + epoch | `access_logs`, `alarms` |
+| `access/+/heartbeat` | `handle_heartbeat` | **BARU** | `controllers` (telemetry) |
+| `access/+/status` | `handle_status` (dispatcher LWT/legacy) | **REWORK** | `controllers` (`link_state`) |
+| `access/+/events` | `handle_event` | **BARU** — tamper/fire/power/aux | `controller_events`, `controllers` (health), `alarms` |
+| `access/+/config/response` | `handle_config_response` | **REWORK** — sekarang cuma di-`logger.info` | — (memicu reconcile) |
+| `access/+/sync/result` | `handle_sync_result` | **REWORK ringan** — +transisi `sync_state` | `controllers` (sync) |
 
-#### (c) Rework `handle_log` — detail yang harus disepakati
+#### (c) `handle_log` — rework 🟡 USUL
+
 Kode sekarang menerima `reason` sebagai **string** dan mencocokkannya ke `VALID_REASONS`
-(`handlers.py:20-26`). Kontrak v0.3 mengirim **angka**. Usulan:
+(`handlers.py:20-26`). Kontrak v0.3 mengirim **angka**.
 
-1. **File baru `backend/app/mqtt/codes.py`** — satu-satunya tempat terjemahan angka→kode DB, disalin
-   persis dari [`CONTRACT-CODES-V0.3.md`](CONTRACT-CODES-V0.3.md):
-   ```python
-   STATUS_CODES = {0: "UNKNOWN", 1: "GRANTED", 2: "DENIED", 3: "ALARM"}
-   REASON_CODES = {0: "UNKNOWN", 1: "VALID_ACCESS", ..., 9: "INVALID_DOOR_NUMBER"}
-   ```
-   Angka tak dikenal → `"UNKNOWN"` + `logger.warning`, **tidak pernah raise** (aturan pemeliharaan #1).
-2. **Toleransi format lama.** `handle_log` harus bisa membedakan payload v0.2 (reason string) dan v0.3
-   (reason angka) — deteksi lewat `field.isdigit()`. Perlu selama simulator & firmware lama masih dipakai.
-3. **`card_id` kosong** (REX/alarm) → payload diawali koma. `normalize_kartu("")` harus tidak meledak
-   dan menghasilkan `NULL`, tapi kolom `access_logs.kartu` sekarang **`NOT NULL`** (`database/schema.sql`)
-   → **butuh migrasi kolom jadi NULLABLE** (masukkan ke §4).
-4. **Epoch vs `_boot_estimate`.** Seluruh mekanisme `_boot_estimate` (`handlers.py:28-31, 84-95`) ada
-   karena controller v0.2 tidak punya jam. Dengan DS3231, **mekanisme ini dihapus** untuk log v0.3.
-- **KEPUTUSAN:** _(ACK butir 1–4? Terutama #3, itu perubahan skema DB)_
+**Alur yang diusulkan:**
+
+```
+payload  <card_id>,<door_number>,<status>,<reason>,<timestamp_epoch>[,REPLAYED]
+   │
+   ├─1. Parse. Deteksi versi: reason.isdigit() -> v0.3 ; selain itu -> v0.2 (toleransi)
+   ├─2. codes.py : angka -> kode DB. Angka asing -> "UNKNOWN" + warning, JANGAN raise
+   ├─3. card_id kosong  -> kartu = NULL  (bukan string kosong)  [§4.5, kolom sudah NULLABLE]
+   ├─4. Waktu: device_ts = epoch (UTC). Sanity guard R4:
+   │      di luar 2025-01-01 .. NOW()+5mnt  ->  device_ts tetap disimpan apa adanya,
+   │                                            server_ts pakai NOW(), tulis warning
+   │      LIVE      -> server_ts = NOW()
+   │      REPLAYED  -> server_ts = device_ts    [aturan R3]
+   ├─5. Resolve: controller (device_id), door (controller_id + door_number), user (kartu)
+   ├─6. Snapshot: user_nama, door_nama, door_number, device_id
+   ├─7. INSERT access_logs  (1 transaksi)
+   ├─8. result == "ALARM"  ->  alarm_service.raise_from_log(log_id, ...)   [§5.7]
+   └─9. broadcast {v:1, type:"log", data:{...}}  (+ type:"alarm" bila ada)
+```
+
+**Yang dihapus:** seluruh mekanisme `_boot_estimate` (`handlers.py:28-31, 84-95`). Itu tambal sulam
+karena controller v0.2 tidak punya jam; DS3231 membuatnya tidak relevan. Jalur v0.2 tetap memakainya
+selama masa transisi, jalur v0.3 tidak.
+
+**Kolom baru yang wajib diisi** (§4.4): `door_number`, `device_id`, `device_ts`; `device_uptime_ms` = `NULL`.
+
+- **KEPUTUSAN:** _(ACK alur 1–9? Terutama #4 — REPLAYED memakai waktu RTC sebagai `server_ts`)_
+
+#### (d) `handle_heartbeat` — baru 🟡 USUL
+
+Payload `uptime_s,rssi,free_heap,total_users`:
+
+1. `controllers.last_seen = NOW()` (ini yang menghidupkan `is_online`).
+2. Simpan snapshot: `uptime_s`, `rssi`, `free_heap`, `total_users_reported`.
+3. **Deteksi reboot:** `uptime_s` baru **lebih kecil** dari yang tersimpan → device baru boot →
+   tulis `controller_events` (`BOOT`, INFO) + antre config push. Ini pengganti murah untuk kasus
+   controller restart tanpa sempat kirim LWT.
+4. **Drift check user:** bandingkan `total_users` vs jumlah user ter-resolve untuk device ini
+   (`resolve_user_access`). Beda → `sync_state = SYNC_PENDING` + `queue.put(device_id)`.
+   **Bukan** memanggil `run_full_sync()` langsung (aturan threading §5.0c).
+
+> ⚠️ **Ketidakselarasan dengan hardware — perlu jawaban @danskiv (B1).** Format heartbeat mewarisi
+> `rssi` dari era WiFi. Di v0.3, **WiFi tidak dipakai untuk MQTT sama sekali** (W5500 Ethernet satu-satunya
+> jalur, WiFi cuma AP saat tombol `GPIO37`). Jadi `rssi` praktis selalu 0/tidak bermakna. Usul: field
+> tetap ada demi kompatibilitas tapi diisi status link Ethernet, atau diganti `eth_link`.
+
+#### (e) `handle_status` — dispatcher LWT 🟡 USUL
+
+1. Payload `ONLINE`/`OFFLINE` → set `link_state` + `link_changed_at`.
+2. Transisi **`OFFLINE`/`UNKNOWN` → `ONLINE`** adalah pemicu rekonsiliasi config
+   (proposal §2E-2: backend **selalu** push config saat controller online) → `queue.put()`.
+3. Payload CSV 4 angka → heartbeat v0.2 (deprecated, `logger.warning`, tetap update `last_seen`).
+4. **`link_state` tidak menggantikan `is_online`.** `is_online` tetap dihitung dari `last_seen`
+   (keputusan v0.2 #8). Keduanya ditampilkan berdampingan — LWT bisa gagal terkirim, timeout heartbeat
+   bisa telat; dua sumber ini saling menutupi.
+
+#### (f) `handle_event` — baru 🟡 USUL
+
+Payload `<event_code>,<door_number>,<timestamp_epoch>[,REPLAYED]` (tabel angka event di §4.2):
+
+1. Terjemahkan angka → kode + `event_type` + `severity` lewat `codes.py`.
+2. INSERT `controller_events` (waktu mengikuti aturan R3/R4 yang sama dengan log).
+3. **Perbarui state ringkas di `controllers`** supaya UI tidak perlu query agregat:
+   `TAMPER_OPEN`→`tamper_state='TAMPER'`, `TAMPER_CLOSED`→`'OK'`, `FIRE_ACTIVE`/`FIRE_CLEARED`,
+   `POWER_LOW`/`POWER_NORMAL`.
+4. `severity='ALARM'` (atau `POWER_LOW`) → `alarm_service.raise_from_event(...)`;
+   pasangan `*_CLOSED`/`*_CLEARED` → `alarm_service.clear(...)` (§5.7).
+5. Broadcast `type:"alarm"` / `type:"controller_status"`.
+
+> ⚠️ **Perlu jawaban @danskiv (B2).** Hardware punya **dua** jalur ADC (`GPIO1` sensing PLN 12V,
+> `GPIO2` sensing aki/PSU), tapi tabel event cuma punya `POWER_LOW`/`POWER_NORMAL` — satu dimensi.
+> Kalau memang dua sumber daya yang dibedakan, kodenya perlu dipisah (mis. `MAINS_LOST`/`MAINS_OK` dan
+> `BATTERY_LOW`/`BATTERY_OK`), dan `controllers.power_state` jadi dua kolom. Ini juga menyentuh
+> konflik pin §1.1 yang belum ditutup.
+
+#### (g) `handle_config_response` 🟡 USUL
+
+- Payload berisi pasangan key,value **plus `config_version`** yang dipegang controller.
+- Bandingkan dengan `controllers.config_version`: **beda → antre config push**. Ini yang membuat
+  rekonsiliasi config cuma butuh 1 perbandingan angka, bukan membandingkan 16 parameter `dX_` satu per satu.
+- Isi parameter tetap di-log untuk diagnosa, tapi **DB tetap sumber kebenaran** — backend tidak pernah
+  menimpa DB dengan nilai dari controller (arah data satu arah, sejalan aturan `wifi_pass` v0.2 #6).
+
+#### (h) `handle_sync_result` 🟡 USUL
+
+Menambah transisi state (§5.2) di luar yang sudah ada: `OK` → `sync_state='IN_SYNC'`,
+`sync_fail_count=0`, `last_sync_at=NOW()`; `MISMATCH`/timeout → naikkan `sync_fail_count`,
+isi `last_sync_error`.
 
 ---
 
@@ -429,22 +608,37 @@ log dari controller lain ikut berhenti.
                           fail_count ≥ 3 ──► SYNC_ERROR_ATTENTION_REQUIRED (auto-sync OFF)
 ```
 
-#### (c) Kolom baru di tabel `controllers` (masuk delta ERD §4)
+#### (c) Kolom penyangga
+Sudah dirancang di §4 dan masuk migrasi 001: `sync_state`, `sync_fail_count`, `last_sync_at`,
+`last_sync_error`, `config_version`.
 
-| Kolom | Tipe | Guna |
+#### (d) Pemicu rekonsiliasi — siapa memanggil apa
+
+| Pemicu | Deteksi | Aksi |
 |---|---|---|
-| `sync_state` | `ENUM('IN_SYNC','SYNC_PENDING','SYNCING','SYNC_ERROR_ATTENTION_REQUIRED')` | Ditampilkan di UI (§6.3) |
-| `sync_fail_count` | `INT DEFAULT 0` | Anti-loop, reset saat sukses / reset manual admin |
-| `last_sync_at` | `DATETIME NULL` | Diagnosa |
-| `last_sync_error` | `VARCHAR(100) NULL` | `TIMEOUT` / `MISMATCH` terakhir |
+| Controller kembali ONLINE | `handle_status` LWT `OFFLINE→ONLINE` | Antre **push config** (proposal §2E-2: selalu push, tanpa peduli ada perubahan atau tidak) |
+| Device baru boot | `handle_heartbeat`, `uptime_s` turun | Antre push config + catat event `BOOT` |
+| Jumlah user beda | `handle_heartbeat`, `total_users` ≠ hitungan DB | Antre **full sync user** |
+| Config version beda | `handle_config_response` | Antre push config |
+| Admin menekan tombol | Endpoint E5/E6 | Jalankan langsung + reset `sync_fail_count` |
 
-- Anti-loop: **3× gagal dalam < 5 menit** → `SYNC_ERROR_ATTENTION_REQUIRED`, auto-sync mati sampai admin
-  menekan tombol sync manual (yang me-reset `sync_fail_count`). Alasan di proposal: mencegah flash wear.
-- **Config reconciliation**: proposal minta backend **selalu push** config saat controller ONLINE.
-  Perhatian: `config/set` sekarang dibatasi `_SAFE_CONFIG_KEYS = {heartbeat_s, total_doors}`
-  (`routes/controllers.py:30`) — parameter `dX_` harus masuk daftar aman ini, sedangkan `wifi_*`/`mqtt_*`
-  **tetap tidak boleh** ikut auto-push (vektor bricking, keputusan v0.2 #5 masih berlaku).
-- **KEPUTUSAN:** _(ACK state machine + 4 kolom + batasan key aman?)_
+#### (e) Anti-loop & backoff
+- **3× gagal dalam < 5 menit** → `sync_state='SYNC_ERROR_ATTENTION_REQUIRED'`, auto-sync **dimatikan**
+  untuk controller itu, alarm dibuat (§5.7). Alasan di proposal: mencegah flash wear karena tulis berulang.
+- Antar percobaan pakai **backoff** (mis. 30 dtk → 2 mnt → 5 mnt), bukan langsung ulang.
+- Reset `sync_fail_count` **hanya** oleh: sync sukses, atau tombol sync manual admin. Bukan oleh waktu —
+  supaya masalah yang belum diperbaiki tidak diam-diam mengaktifkan lagi loop yang sama.
+- **Antrean dedup:** satu `device_id` tidak boleh punya lebih dari satu job menunggu; heartbeat tiap
+  30 detik jangan sampai menumpuk jadi antrean panjang.
+
+#### (f) Batasan key config yang boleh di-auto-push
+`config/set` sekarang dibatasi `_SAFE_CONFIG_KEYS = {heartbeat_s, total_doors}`
+(`routes/controllers.py:30`). Untuk v0.3:
+- **Ditambahkan ke daftar aman:** seluruh parameter `dX_*` (4 pintu × 4 parameter).
+- **TETAP dilarang auto-push:** `wifi_*`, `mqtt_*`, `ip_*` — vektor bricking, keputusan v0.2 #5 masih
+  berlaku. Perubahan itu tetap tersimpan di DB dan diterapkan lewat Web Config lokal port 8081
+  (jaring pengaman yang memang disediakan hardware v0.3).
+- **KEPUTUSAN:** _(ACK state machine + tabel pemicu + backoff + batasan key?)_
 
 ---
 
@@ -463,13 +657,42 @@ log dari controller lain ikut berhenti.
 | E9 | `POST /api/alarms/{id}/ack` | — | alarm ter-update | Siapa & kapan (audit) |
 | E10 | `GET /api/controllers/{id}/health` | — | heartbeat terakhir + `sync_state` + tamper/fire | Konsumsi §6.3 |
 
-**Keputusan turunan yang harus ikut diambil:**
+#### Role & jejak audit per endpoint (🟡 USUL)
+
+| Endpoint | `admin` | `viewer` | Tulis `admin_logs`? | Naikkan `config_version`? |
+|---|:--:|:--:|:--:|:--:|
+| E1 `POST /controllers` | ✅ | ❌ | ✅ `CONTROLLER_CREATE` | — |
+| E2 `DELETE /controllers/{id}` | ✅ | ❌ | ✅ `CONTROLLER_DELETE` | — |
+| E3 `GET .../doors/config` | ✅ | ✅ | — | — |
+| E4 `PUT .../doors/config` | ✅ | ❌ | ✅ `DOOR_CONFIG_UPDATE` (+before/after) | ✅ |
+| E5 `POST .../sync/users` | ✅ | ❌ | ✅ `SYNC_TRIGGER` | — |
+| E6 `POST .../sync/config` | ✅ | ❌ | ✅ `SYNC_TRIGGER` | — |
+| E7 `POST .../doors/{n}/test` | ✅ | ❌ | ✅ **`RELAY_TEST` (wajib)** | — |
+| E8 `GET /alarms` | ✅ | ✅ | — | — |
+| E9 `POST /alarms/{id}/ack` | ✅ | ❌ | ✅ `ALARM_ACK` | — |
+| E10 `GET .../health` | ✅ | ✅ | — | — |
+
+#### Perintah MQTT yang dipancarkan endpoint
+
+| Endpoint | Topic terbit | Payload |
+|---|---|---|
+| E4 (setelah commit DB) | `access/{id}/config/sync` | parameter `dX_*` + `config_version` baru |
+| E5 | `users/sync/start` → `users/set` ×N → `users/sync/end` | seperti v0.2 |
+| E6 | `access/{id}/config/sync` | idem E4 |
+| E7 | `access/{id}/relay/test` | `<door_number>,<duration_ms>` ← **butuh ACK @danskiv (B3)**, topic ini belum ada di §3.1 |
+
+**Keputusan turunan:**
 - **E5 rename = breaking change** untuk `frontend/src/api/controllers.ts`. Usul: sediakan `/sync` lama
-  sebagai alias yang deprecated selama v0.3, hapus di v0.4.
-- **E7 relay test**: usul batasi ke role `admin` saja + selalu tulis `access_logs`/`admin_logs`
-  (siapa yang membuka pintu jam berapa). **Jangan** ada endpoint buka pintu tanpa jejak audit.
-- **Error code**: roadmap Sprint 4 minta field `error_code` di `HTTPException`. Usul **masuk v0.3**
-  dan diterapkan ke semua endpoint baru di atas sejak awal (murah kalau dari awal, mahal kalau retrofit).
+  sebagai alias deprecated selama v0.3, hapus di v0.4.
+- **E7 relay test membuka pintu fisik dari browser.** Tiga syarat yang diusulkan **tidak bisa ditawar**:
+  role `admin` saja, selalu tulis `admin_logs`, dan **hanya bisa dipakai bila controller online**
+  (kalau tidak, perintah mengendap di broker dan pintu terbuka entah kapan). Usul tambahan: batasi
+  `duration_ms` (mis. maksimal 10 detik) di sisi backend, jangan percaya nilai dari klien.
+- **E2 hapus controller:** `doors` memakai FK RESTRICT, jadi controller yang masih punya pintu tidak
+  bisa dihapus. Usul: **pertahankan RESTRICT** (hapus pintu dulu secara sadar), karena penghapusan
+  berantai akan memutus `door_id` di log riwayat.
+- **Error code**: roadmap Sprint 4 minta field `error_code` di `HTTPException`. Usul **masuk v0.3**,
+  diterapkan ke semua endpoint baru sejak awal (murah di awal, mahal kalau retrofit).
 - **KEPUTUSAN:** _(coret endpoint yang tidak jadi v0.3 — daftar ini sengaja maksimal)_
 
 ---
@@ -490,8 +713,21 @@ log dari controller lain ikut berhenti.
   Frontend membaca `type`; pesan tanpa `type` diperlakukan sebagai `log` (kompatibel mundur satu rilis).
 - **Alarm belum-di-ack disimpan di DB** (bukan cuma broadcast) — kalau admin sedang tidak membuka
   dashboard saat alarm terjadi, alarm tidak boleh hilang. Bentuk tabelnya ikut keputusan §4.2.
+- **Jenis pesan & isinya:**
+
+| `type` | Dipicu oleh | Isi `data` | Konsumen |
+|---|---|---|---|
+| `log` | `handle_log` | seperti sekarang + `door_number`, `device_ts`, `is_replayed` | Live feed, Dashboard |
+| `alarm` | `alarm_service.raise/clear` | `{alarm_id, alarm_code, device_id, door_number, raised_at, cleared_at}` | Banner + halaman Alarms (§6.2) |
+| `controller_status` | `handle_event`, `handle_status`, `handle_heartbeat` | `{device_id, link_state, tamper_state, fire_state, power_state}` | Tabel Controllers (§6.3) |
+| `sync_state` | `reconcile_service` | `{device_id, sync_state, sync_fail_count, last_sync_error}` | Badge sync (§6.3) |
+
+- **Log `REPLAYED` jangan dibroadcast sebagai "kejadian baru".** Bisa masuk ratusan sekaligus saat
+  controller reconnect dan akan membanjiri live feed dengan kejadian lama. Usul: kirim dengan penanda,
+  frontend menampilkannya di bawah/terpisah — atau tidak dibroadcast sama sekali dan cukup muncul saat
+  halaman log di-refresh.
 - **Batas scope:** notifikasi email/Telegram/push **TIDAK** masuk v0.3.
-- **KEPUTUSAN:** _(ACK amplop `{v,type,data}` + alarm persist?)_
+- **KEPUTUSAN:** _(ACK amplop `{v,type,data}` + 4 jenis pesan + perlakuan REPLAYED?)_
 
 ---
 
@@ -511,6 +747,105 @@ Roadmap Sprint 2 menyebut 8 item. Usulan pemilahan, dengan alasan:
 | MQTT TLS (8883) | 🟡 Tunda | Butuh sinkron dengan firmware (sertifikat di device) — jangan digabung dengan rework protokol di rilis yang sama |
 - **KEPUTUSAN:** _(setuju pembagian ini? RBAC dan ACL sengaja ditaruh di "ya" karena fitur baru v0.3 memperbesar dampaknya)_
 
+**RBAC — batas yang diusulkan:** `viewer` boleh membaca semua (user, log, alarm, status controller),
+tapi **tidak boleh**: mengubah user/akses, mengubah config, memicu sync, meng-ack alarm, dan yang paling
+penting **tidak boleh menjalankan relay test**. Aturan praktisnya: *kalau aksi itu bisa mengubah keadaan
+fisik di lapangan, `viewer` tidak boleh.*
+
+---
+
+### 5.6 Duplikasi log & idempotensi — 🟡 USUL (belum pernah dibahas)
+
+MQTT QoS 1 itu **at-least-once**: pesan yang sama bisa datang dua kali. Ditambah buffer offline yang
+di-`REPLAYED`, ada dua sumber duplikat yang nyata:
+
+1. Broker mengirim ulang karena PUBACK hilang → log ganda persis.
+2. Controller reconnect dan me-replay log yang **sebenarnya sudah terkirim** sebelum koneksi putus.
+
+Sekarang `access_logs` tidak punya kunci apa pun untuk menolak duplikat.
+
+| Opsi | Cara | Risiko |
+|---|---|---|
+| **A. Firmware kirim `seq`** (nomor urut per device, ikut disimpan di DB, UNIQUE `(device_id, seq)`) | Paling benar — satu-satunya cara membedakan "dua tap identik" dari "satu tap terkirim dua kali" | Butuh perubahan firmware + 1 field di payload → **butuh ACK @danskiv (B4)** |
+| **B. UNIQUE `(device_id, device_ts, door_number, reason)`** | Tanpa perubahan firmware | RTC presisi **detik** → dua REX di pintu sama dalam 1 detik yang sama akan dianggap duplikat dan **hilang**. Menghilangkan kejadian nyata lebih buruk daripada duplikat |
+| **C. Terima duplikat apa adanya** | Tidak ada perubahan | Log ganda di UI; tapi **alarm tidak ganda** karena `alarms` sudah di-dedup lewat `UNIQUE(source, source_id)` |
+
+- **USUL: A kalau firmware sanggup, kalau tidak C** (jangan B — B menghapus data asli).
+- **KEPUTUSAN:** _(A / B / C?)_
+
+---
+
+### 5.7 Siklus hidup alarm (`alarm_service.py`) — 🟡 USUL
+
+```
+  kejadian ALARM ──► raise()
+                       │  INSERT alarms (UNIQUE(source, source_id) -> aman dari duplikat)
+                       │  broadcast type:"alarm"
+                       ▼
+                  [ AKTIF ]  cleared_at=NULL, acked_at=NULL
+                    │                     │
+   device kirim     │                     │  admin tekan Acknowledge
+   *_CLOSED /       │                     │
+   *_CLEARED        ▼                     ▼
+              cleared_at=NOW()      acked_at=NOW(), acked_by=admin
+                    │                     │
+                    └──────► [ SELESAI ] ◄┘   (butuh KEDUANYA)
+```
+
+**Aturan yang diusulkan:**
+1. **`cleared_at` ≠ `acked_at`** (keputusan D9). Tamper yang dibuka lalu ditutup lagi **tetap harus
+   dilihat admin** — kalau auto-hilang begitu kondisi normal, sabotase singkat lewat tanpa jejak.
+2. **Yang bisa auto-clear hanya alarm berpasangan** (`TAMPER_OPEN`↔`TAMPER_CLOSED`,
+   `FIRE_ACTIVE`↔`FIRE_CLEARED`, `POWER_LOW`↔`POWER_NORMAL`).
+   `DOOR_FORCED_OPEN`/`DOOR_HELD_OPEN` **tidak punya pasangan** — kejadian sesaat, `cleared_at` diisi
+   sama dengan `raised_at`, tetap menunggu ack.
+3. **`SYNC_ERROR_ATTENTION_REQUIRED`** adalah alarm yang lahir di **backend**, bukan dari device.
+   Sumbernya baris `controller_events` bertipe `SYNC`. Auto-clear saat sync berikutnya berhasil.
+4. **Anti-badai alarm:** satu `alarm_code` yang sama untuk `device_id`+`door_number` yang sama dan
+   **masih aktif** tidak melahirkan baris alarm baru — cukup perbarui `raised_at` + tambah penghitung.
+   Sensor pintu yang bouncing bisa mengirim puluhan event; admin tidak boleh dapat 50 baris alarm.
+- **KEPUTUSAN:** _(ACK 4 aturan? khususnya #1 dan #4)_
+
+---
+
+### 5.8 Konsekuensi lintas layer yang WAJIB ikut berubah — 🟡 USUL
+
+Ini bagian yang paling gampang terlewat: keputusan hardware/firmware yang diam-diam mengubah logika backend.
+
+| Asal keputusan | Konsekuensi di backend | Status |
+|---|---|---|
+| **D3** `dX_active=false` mematikan peripheral pintu | `resolve_user_access()` harus **membuang pintu non-aktif** sebelum sync ke controller — kalau tidak, controller menyimpan hak akses untuk pintu yang perangkatnya dimatikan. Endpoint akses juga harus menolak pemberian akses ke pintu non-aktif | Menunggu D3 |
+| **RTC DS3231** jadi sumber waktu | `_boot_estimate` dihapus; `server_ts` untuk REPLAYED diambil dari RTC (R3); butuh sanity guard (R4) | §5.1(c) |
+| **Ethernet satu-satunya jalur MQTT** | `rssi` di heartbeat kehilangan makna (B1) | Menunggu B1 |
+| **Fire interlock memutus VCC lock** | Saat `FIRE_ACTIVE`, maglock terlepas **tanpa lewat controller**. Backend akan melihat `DOOR_FORCED_OPEN` beruntun dari pintu-pintu yang terbuka. Usul: **selama `fire_state='FIRE'`, alarm forced-open ditekan (tetap dicatat sebagai log, tapi tidak melahirkan alarm)** — kalau tidak, satu kebakaran menghasilkan badai alarm palsu yang menutupi alarm kebakaran itu sendiri | **Baru, butuh ACK (B5)** |
+| **Web Config lokal 8081** bisa ubah jaringan | Nilai di controller bisa berbeda dari DB tanpa backend tahu. `config_version` cuma mendeteksi drift parameter yang di-push backend | Menunggu §3.1 |
+| **Wiegand → card_id** (§2.1) | `normalize_kartu()` di backend harus menghasilkan format yang **sama persis** dengan yang dikirim firmware. Ini titik integrasi paling rawan dan masih terbuka | Menunggu §2.1 |
+
+---
+
+### 5.9 Yang TIDAK masuk backend v0.3 (batas tegas)
+
+Ditulis supaya tidak diam-diam masuk di tengah jalan: OTA push dari backend (§2.6 — cukup lewat Web
+Config 8081 dulu), cross-controller trigger via backend (§2.5), notifikasi email/Telegram,
+logging terstruktur + `/metrics`, Alembic, Docker image, dan live door state (§6.4).
+
+---
+
+### 5.10 Checklist keputusan §5 untuk @danskiv
+
+Yang butuh jawaban dari sisi firmware/hardware — sisanya keputusan internal backend:
+
+| # | Pertanyaan | Usulan saya | Jawaban |
+|---|---|---|---|
+| B1 | `rssi` di heartbeat: dipertahankan, diisi status link Ethernet, atau diganti `eth_link`? | Ganti maknanya jadi status Ethernet; nama field tetap demi kompatibilitas | _(…)_ |
+| B2 | Sensing daya: satu dimensi (`POWER_LOW/NORMAL`) atau dua (PLN + aki terpisah)? | Kalau hardware benar punya 2 ADC, kode event & kolom state dipisah | _(…)_ |
+| B3 | Topic relay test: `access/{id}/relay/test` dengan payload `<door>,<duration_ms>`? | ACK, dan controller membalas hasilnya supaya UI tidak menebak | _(…)_ |
+| B4 | Firmware sanggup menyertakan `seq` (nomor urut log per device)? | Sanggup → dedup benar; tidak → terima duplikat, jangan pakai opsi B | _(…)_ |
+| B5 | Saat `FIRE_ACTIVE`, alarm forced-open ditekan supaya tidak badai alarm? | Ya — tetap dicatat sebagai log, tapi tidak melahirkan alarm | _(…)_ |
+| B6 | Bentrok topic `status` (heartbeat v0.2 vs LWT v0.3) — firmware v0.3 pakai yang mana? | `heartbeat` untuk telemetry, `status` untuk LWT; backend tetap toleran ke format lama | _(…)_ |
+| B7 | Event ikut buffer offline & `REPLAYED`, atau hilang saat offline? | Ikut di-buffer — tamper saat jaringan mati justru yang paling penting | _(…)_ |
+| B8 | Controller melaporkan `config_version` di `config/response`? | Ya — bikin deteksi drift cukup 1 perbandingan angka | _(…)_ |
+
 ---
 
 ## 6. FRONTEND
@@ -519,7 +854,9 @@ Roadmap Sprint 2 menyebut 8 item. Usulan pemilahan, dengan alasan:
 > TailwindCSS 4 + TanStack Query + Zustand + react-router**. Tidak ada library UI/komponen pihak ketiga —
 > semua komponen (`Badge`, `Modal`, `Table`, `Toast`, `StatCard`) buatan sendiri. **Tidak ada test runner.**
 
-### 6.0 Titik awal: struktur frontend sekarang (✅ fakta)
+### 6.0 Kerangka
+
+#### (a) Titik awal: struktur frontend sekarang (✅ fakta)
 
 | Area | File | Catatan |
 |---|---|---|
@@ -527,64 +864,154 @@ Roadmap Sprint 2 menyebut 8 item. Usulan pemilahan, dengan alasan:
 | Live feed WS | `src/ws/liveFeed.ts` | `useLiveFeed()`, auto-reconnect 3 dtk, parse objek log polos |
 | Controller | `src/pages/Controllers/Controllers.tsx` + `ControllerConfigModal.tsx` | 1 tombol "🔄 Full Sync", badge Online/Offline |
 | Log | `src/pages/Logs/AccessLogs.tsx` | `reason` dirender **apa adanya** (`l.reason ?? "—"`), `toCsv()` masih nempel di file ini |
-| Dashboard | `src/pages/Dashboard/Dashboard.tsx` | idem, `resultColor(l.result)` cuma tahu 2 hasil |
+| Dashboard | `src/pages/Dashboard/Dashboard.tsx` | `resultColor(l.result)` cuma tahu 2 hasil |
+| Auth | `src/api/auth.ts` (`useMe()` sudah mengembalikan `role`), `api/client.ts` | JWT di `localStorage`, interceptor 401 → `/login` |
+| Navigasi | `components/NavSidebar.tsx` (6 menu), `App.tsx` (7 rute) | Semua rute dibungkus `ProtectedRoute` |
 | Util | `src/utils/format.ts`, `src/utils/kartu.ts` | Format waktu dd-mm-yyyy hh:mm:ss (keputusan @danskiv) |
 
+#### (b) Empat temuan yang mengubah rencana (⚠️ hasil audit, bukan asumsi)
+
+| # | Temuan | Dampak |
+|---|---|---|
+| **F-a** | **`useLiveFeed()` tidak pernah mengirim token.** `wsUrl()` (`ws/liveFeed.ts:17-20`) cuma menempel `/ws/live-feed`, padahal backend membaca `?token=` (`app/ws/auth.py`). Sekarang tidak ketahuan karena `AUTH_ENABLED = False` | Begitu §5.5 mengaktifkan auth, **live feed langsung mati** (close 1008) tanpa pesan yang jelas. Wajib diperbaiki **bersamaan** dengan aktivasi auth, bukan sesudahnya |
+| **F-b** | **Filter log tidak punya `ALARM`.** `uiStore.logsFilter.result` bertipe `"ALL"\|"GRANTED"\|"DENIED"`, dan dropdown di `AccessLogs.tsx:210-218` cuma 3 opsi | Log ALARM akan **masuk DB tapi tidak bisa difilter** — fitur alarm terasa "tidak jalan" padahal datanya ada |
+| **F-c** | **Badge result 2 warna.** `l.result === "GRANTED" ? "green" : "red"` (`AccessLogs.tsx:126`) | `ALARM` akan tampil **persis sama** dengan `DENIED`. Kejadian sabotase tidak bisa dibedakan dari kartu ditolak biasa |
+| **F-d** | **`toCsv()` header hardcoded 9 kolom** (`AccessLogs.tsx:26-37`) | Kolom baru (`door_number`, `device_ts`) tidak ikut ter-export; export juga masih **halaman aktif saja** (batasan lama yang belum ditutup) |
+
+#### (c) Kontrak state di frontend — 🟡 USUL
+
+Sekarang sudah ada 2 sumber state; v0.3 menambah yang ketiga (WS push). Batasnya perlu ditulis
+supaya tidak jadi tiga sumber kebenaran yang saling bertengkar:
+
+| Sumber | Dipakai untuk | Contoh | Aturan |
+|---|---|---|---|
+| **React Query** | Semua data server | user, log, controller, alarm | **Satu-satunya sumber kebenaran.** Boleh basi, tidak boleh salah |
+| **Zustand** | State UI murni | filter, modal terbuka, tema, toggle suara | Tidak pernah menyimpan salinan data server |
+| **WebSocket** | **Pemberitahuan**, bukan penyimpanan | log baru, alarm baru, status controller | Pesan WS → tampilkan sekilas **dan** `invalidateQueries()`; jangan jadikan WS satu-satunya jalan data masuk |
+
+> **Kenapa aturan ketiga penting:** kalau alarm hanya hidup di memori dari WS, admin yang me-refresh
+> halaman atau baru login akan melihat "tidak ada alarm" padahal ada. Alarm **harus** di-seed dari
+> `GET /api/alarms?acked=false`, WS cuma mempercepat kemunculannya.
+
 ---
 
-### 6.1 Halaman config per-pintu — 🟡 USUL
+### 6.1 Config per-pintu — 🟡 USUL
 
-- **Tempat:** **tab baru di `ControllerConfigModal.tsx`** (bukan halaman baru). Alasan: parameter ini
-  milik controller, admin sudah membukanya lewat ⚙️ Config; halaman terpisah menambah navigasi tanpa
+- **Tempat:** **tab baru di `ControllerConfigModal.tsx`** (bukan halaman baru). Parameter ini milik
+  controller, dan admin sudah membukanya lewat ⚙️ Config; halaman terpisah menambah navigasi tanpa
   menambah informasi.
-  - Tab 1 "Jaringan & Umum" = isi modal yang sekarang.
-  - Tab 2 "Pintu" = grid **4 pintu × 4 parameter** (`active`, `open_timeout_s`, `held_timeout_s`, `alarm_duration_s`).
-- **Perilaku:** satu tombol Save untuk seluruh grid (endpoint bulk E4), bukan save per-pintu.
-- **Validasi di klien** (harus sama dengan validasi server, server tetap otoritatif):
-  `open_timeout_s` 1–120 · `held_timeout_s` 1–600 · `alarm_duration_s` 0–600 · `held ≥ open`
-  (held lebih kecil dari open = alarm bunyi sebelum orang sempat masuk).
-- **Pintu non-aktif** (`active=false`) → 3 field lain di-*disable* dan diberi keterangan, bukan disembunyikan.
-- **KEPUTUSAN:** _(tab di modal atau halaman sendiri? ACK aturan validasi di atas?)_
+  - Tab 1 "Jaringan & Umum" = isi modal sekarang (heartbeat, SSID, IP mode, broker).
+  - Tab 2 "Pintu" = grid **4 pintu × 4 parameter**, satu tombol Save untuk seluruh grid (endpoint bulk E4).
+
+```
+┌ Config — ctrl-A ────────────────────────────────────┐
+│ [ Jaringan & Umum ] [ Pintu ]          v.config 7   │
+│                                                     │
+│ Pintu            Aktif  Open  Held  Alarm           │
+│ 1 Lobby Utama     [x]   [10]  [30]  [30]            │
+│ 2 Ruang Server    [x]   [ 5]  [20]  [60]            │
+│ 3 Ruang Meeting   [ ]   [--]  [--]  [--]  (nonaktif)│
+│ 4 Ruang Arsip     [x]   [10]  [30]  [30]            │
+│                                                     │
+│ ⚠ Pintu 2: held (20) harus ≥ open (5) — OK          │
+│                        [ Batal ]  [ Simpan & Push ] │
+└─────────────────────────────────────────────────────┘
+```
+
+- **Validasi di klien** (cermin CHECK di DB §4.1 — server tetap otoritatif):
+  `open_timeout_s` 1–120 · `held_timeout_s` 1–600 · `alarm_duration_s` 0–600 · **`held ≥ open`**.
+  Validasi lintas-field (`held ≥ open`) dicek **saat mengetik**, bukan cuma saat submit — kalau baru
+  ketahuan setelah Save, admin harus menebak baris mana yang salah.
+- **Pintu non-aktif** → 3 field lain di-*disable* + diberi keterangan, **bukan disembunyikan**.
+  Menyembunyikan membuat admin mengira nilainya hilang.
+- **Umpan balik yang jujur setelah Save.** Ini bukan form biasa: menyimpan berarti **mengubah perilaku
+  perangkat fisik**. Yang harus dibedakan di UI:
+  - `200` = tersimpan di **database** ✅
+  - tapi push MQTT ke controller **belum tentu sampai** (controller bisa offline)
+  - Usul: setelah Save, tampilkan `config_version` baru + status "menunggu konfirmasi controller",
+    lalu berubah jadi "tersinkron" begitu `config/response` masuk (lewat WS `type:"sync_state"`).
+    Jangan menampilkan "Config tersimpan" polos seperti sekarang (`Controllers.tsx:22`) — itu
+    membuat admin mengira pintu sudah berubah padahal belum.
+- **Konflik dua admin:** `config_version` dikirim balik saat PUT; kalau versi di server sudah lebih
+  baru, tolak dengan `error_code: CONFIG_VERSION_CONFLICT` dan minta muat ulang. Tanpa ini, dua admin
+  yang membuka modal bersamaan akan saling menimpa diam-diam.
+- **KEPUTUSAN:** _(tab di modal atau halaman sendiri? ACK aturan validasi + umpan balik 2 tahap + konflik versi?)_
 
 ---
 
-### 6.2 Tampilan & notifikasi ALARM — 🟡 USUL
+### 6.2 Alarm — 🟡 USUL (fitur frontend terbesar v0.3)
 
-- **Prasyarat tipe:** `AccessResult` harus jadi `"GRANTED" | "DENIED" | "ALARM"` dan `AccessReason`
-  diganti seluruh 9 kode v0.3 (lihat §6.5). Tanpa ini, TypeScript akan menolak/menyembunyikan bug.
-- **Komponen baru:**
-  - `src/components/AlarmBanner.tsx` — banner merah persisten di `Layout`, muncul selama masih ada
-    alarm belum di-ack. Tetap terlihat di halaman mana pun.
-  - `src/pages/Alarms/Alarms.tsx` — daftar alarm + tombol Acknowledge (endpoint E8/E9).
-  - `src/store/alarmStore.ts` (Zustand) — alarm aktif di memori, diisi dari WS `type:"alarm"` +
-    di-*seed* dari `GET /api/alarms?acked=false` saat halaman dibuka (kalau cuma dari WS, alarm yang
-    terjadi sebelum admin login tidak akan pernah tampil).
-- **Suara:** usul **ya, tapi opsional & bisa dimatikan** (toggle disimpan di `uiStore`). Browser memblokir
-  autoplay sebelum ada interaksi user — perlu diakui sebagai keterbatasan, jangan jadi satu-satunya
-  jalur notifikasi.
-- **Warna:** GRANTED hijau · DENIED kuning/abu · **ALARM merah**. `resultColor()` di `Dashboard.tsx`
-  harus dipindah ke util bersama karena sekarang dipakai 3 tempat.
-- **KEPUTUSAN:** _(halaman Alarms terpisah atau cukup filter di Access Logs? suara: ya/tidak?)_
+- **Prasyarat tipe:** `AccessResult` jadi `"GRANTED" | "DENIED" | "ALARM"` dan `AccessReason` diganti
+  9 kode v0.3 (§6.5). Tanpa ini TypeScript akan diam saja saat `ALARM` masuk.
+
+#### (a) Tiga tempat alarm muncul (sengaja berlapis)
+
+| Lapis | Komponen | Kapan tampil |
+|---|---|---|
+| **Banner global** | `components/AlarmBanner.tsx` di `Layout` | Selama ada alarm **belum di-ack** — terlihat di halaman mana pun. Bukan toast; toast hilang sendiri dan alarm tidak boleh hilang sendiri |
+| **Halaman Alarms** | `pages/Alarms/Alarms.tsx` (rute `/alarms` + menu 🚨) | Daftar penuh + tombol Acknowledge (E8/E9), filter aktif/riwayat |
+| **Baris log** | `AccessLogs.tsx`, `Dashboard.tsx` | Baris `ALARM` berwarna merah + reason ter-terjemah |
+
+#### (b) Dua state alarm harus kelihatan beda (turunan D9/§5.7)
+
+Ini yang paling gampang salah dirancang di UI:
+
+| Kondisi | `cleared_at` | `acked_at` | Tampilan |
+|---|:--:|:--:|---|
+| Sedang terjadi | NULL | NULL | 🔴 **AKTIF** — merah, di banner |
+| Sudah normal, belum dilihat | terisi | NULL | 🟠 **PERLU DILIHAT** — tetap di banner, tapi beda warna |
+| Sudah di-ack | terisi/NULL | terisi | ⚪ pindah ke riwayat |
+
+> Tamper yang dibuka lalu ditutup lagi **tidak boleh hilang sendiri dari layar**. Kalau UI cuma
+> membaca "kondisi sekarang", sabotase singkat lewat tanpa ada yang tahu — itu justru kejadian
+> yang paling ingin ditangkap.
+
+#### (c) Perilaku detail
+
+- **Seed + push:** `alarmStore` diisi dari `GET /api/alarms?acked=false` saat app dimuat, lalu
+  diperbarui oleh WS `type:"alarm"`. WS saja tidak cukup (§6.0c).
+- **Suara:** usul **ya, opsional, default menyala**, toggle disimpan di `uiStore`. Batasannya harus
+  diakui: browser memblokir autoplay sebelum ada interaksi user, jadi suara **tidak boleh** jadi
+  satu-satunya jalur notifikasi. Beri suara berbeda untuk `FIRE_ACTIVE` vs alarm lain.
+- **Ack butuh konfirmasi + catatan opsional** (`ack_note`), karena ini masuk `admin_logs`.
+- **Anti-badai (cermin §5.7 #4):** kalau backend mengirim penghitung, tampilkan `DOOR_FORCED_OPEN ×12`
+  dalam **satu baris**, bukan 12 baris.
+- **`viewer` tidak boleh meng-ack** (§6.7) — tombolnya di-disable dengan alasan, bukan disembunyikan.
+- **KEPUTUSAN:** _(ACK 3 lapis + pemisahan cleared/acked + suara default menyala?)_
 
 ---
 
-### 6.3 Status controller lebih kaya — 🟡 USUL
+### 6.3 Status & kendali controller — 🟡 USUL
 
-Perubahan pada `Controllers.tsx`:
+Perubahan pada `Controllers.tsx` (sekarang 6 kolom, 2 aksi):
 
 | Kolom / aksi | Sekarang | v0.3 |
 |---|---|---|
-| Status | Badge Online/Offline dari `is_online` (hitungan `last_seen`) | Tetap, **tapi sumbernya LWT** — jelaskan di UI mana yang "OFFLINE by LWT" vs "diam melewati 3× heartbeat" |
+| Status | Badge Online/Offline dari `is_online` | **Dua indikator berdampingan**: `is_online` (hitungan `last_seen`) **dan** `link_state` (LWT). Beda arti — lihat catatan di bawah |
 | Sync | 1 tombol "🔄 Full Sync" | **2 tombol**: "Sync Database" (E5) & "Sync Config" (E6) |
-| Sync state | — | Badge `IN_SYNC` / `SYNCING` / **`SYNC_ERROR_ATTENTION_REQUIRED` (merah)** |
-| Health | — | Ikon tamper / fire / power (`POWER_NORMAL`/`POWER_LOW`), uptime, RSSI, `total_users` (E10) |
+| Sync state | — | Badge `IN_SYNC` / `SYNCING` / 🔴 `SYNC_ERROR_ATTENTION_REQUIRED` + tombol reset |
+| Health | — | Tamper / fire / power, uptime, `total_users_reported` vs jumlah di DB (E10) |
+| Aksi fisik | — | **Test Relay 1–4** (E7) — `admin` saja, dengan konfirmasi |
 
-- **Sumber data:** kolom tabel dari `GET /api/controllers` (polling TanStack Query seperti sekarang);
-  perubahan `sync_state` & tamper/fire didorong lewat WS supaya tidak menunggu polling.
-- **Konsistensi istilah:** UI memakai label **Bahasa Indonesia**, sedangkan **kode status/reason
-  ditampilkan English uppercase** sesuai Contract Codes. Ini campuran yang disengaja — **perlu
-  di-ACK eksplisit**, jangan sampai nanti setengah diterjemahkan.
-- **KEPUTUSAN:** _(ACK 2 tombol + badge sync_state + campuran bahasa?)_
+- **Kenapa dua indikator status, bukan digabung:** `is_online` bisa `true` sementara LWT sudah
+  `OFFLINE` (heartbeat terakhir belum kedaluwarsa), dan sebaliknya LWT `ONLINE` bisa basi kalau
+  device mati mendadak tanpa sempat mengirim apa pun. Menggabungkan keduanya jadi satu lampu
+  menyembunyikan justru kasus yang paling ingin dilihat teknisi. Usul: satu badge utama + tooltip
+  yang menjelaskan sumbernya.
+- **Drift user terlihat langsung:** tampilkan `total_users_reported` (dari heartbeat) berdampingan
+  dengan jumlah user yang seharusnya. Beda → tandai, karena itu persis pemicu auto-sync di §5.2.
+- **Test Relay (E7) — aksi paling berbahaya di seluruh UI.** Ini membuka pintu fisik dari browser.
+  Usul perlakuan khusus:
+  - Modal konfirmasi yang **menyebut nama pintu**, bukan cuma "Yakin?" ("Buka **Ruang Server**
+    (ctrl-A pintu 2) selama 3 detik?").
+  - **Disabled kalau controller offline**, dengan alasan tertulis — jangan biarkan perintah mengendap
+    di broker lalu pintu terbuka entah kapan.
+  - Tampilkan pengingat bahwa aksi ini tercatat atas nama admin yang login.
+- **Sumber data:** tabel dari `GET /api/controllers` (polling React Query seperti sekarang);
+  `sync_state` & tamper/fire/power didorong lewat WS supaya tidak menunggu interval polling.
+- **Konsistensi istilah:** label UI **Bahasa Indonesia**, kode status/reason **English uppercase**
+  sesuai Contract Codes. Campuran ini disengaja — perlu di-ACK, jangan sampai nanti setengah diterjemahkan.
+- **KEPUTUSAN:** _(ACK 2 indikator status + 2 tombol sync + perlakuan khusus Test Relay?)_
 
 ---
 
@@ -602,9 +1029,10 @@ Alasan konkret (bukan sekadar "hemat waktu"):
 
 ### 6.5 Tabel terjemahan kode → teks — 🟡 USUL
 
-- **Lokasi:** `src/constants/codes.ts` — satu file, dua `Record<string, string>` (`STATUS_TEXT`,
-  `REASON_TEXT`), plus helper `reasonText(code)` yang mengembalikan `"UNKNOWN"` untuk kode asing
-  (**tidak boleh render string kosong / crash** — aturan pemeliharaan kontrak #1).
+- **Lokasi:** `src/constants/codes.ts` — satu file, **tiga** `Record<string, string>`: `STATUS_TEXT`,
+  `REASON_TEXT`, dan `EVENT_TEXT` (kode event §4.2: `TAMPER_OPEN` → `TAMPER OPEN`, dst), plus helper
+  yang mengembalikan `"UNKNOWN"` untuk kode asing (**tidak boleh render string kosong / crash** —
+  aturan pemeliharaan kontrak #1).
 - **Log `REPLAYED`** ditampilkan sebagai sufiks `" (REPLAYED)"`, sesuai contoh di Contract Codes —
   jadi helper-nya `reasonText(code, isReplayed)`.
 - **Bahaya duplikasi:** tabel yang sama akan ada di 3 tempat (`firmware` angka, `backend/app/mqtt/codes.py`,
@@ -618,12 +1046,95 @@ Alasan konkret (bukan sekadar "hemat waktu"):
 
 | Aksi | File |
 |---|---|
-| **Baru** | `constants/codes.ts`, `components/AlarmBanner.tsx`, `pages/Alarms/Alarms.tsx`, `store/alarmStore.ts`, `api/alarms.ts`, `pages/Controllers/DoorConfigTab.tsx`, `utils/resultColor.ts` |
-| **Ubah** | `types/index.ts` (ALARM + 9 reason + field sync/health), `ws/liveFeed.ts` (amplop `{v,type,data}`), `pages/Controllers/Controllers.tsx` (2 tombol + kolom), `ControllerConfigModal.tsx` (tab), `pages/Logs/AccessLogs.tsx` + `Dashboard.tsx` (render kode→teks), `components/Layout.tsx` (banner), `api/controllers.ts` (endpoint baru) |
-| **Ekstrak (dari roadmap Sprint 1)** | `toCsv()` keluar dari `AccessLogs.tsx`, `accessToDoorIds()` keluar dari `UserDetail.tsx` — prasyarat supaya bisa ditest |
+| **Baru (11)** | `constants/codes.ts` · `components/AlarmBanner.tsx` · `components/ConfirmDialog.tsx` · `pages/Alarms/Alarms.tsx` · `pages/Controllers/DoorConfigTab.tsx` · `store/alarmStore.ts` · `api/alarms.ts` · `api/events.ts` · `hooks/useRole.ts` · `utils/resultColor.ts` · `utils/csv.ts` (hasil ekstraksi) |
+| **Ubah (12)** | `types/index.ts` (ALARM + 9 reason + kode event + field sync/health) · `ws/liveFeed.ts` (amplop + **token**) · `store/uiStore.ts` (filter `ALARM`, toggle suara) · `pages/Controllers/Controllers.tsx` · `ControllerConfigModal.tsx` · `pages/Logs/AccessLogs.tsx` · `pages/Dashboard/Dashboard.tsx` · `components/Layout.tsx` (banner + label versi) · `components/NavSidebar.tsx` (menu Alarms + filter role) · `components/Badge.tsx` (tone alarm) · `api/controllers.ts` · `App.tsx` (rute `/alarms`) |
+| **Ekstrak (roadmap Sprint 1)** | `toCsv()` keluar dari `AccessLogs.tsx`, `accessToDoorIds()` keluar dari `UserDetail.tsx` — prasyarat supaya bisa ditest |
 
-> **Kesimpulan porsi kerja:** 7 file baru + 8 file diubah. Ini **bukan** "tinggal nambah kolom tabel" —
-> setara dengan satu sprint penuh sendiri, dan itu sebelum menghitung test.
+> **Kesimpulan porsi kerja:** **11 file baru + 12 file diubah**, dan yang diubah termasuk file yang
+> dipakai **semua** halaman (`types/index.ts`, `Layout`, `Badge`, `uiStore`). Ini bukan "tinggal
+> nambah kolom tabel" — perubahan tipe `AccessResult` saja sudah merembet ke seluruh halaman yang
+> menampilkan log.
+
+---
+
+### 6.7 RBAC di UI (`viewer`) — 🟡 USUL (konsekuensi §5.5)
+
+Sekarang frontend **tidak punya konsep role sama sekali** — semua yang lolos `ProtectedRoute` dianggap
+admin penuh. `useMe()` sudah mengembalikan `role`, jadi bahannya ada, tinggal dipakai.
+
+- **`hooks/useRole.ts`** — `const { isAdmin } = useRole()` dari `useMe()`, dipakai semua aksi.
+- **Aturan tampilan:** aksi yang tidak boleh → **di-disable + tooltip alasan**, bukan disembunyikan.
+  Menyembunyikan bikin viewer mengira fiturnya tidak ada dan melapor sebagai bug.
+- **Menu `Alarms` tetap terlihat** untuk viewer (boleh baca), tapi tombol Acknowledge disabled.
+- **Batas tegas:** UI **hanya kosmetik**. Penegakan sesungguhnya di backend (§5.3). Tidak boleh ada
+  satu pun aksi yang aman semata-mata karena tombolnya disembunyikan.
+- **KEPUTUSAN:** _(ACK disable-bukan-hide? role apa saja yang benar-benar dipakai — cuma admin/viewer?)_
+
+---
+
+### 6.8 WebSocket di sisi klien — 🟡 USUL
+
+- **⚠️ Perbaiki F-a lebih dulu:** `wsUrl()` harus menempel `?token=${localStorage.getItem("jwt")}`.
+  Ini **wajib satu paket** dengan pengaktifan `AUTH_ENABLED` di §5.5 — kalau tidak, live feed mati
+  begitu auth dinyalakan dan penyebabnya susah ditebak (WS ditutup dengan kode 1008, tanpa pesan).
+- **Amplop `{v,type,data}`** (§5.4). `liveFeed.ts` sekarang meng-`JSON.parse` langsung jadi log.
+  Usul: `useLiveFeed()` dipecah jadi `useRealtime()` (satu koneksi, mendistribusikan per `type`) —
+  **satu koneksi WS untuk seluruh aplikasi**, jangan satu koneksi per komponen.
+- **Pesan tanpa `type`** diperlakukan sebagai `log` (kompatibel mundur satu rilis).
+- **Reconnect:** sekarang tetap 3 detik selamanya. Usul **backoff** (3 → 6 → 12 → maks 30 detik),
+  supaya backend yang sedang mati tidak dihantam ulang terus oleh semua tab yang terbuka.
+- **Indikator koneksi:** `connected` sudah ada di hook tapi belum ditampilkan di mana-mana. Usul
+  tampilkan titik kecil di header — kalau WS putus, admin harus tahu bahwa "sepi" belum tentu
+  berarti "tidak ada kejadian".
+- **Banjir REPLAYED** (§5.4): log replay **tidak** masuk live feed sebagai kejadian baru.
+- **Dedup di klien:** buang pesan dengan `id` yang sudah ada di daftar — perlindungan lapis dua
+  terhadap duplikat QoS 1 (§5.6), murah dan tidak bergantung keputusan B4.
+- **KEPUTUSAN:** _(ACK satu koneksi terpusat + backoff + indikator koneksi?)_
+
+---
+
+### 6.9 Perubahan tipe & efek berantainya — 🟡 USUL
+
+`types/index.ts` adalah file paling berbahaya untuk diubah karena dipakai hampir semua halaman.
+Urutan yang diusulkan supaya tidak "merah semua" sekaligus:
+
+1. `AccessResult` → `"GRANTED" | "DENIED" | "ALARM"`.
+   → TypeScript akan **langsung menunjukkan** semua tempat yang cuma menangani 2 hasil (F-c).
+   Ini fitur, bukan gangguan — biarkan compiler yang mencari, jangan cari manual.
+2. `AccessReason` → 9 kode v0.3. Usul: **`string`-kan tapi dengan konstanta** — kode dari perangkat
+   lapangan bisa saja lebih baru dari frontend (aturan append-only), jadi union yang terlalu ketat
+   akan menolak data sah. Union dipakai untuk pilihan filter, bukan untuk data masuk.
+3. `uiStore.logsFilter.result` → tambah `"ALARM"` + opsi dropdown (F-b).
+4. `Badge` → tambah tone khusus alarm; `resultColor()` dipindah ke `utils/resultColor.ts`.
+5. `toCsv()` → kolom baru (`door_number`, `device_ts`) + pindah file (F-d).
+6. `Controller` → +`sync_state`, `link_state`, `tamper_state`, `fire_state`, `power_state`,
+   `total_users_reported`, `config_version`.
+7. Tipe baru: `Alarm`, `ControllerEvent`.
+
+---
+
+### 6.10 Yang TIDAK masuk frontend v0.3 (batas tegas)
+
+Live door monitoring (§6.4), halaman viewer `admin_logs` (datanya ditulis, UI-nya v0.4), grafik/laporan
+statistik, notifikasi browser/push, i18n penuh (tetap campuran ID + kode English), dan tema/branding baru.
+
+---
+
+### 6.11 Checklist keputusan §6
+
+Berbeda dari §4/§5, ini keputusan yang **di ranah saya sendiri** — dicatat supaya konsisten, bukan
+untuk menunggu jawaban @danskiv:
+
+| # | Pertanyaan | Usulan | Jawaban |
+|---|---|---|---|
+| F1 | Config pintu: tab di modal atau halaman sendiri? | Tab di modal | _(…)_ |
+| F2 | Alarm: halaman sendiri atau cukup filter di Access Logs? | **Halaman sendiri** — alarm punya siklus ack yang tidak dimiliki log | _(…)_ |
+| F3 | Suara alarm: ada / tidak / opsional? | Opsional, default menyala | _(…)_ |
+| F4 | Aksi terlarang untuk `viewer`: disembunyikan atau disabled? | Disabled + alasan | _(…)_ |
+| F5 | Satu koneksi WS terpusat atau per halaman? | Terpusat (`useRealtime`) | _(…)_ |
+| F6 | `AccessReason` union ketat atau string + konstanta? | String + konstanta (append-only aman) | _(…)_ |
+| F7 | Umpan balik Save config: 1 tahap atau 2 tahap (DB → controller)? | **2 tahap** — jangan bilang "tersimpan" untuk perubahan yang belum sampai ke perangkat | _(…)_ |
+| F8 | Test Relay muncul di tabel controller atau di dalam modal config? | Di modal config, tab Pintu — bukan di tabel utama, supaya tidak salah klik | _(…)_ |
 
 ---
 
@@ -634,16 +1145,25 @@ Alasan konkret (bukan sekadar "hemat waktu"):
 | Hal | Kondisi |
 |---|---|
 | `.github/workflows/` | **Tidak ada sama sekali** — belum ada CI apa pun |
-| Test backend | **Sudah pytest**: `backend/pytest.ini`, `backend/requirements-dev.txt`, `backend/tests/{conftest,test_models,test_user_service,test_csv_service}.py` |
+| Test backend | **Sudah pytest**: `backend/pytest.ini` (`asyncio_mode=auto`), `requirements-dev.txt` (`pytest`, `pytest-asyncio`, `httpx`), `tests/{conftest,test_models,test_user_service,test_csv_service}.py` |
 | Test frontend | **Nol** — `package.json` tidak punya `vitest` maupun script `test` |
 | Test firmware | Belum ada `[env:native]` / folder `firmware/test/` |
 | Lint | `oxlint` sudah ada di frontend (`npm run lint`); backend belum ada linter |
-| Secret scanning | Belum ada (gitleaks) |
+| Secret scanning | Belum ada (gitleaks). `.env` sudah masuk `.gitignore` ✅ |
 | Branch protection | Belum aktif |
+| Deployment | Manual sepenuhnya. Referensi terdekat: [`VM_TESTING_PLAN.md`](VM_TESTING_PLAN.md) (VM Debian + Docker `mysql:8.0` & `emqx/emqx:5.8` + uvicorn) |
+
+#### Dua temuan yang mengubah rancangan CI (⚠️ hasil audit, bukan asumsi)
+
+| # | Temuan | Akibatnya untuk v0.3 |
+|---|---|---|
+| **C-a** | **Test backend memakai SQLite, dan skemanya dibangun dari MODEL — bukan dari `schema.sql`.** `tests/conftest.py` memanggil `Base.metadata.create_all()` di atas `sqlite:///test.db` | Dua lubang sekaligus: **(1)** `schema.sql`/migrasi bisa melenceng dari model tanpa satu pun test gagal; **(2)** semua hal khas MySQL **tidak pernah teruji** — `ENUM`, `DATETIME(3)`, FK `RESTRICT`, dan **CHECK constraint §4.1** yang justru jadi pengaman utama config pintu. Bahkan `_is_online_expr` **mustahil** dites di SQLite karena memakai `func.timestampdiff()` |
+| **C-b** | **`conftest.py` menyemai data saat IMPORT**, ke file `test.db` yang dihapus-buat di direktori kerja | Di CI ini rapuh: tidak ada isolasi antar test, sisa file bisa terbawa, dan urutan test jadi berpengaruh. Perlu diubah ke fixture sebelum dipakai sebagai gerbang merge |
+| **C-c** | **`platformio.ini` masih `[env:esp32dev]` (ESP32 klasik)** | v0.3 memakai ESP32-S3-WROOM-1-N16 + partisi 16MB. CI firmware harus mengompilasi environment **baru** `esp32s3_16mb`, bukan yang lama |
 
 > **Koreksi ke roadmap:** [`ROADMAP_v0.3.md`](ROADMAP_v0.3.md) Sprint 1 menulis pytest & `requirements-dev.txt`
-> sebagai pekerjaan yang belum ada. Keduanya **sudah ada**. Sisa kerja Sprint 1 lebih kecil dari yang tertulis
-> di sisi backend, tapi **frontend benar-benar dari nol**.
+> sebagai pekerjaan yang belum ada. Keduanya **sudah ada**. Tapi sebaliknya, roadmap **tidak menyebut** dua
+> pekerjaan yang ternyata perlu: memindahkan test DB ke MySQL sungguhan (C-a) dan merapikan `conftest.py` (C-b).
 
 ---
 
@@ -656,23 +1176,75 @@ Alasan konkret (bukan sekadar "hemat waktu"):
   ditangkap otomatis oleh test kontrak (§7.2) dan **tidak bisa** ditangkap review manual dengan andal.
 - Biayanya ~1–2 hari (backend sudah setengah jalan), bukan 4 hari seperti estimasi roadmap.
 
-#### (b) Matriks workflow
+#### (b) Batas CI vs CD di v0.3 — 🟡 USUL
 
-| Workflow | File | Trigger `paths` | Isi |
-|---|---|---|---|
-| Backend | `.github/workflows/backend-ci.yml` | `backend/**` | `pip install -r requirements-dev.txt` → `pytest` |
-| Frontend | `.github/workflows/frontend-ci.yml` | `frontend/**` | `tsc --noEmit` → `oxlint` → `vitest run` → `npm run build` |
-| Firmware | `.github/workflows/firmware-ci.yml` | `firmware/**` | `pio test -e native` (+ `pio run` compile check) |
-| Kontrak | `.github/workflows/contract-ci.yml` | `backend/**`, `frontend/**`, `docs/CONTRACT-CODES-V0.3.md` | Bandingkan tabel kode backend ↔ frontend ↔ dokumen (§7.2c) |
-| Secret | `.github/workflows/gitleaks.yml` | semua PR | Scan credential; repo ini menyimpan config MQTT/DB |
+Supaya tidak salah harap sejak awal:
 
-- **Branch protection `dev`**: required status checks = 5 workflow di atas. Sesuai
+```
+  PR ──► [ CI: verifikasi ]  ──merge──► dev ──► [ CI ulang ]
+                                                    │
+                              tag v0.3.0 ──► [ CD: BUILD ARTEFAK ]
+                                                    │
+                                        artefak siap pasang (GitHub Release)
+                                                    │
+                                        ┌───────────┴───────────┐
+                                        │  PEMASANGAN = MANUAL  │  ◄── v0.3
+                                        │  (terdokumentasi,     │
+                                        │   satu perintah/tahap)│
+                                        └───────────────────────┘
+```
+
+**CD di v0.3 berhenti di "menghasilkan artefak", bukan "memasang ke server".** Tiga alasan:
+1. Memasang berarti menyentuh sistem yang **mengendalikan pintu fisik**. Deploy otomatis ke perangkat
+   keamanan tanpa manusia menekan tombol bukan penghematan yang sepadan.
+2. Target pasangnya masih satu VM di LAN ([`VM_TESTING_PLAN.md`](VM_TESTING_PLAN.md)) — GitHub Actions
+   tidak bisa menjangkaunya tanpa membuka jalur masuk baru ke jaringan gedung.
+3. Kredensial produksi (DB, MQTT, JWT) belum punya tempat penyimpanan yang layak.
+
+Yang **tetap didapat**: artefak yang sama persis dengan yang diuji CI, ter-versi, bisa di-rollback, dan
+prosedur pasangnya tertulis (§7.6) — bukan "build di laptop siapa yang lagi sempat".
+
+#### (c) Matriks workflow — 🟡 USUL
+
+| # | Workflow | File | Trigger | Isi | Gerbang merge? |
+|---|---|---|---|---|:--:|
+| W1 | **Backend** | `backend-ci.yml` | PR, `paths: backend/**` | `pip install -r requirements-dev.txt` → `ruff` (baru) → `pytest` **dengan service container `mysql:8.0`** | ✅ |
+| W2 | **Frontend** | `frontend-ci.yml` | PR, `paths: frontend/**` | `tsc --noEmit` → `oxlint` → `vitest run` → `npm run build` | ✅ |
+| W3 | **Firmware** | `firmware-ci.yml` | PR, `paths: firmware/**` | `pio test -e native` → `pio run -e esp32s3_16mb` (compile) → unggah `firmware.bin` sebagai artifact | ✅ |
+| W4 | **Database** | `db-ci.yml` | PR, `paths: database/**`, `backend/app/models/**` | **BARU** — lihat (d) di bawah | ✅ |
+| W5 | **Kontrak** | `contract-ci.yml` | PR, `paths: backend/**`, `frontend/**`, `firmware/**`, `docs/CONTRACT-CODES-V0.3.md` | Bandingkan tabel **STATUS + REASON + EVENT** di `app/mqtt/codes.py` ↔ `src/constants/codes.ts` ↔ konstanta firmware ↔ dokumen | ✅ |
+| W6 | **Secret scan** | `gitleaks.yml` | semua PR | Repo menyimpan config MQTT/DB; `.env` sudah di-ignore tapi riwayat & contoh config tetap perlu discan | ✅ |
+| W7 | **Integrasi** | `integration-ci.yml` | **manual + nightly**, bukan tiap PR | Docker compose: MySQL + EMQX + backend + `simulate_esp32.py` → jalankan 8 skenario §7.2(d) end-to-end | ❌ (lambat) |
+| W8 | **Rilis** | `release.yml` | `push: tags: v*` | Build & lampirkan artefak (§7.6b) ke GitHub Release | ❌ |
+
+- **Branch protection `dev`**: required status checks = **W1–W6**. Sesuai
   [`CONTRIBUTING.md`](../CONTRIBUTING.md) & roadmap: **jangan merge sendiri**.
-- **KEPUTUSAN:** _(ACK "CI dulu, blocking"? ACK 5 workflow — terutama `contract-ci` yang tidak ada di roadmap?)_
+- **W7 sengaja tidak jadi gerbang merge.** Menyalakan MySQL + EMQX + backend tiap PR bikin siklus review
+  lambat dan sering merah karena hal yang tidak berhubungan (flaky, timeout broker). Cukup nightly +
+  bisa dipicu manual sebelum rilis.
 
-#### (c) Yang TIDAK masuk v0.3
-Deployment otomatis (CD sungguhan), build image Docker di CI, release otomatis. `backend/Dockerfile`
-(roadmap Sprint 4) boleh dibuat, tapi **tanpa** pipeline deploy — infrastrukturnya belum ada.
+#### (d) `db-ci.yml` — workflow yang tidak ada di roadmap tapi paling dibutuhkan v0.3
+
+Ini jawaban langsung untuk temuan **C-a**. Jalan di atas service container `mysql:8.0` sungguhan:
+
+| Langkah | Isi | Menangkap bug apa |
+|---|---|---|
+| 1 | `mysql < database/schema.sql` | DDL rusak/tidak urut |
+| 2 | Jalankan `database/migrations/*.sql` **berurutan** | Migrasi tidak bisa diterapkan di atas skema bersih |
+| 3 | `mysql < database/seed.sql` | Seed tidak cocok skema baru (mis. kolom `dX_` belum diisi) |
+| 4 | **Uji CHECK constraint benar-benar menolak**: `held_timeout_s < open_timeout_s`, `open_timeout_s = 0`, `alarm_duration_s > 600` | §4.1 — pengaman config pintu yang di SQLite tidak berarti apa-apa |
+| 5 | **Bandingkan model SQLAlchemy vs skema nyata** (kolom, tipe, nullability) | `schema.sql` melenceng dari `models/` — persis lubang C-a |
+| 6 | Uji **idempotensi & rollback**: terapkan migrasi 2×, lalu jalankan blok rollback dan pastikan skema kembali | Migrasi yang tidak aman diulang saat deploy gagal separuh jalan |
+| 7 | Uji `time_zone='+00:00'` aktif (aturan **R2**, §4.3) | Jebakan `created_at` vs `server_ts` beda 7 jam |
+
+> Dengan W4 ada, `backend-ci` (W1) juga sebaiknya dipindah ke MySQL service container yang sama —
+> supaya `_is_online_expr` (`func.timestampdiff`) dan handler baru bisa benar-benar dites, bukan dilewati.
+
+- **KEPUTUSAN:** _(ACK "CI dulu, blocking"? ACK 8 workflow — terutama **W4 db-ci** dan pemindahan test backend ke MySQL?)_
+
+#### (e) Yang TIDAK masuk v0.3
+Auto-deploy ke server, registry image publik, canary/blue-green, dan dashboard monitoring. `backend/Dockerfile`
+(roadmap Sprint 4) **tetap dibuat** — tapi sebagai bahan artefak rilis (§7.6), bukan pemicu deploy otomatis.
 
 ---
 
@@ -689,40 +1261,62 @@ Simulator harus bisa memancing **semua** jalur baru, minimal:
 - Mode "controller nakal": gagal balas `sync/result` 3× berturut → memaksa `SYNC_ERROR_ATTENTION_REQUIRED`.
 - Event tamper/fire/aux (begitu §3.2 diputuskan).
 
-#### (b) Test level unit/integrasi
-| Layer | Yang wajib ditest di v0.3 |
-|---|---|
-| Backend | `codes.py` (semua angka + angka asing → `UNKNOWN`), `handle_log` (v0.2 vs v0.3, kartu kosong, `REPLAYED`), state machine reconcile (3× gagal → error state), validasi param pintu |
-| Frontend | `reasonText()` (termasuk kode asing & `REPLAYED`), `toCsv()`, `accessToDoorIds()`, `normalizeKartu` |
-| Firmware | `checkAccess()`, door state machine (forced/held/unopened) **sebagai logika murni** — dipisah dari driver GPIO supaya bisa dites di `[env:native]` tanpa board |
+#### (b) Test level unit/integrasi per layer
 
-> Catatan untuk @danskiv: agar poin firmware itu mungkin, **door state machine harus ditulis sebagai
-> kelas tanpa akses langsung ke `digitalWrite`/`millis`** (waktu & IO di-inject). Ini keputusan desain
-> firmware yang harus diambil sekarang, bukan setelah kode jadi.
+| Layer | Jalan di | Yang wajib ditest di v0.3 |
+|---|---|---|
+| **Database** | `mysql:8.0` (W4) | CHECK constraint menolak nilai terlarang · migrasi bisa diterapkan & di-rollback · model ↔ skema tidak melenceng · `time_zone` UTC |
+| **Backend** | `mysql:8.0` (W1) | `codes.py` (semua angka + angka asing → `UNKNOWN`) · `handle_log` (v0.2 vs v0.3, kartu kosong, `REPLAYED`, RTC ngaco → guard R4) · `handle_event` (state controller ikut berubah) · state machine reconcile (3× gagal → `SYNC_ERROR_ATTENTION_REQUIRED`) · `alarm_service` (idempoten, `cleared_at` ≠ `acked_at`) · RBAC (`viewer` ditolak di endpoint aksi fisik) · `_is_online_expr` |
+| **Frontend** | node/vitest (W2) | `reasonText()`/`eventText()` termasuk kode asing & `REPLAYED` · `toCsv()` · `accessToDoorIds()` · `normalizeKartu` · validasi lintas-field `held ≥ open` · reducer amplop WS (`type` tak dikenal tidak bikin crash) |
+| **Firmware** | `[env:native]` (W3) | `checkAccess()` · `normalizeKartu()` · **door state machine** (forced/held/unopened) sebagai logika murni · parser/serializer payload v0.3 |
+
+> **Catatan untuk @danskiv:** agar baris firmware itu mungkin, **door state machine harus ditulis sebagai
+> kelas tanpa memanggil `digitalWrite`/`millis` langsung** (waktu & IO di-inject). Keputusan desain ini
+> harus diambil **sebelum** kode ditulis — lihat §2.4.
 
 #### (c) Test kontrak lintas layer (usul baru, tidak ada di roadmap)
 Satu tabel *golden payload* — persis contoh di [`CONTRACT-CODES-V0.3.md`](CONTRACT-CODES-V0.3.md)
-("Contoh Payload Real & Terbaca") — dipakai sebagai **fixture bersama**: backend memastikan payload →
-kode DB benar, frontend memastikan kode DB → teks UI benar. Kalau ada yang mengubah arti angka, CI merah.
+("Contoh Payload Real & Terbaca") — dipakai sebagai **fixture bersama** oleh ketiga layer: firmware
+memastikan ia **menghasilkan** payload itu, backend memastikan payload → kode DB benar, frontend
+memastikan kode DB → teks UI benar. Kalau ada yang mengubah arti angka, W5 merah.
 
-- **KEPUTUSAN:** _(ACK (a)(b)(c)? siapa yang mengerjakan perluasan simulator — ini pekerjaan backend, bukan firmware)_
+#### (d) Skenario end-to-end yang dijalankan W7 (nightly)
+
+Ini yang menggantikan "colok hardware dulu baru ketahuan":
+
+| # | Skenario | Membuktikan |
+|---|---|---|
+| S1 | Tap kartu valid → log muncul di DB & WS | Jalur utama v0.3 utuh |
+| S2 | REX (kartu kosong) & `DOOR_FORCED_OPEN` | `kartu` NULLABLE benar-benar jalan (§4.5, §5.1c) |
+| S3 | Controller putus mendadak → LWT → reconnect → replay 50 log | `server_ts` REPLAYED dari RTC (R3), tidak membanjiri live feed (§5.4) |
+| S4 | Heartbeat dengan `total_users` salah | Drift check memicu sync (§5.2d) |
+| S5 | Controller nakal: gagal `sync/result` 3× | `SYNC_ERROR_ATTENTION_REQUIRED` + alarm (§5.2e) |
+| S6 | Tamper open lalu close | Alarm `cleared_at` terisi tapi tetap menunggu ack (§5.7 #1) |
+| S7 | Ubah config pintu → push → controller balas `config_version` baru | Rekonsiliasi config (§5.2f) |
+| S8 | Kirim angka reason yang belum terdaftar (mis. `99`) | Sistem **tidak crash**, tercatat `UNKNOWN` (aturan kontrak #1) |
+
+- **KEPUTUSAN:** _(ACK (a)–(d)? Perluasan simulator ini **pekerjaan backend**, bukan firmware — perlu disepakati siapa yang mengerjakan)_
 
 ---
 
 ### 7.3 Keputusan scope — 🟡 USUL: **DIPECAH**
 
-Rekomendasi: **jangan satu rilis besar.** Dasar pertimbangan dari §8 — 6 dari 8 fitur menyentuh 6 layer
-sekaligus, artinya satu rilis besar = satu titik integrasi raksasa di akhir, persis pola yang bikin v0.2
-molor.
+Rekomendasi: **jangan satu rilis besar.** Dasar pertimbangan dari §8 — **9 dari 11 fitur** menyentuh
+backend & frontend, dan 4 di antaranya menyentuh keenam layer sekaligus. Satu rilis besar = satu titik
+integrasi raksasa di akhir, persis pola yang bikin v0.2 molor.
 
 | Rilis | Isi | Kriteria selesai |
 |---|---|---|
-| **v0.3.0** | CI/CD + test (§7.1–7.2) · kontrak MQTT dibekukan (§3) · delta DB (§4) · rework handler log/heartbeat/LWT + `codes.py` (§5.1) · config per-pintu end-to-end (E3/E4 + §6.1) · ALARM masuk DB & tampil (§6.2 minimal: badge + halaman log) · hardware + firmware fisik | Kartu fisik → pintu fisik → log & alarm tampil benar di dashboard, CI hijau |
-| **v0.3.1 / v0.4** | Auto-reconciliation penuh (§5.2) · relay test E7 · alarm ack + banner + suara · live door monitoring (§6.4) · refresh token, HTTPS, MQTT TLS | Sistem bisa dioperasikan tanpa terminal |
+| **v0.3.0** | CI (W1–W6) + test (§7.1–7.2) + pipeline artefak rilis (§7.6) · kontrak MQTT dibekukan (§3) · **seluruh** delta DB dijalankan sekali (§4, termasuk tabel yang UI-nya belum dibuat) · rework handler log/heartbeat/LWT/events + `codes.py` (§5.1) · alarm **raise/clear** di backend (§5.7) · config per-pintu end-to-end (E3/E4 + §6.1) · ALARM tampil di log + badge (§6.2 lapis 3) · RBAC + audit (§5.5, §6.7) · hardware + firmware fisik | Kartu fisik → pintu fisik → log & alarm tampil benar di dashboard, CI hijau |
+| **v0.3.1 / v0.4** | Auto-reconciliation penuh (§5.2) · relay test E7 · halaman Alarms + acknowledge + banner + suara (§6.2 lapis 1–2) · live door monitoring (§6.4) · refresh token, HTTPS, MQTT TLS | Sistem bisa dioperasikan tanpa terminal |
 
-**Alasan pemisahan spesifik:** auto-reconciliation (§5.2) butuh worker thread + 4 kolom DB + state machine,
-dan **nilainya baru terasa setelah ada controller yang benar-benar sering putus-nyambung di lapangan** —
-sesuatu yang belum bisa diamati sebelum v0.3.0 terpasang.
+**Dua alasan pemisahan yang spesifik:**
+- **Skema DB tidak ikut dipecah.** Migrasi 001 dijalankan **utuh** di v0.3.0 meski `alarms`/`admin_logs`
+  belum punya UI penuh — memecah migrasi berarti dua kali downtime dan dua kali revisi ERD, sementara
+  menjalankannya utuh tidak merusak apa pun (§4.5 backward-compatible).
+- **Auto-reconciliation ditunda** karena butuh worker thread + state machine, dan **nilainya baru terasa
+  setelah ada controller yang benar-benar sering putus-nyambung di lapangan** — sesuatu yang belum bisa
+  diamati sebelum v0.3.0 terpasang.
 
 - **KEPUTUSAN:** _(pecah seperti di atas / satu rilis / garis pemisah lain?)_
 
@@ -732,17 +1326,22 @@ sesuatu yang belum bisa diamati sebelum v0.3.0 terpasang.
 
 Yang harus dijawab **paling dulu** karena memblokir orang lain:
 
-| Prioritas | Item | Memblokir |
-|:--:|---|---|
-| 1 | §2.1 Wiegand → `card_id` mapping | **Semua.** Kalau format kartu tidak cocok DB, tidak ada yang jalan |
-| 2 | §3.1 tabel topic lengkap + §5.1(a) bentrok `status` | Backend & firmware tidak bisa mulai koding protokol |
-| 3 | §4.1–4.3 delta skema DB (termasuk `kartu` NULLABLE) | Backend, lalu frontend |
-| 4 | §7.1 CI aktif | Semua PR sesudahnya |
-| 5 | §6.5 lokasi tabel kode | Frontend |
+| Prioritas | Item | Siapa | Memblokir |
+|:--:|---|---|---|
+| 1 | §2.1 Wiegand → `card_id` mapping | @danskiv | **Semua.** Kalau format kartu tidak cocok DB, tidak ada yang jalan |
+| 2 | §3.1 tabel topic final + **B6** (bentrok `status`) + **D4/D6** (topic `events`) | Berdua | Backend & firmware tidak bisa mulai koding protokol |
+| 3 | §4.6 **D1–D9** (skema DB) | @danskiv ACK | Backend, lalu frontend |
+| 4 | §5.10 **B1–B5, B7, B8** | @danskiv | Detail handler backend (bisa dikerjakan sebagian sambil menunggu) |
+| 5 | §7.1 CI aktif (W1–W6) + §7.7 **C1–C4** | @rizzalaulia | Semua PR sesudahnya |
+| 6 | §6.11 **F1–F8** | @rizzalaulia | Frontend saja — **tidak memblokir siapa pun**, boleh diputuskan sendiri |
 
 Setelah 1–3 dijawab, **backend & frontend bisa jalan paralel penuh dengan firmware** — sama seperti pola
 v0.2 yang berhasil (lihat [`KEPUTUSAN_ARSITEKTUR_v0.2.md`](KEPUTUSAN_ARSITEKTUR_v0.2.md) §2: "yang
 menghubungkan hanya dokumen kontrak").
+
+> **Yang bisa dimulai SEKARANG tanpa menunggu jawaban apa pun:** migrasi DB (§4.5 — backward-compatible,
+> sistem v0.2 tetap jalan), CI/CD (§7.1), ekstraksi `toCsv()`/`accessToDoorIds()` (§6.6), dan perbaikan
+> **F-a** (token WebSocket, §6.0b) yang memang bug terlepas dari v0.3.
 
 ### 7.5 Definition of Done per layer — 🟡 USUL
 
@@ -750,6 +1349,98 @@ Sebuah fitur v0.3 baru boleh disebut selesai kalau: **(1)** ada test otomatis ya
 **(2)** CI hijau, **(3)** bisa didemokan lewat simulator tanpa hardware, **(4)** kontrak yang dipakainya
 sudah tertulis di dokumen ini — bukan cuma di kepala yang mengerjakan.
 - **KEPUTUSAN:** _(ACK 4 syarat ini?)_
+
+---
+
+### 7.6 Deployment & artefak rilis — 🟡 USUL
+
+#### (a) Tiga lingkungan
+
+| Lingkungan | Di mana | Isi | Siapa |
+|---|---|---|---|
+| **Dev** | Laptop masing-masing (Windows) | MySQL + EMQX via Docker, uvicorn + `npm run dev`, `simulate_esp32.py` sebagai pengganti controller | Masing-masing |
+| **Staging** | VM Debian di LAN ([`VM_TESTING_PLAN.md`](VM_TESTING_PLAN.md)) | Container `mysql:8.0` + `emqx/emqx:5.8` + backend, **controller fisik sungguhan** di LAN yang sama | Berdua, sebelum rilis |
+| **Produksi** | Server/mini-PC di gedung | Sama seperti staging + reverse proxy TLS (§5.5, ditunda) | Pemasangan manual |
+
+> Staging **wajib dilewati** sebelum firmware disebar. Ini satu-satunya tempat kombinasi
+> backend v0.3 + firmware v0.3 + controller fisik bertemu sebelum kena pintu sungguhan.
+
+#### (b) Artefak yang dihasilkan `release.yml` (W8) saat tag `v0.3.0`
+
+| Artefak | Dari | Dipakai untuk |
+|---|---|---|
+| `backend-v0.3.0.tar.gz` (+ opsional image Docker) | `backend/` | Dipasang di VM/server |
+| `frontend-dist-v0.3.0.zip` | `npm run build` | Disajikan reverse proxy / nginx |
+| `firmware-v0.3.0.bin` | `pio run -e esp32s3_16mb` | **Diunggah teknisi lewat Web Config 8081** (OTA, §2.6) |
+| `schema-v0.3.0.sql` + `migrations/*.sql` | `database/` | Dijalankan sebelum backend baru hidup |
+| `CHANGELOG` + catatan rilis | Repo | Rekam jejak |
+
+> **Kenapa `firmware.bin` ikut jadi artefak rilis:** jalur pasang firmware v0.3 adalah **unggah manual
+> lewat portal 8081**. Kalau `.bin`-nya di-build di laptop, tidak ada jaminan yang terpasang di pintu
+> sama dengan yang lolos CI. Dengan W3/W8, file yang diunggah teknisi **persis** yang diuji.
+
+#### (c) Penomoran versi — satu sumber, tiga layer
+
+Sekarang versi ditulis manual dan sudah mulai salah: `components/Layout.tsx` masih menampilkan
+**"Access Control System v0.2"** secara hardcoded.
+
+| Layer | Cara | Terlihat di |
+|---|---|---|
+| Backend | Env/`__version__` dari tag | `GET /health` |
+| Frontend | `define` Vite dari tag saat build | Label header (ganti teks hardcoded) |
+| Firmware | `-DFW_VERSION=\"v0.3.0\"` di `build_flags` | Dilaporkan ke `controllers.fw_version` |
+
+> **Ini menutup satu lubang §4:** kolom `fw_version` sudah ada di ERD tapi **tidak akan pernah terisi**
+> kalau firmware tidak dibangun dengan versi yang ditanam. Sekaligus membuat pertanyaan "unit mana yang
+> belum di-OTA?" bisa dijawab dari dashboard, bukan dari catatan teknisi.
+
+#### (d) Urutan pemasangan & rollback
+
+```
+ 1. Backup DB                     ──► wajib, sebelum apa pun
+ 2. Jalankan migrasi 001          ──► AMAN: backward-compatible, v0.2 tetap jalan (§4.5)
+ 3. Pasang backend v0.3           ──► /health hijau + MQTT connected
+ 4. Pasang frontend v0.3          ──► cek 1 halaman log & 1 controller
+ 5. Perbarui EMQX auth/ACL        ──► controller lama tidak boleh langsung tertolak
+ 6. OTA firmware — SATU unit dulu ──► amati 24 jam sebelum sisanya
+```
+
+| Kalau gagal di | Rollback |
+|---|---|
+| 3 / 4 | Pasang kembali artefak versi sebelumnya. **DB tidak perlu di-rollback** — justru itu gunanya migrasi backward-compatible |
+| 6 (firmware) | Partisi A/B: rollback otomatis kalau gagal boot / watchdog < 30 detik (§2.6) |
+| DB | Blok rollback ada di `001_v0.3_schema_delta.sql`, **tapi ini pilihan terakhir** — kalau sudah ada alarm/event tercatat, rollback berarti membuang data. Lebih baik perbaikan maju |
+
+- **Aturan langkah 6:** jangan pernah OTA semua controller sekaligus. Satu unit → tunggu → sisanya.
+- **Aturan langkah 2:** migrasi dijalankan **sebelum** backend baru, bukan sesudah, dan boleh dijalankan
+  jauh-jauh hari karena tidak merusak v0.2.
+
+#### (e) Kredensial & rahasia
+
+- `.env` **tidak pernah** masuk repo (sudah di `.gitignore` ✅), diverifikasi ulang oleh W6 gitleaks.
+- Kredensial MQTT **per-controller** dibuat saat provisioning (`tools/setup_emqx_auth.py`) — endpoint
+  `POST /api/controllers` (E1) harus jelas apakah ikut memprovisioning atau tetap manual (catatan
+  roadmap Sprint 4 yang belum diverifikasi).
+- **GitHub Secrets belum diperlukan** di v0.3 justru karena CD berhenti di artefak (§7.1b).
+- `JWT_SECRET_KEY` divalidasi saat startup (§5.5) — deploy dengan secret kosong **gagal boot**,
+  bukan jalan diam-diam.
+
+- **KEPUTUSAN:** _(ACK 3 lingkungan + daftar artefak + urutan pasang 6 langkah + penomoran versi 3 layer?)_
+
+---
+
+### 7.7 Checklist keputusan §7
+
+| # | Pertanyaan | Usulan saya | Jawaban |
+|---|---|---|---|
+| C1 | CI dikerjakan sebelum fitur v0.3 (blocking) atau paralel? | **Sebelum, blocking** — v0.3 mengubah kontrak lintas layer, ini kelas bug yang cuma bisa ditangkap otomatis | _(…)_ |
+| C2 | Test backend pindah ke MySQL service container? | **Ya** — SQLite membuat CHECK/ENUM/`timestampdiff` tidak pernah teruji (C-a) | _(…)_ |
+| C3 | `db-ci.yml` (W4) dibuat? | **Ya** — tanpa ini `schema.sql` bisa melenceng dari model tanpa ketahuan | _(…)_ |
+| C4 | `conftest.py` dirapikan ke fixture sebelum jadi gerbang merge? | Ya (C-b) | _(…)_ |
+| C5 | Workflow integrasi (W7) nightly atau tiap PR? | **Nightly + manual** — tiap PR bikin review lambat & flaky | _(…)_ |
+| C6 | `firmware.bin` jadi artefak rilis resmi? | **Ya** — supaya yang diunggah ke pintu sama dengan yang lolos CI | _(…)_ |
+| C7 | Versi ditanam otomatis di 3 layer dari tag? | Ya — sekaligus mengisi `controllers.fw_version` yang sekarang mustahil terisi | _(…)_ |
+| C8 | Auto-deploy ke VM/server masuk v0.3? | **Tidak** — CD berhenti di artefak, pemasangan manual terdokumentasi | _(…)_ |
 
 ---
 
@@ -764,26 +1455,63 @@ Centang layer yang tersentuh tiap fitur baru — memperlihatkan bahwa backend/fr
 | ALARM / tamper / fire | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Aux input + cross-controller | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Auto-reconciliation | — | ✅ | ✅ | ✅ | ✅ | ✅ |
-| RTC / timestamp | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| Wiegand reader | ✅ | ✅ | — | — | — | — |
-| 2 tombol sync | — | ✅ | ✅ | — | ✅ | ✅ |
+| RTC / timestamp | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ ¹ |
+| Wiegand reader | ✅ | ✅ | — | — | ✅ ² | — |
+| 2 tombol sync | — | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Alarm + acknowledge** ³ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Relay test dari dashboard** ³ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **RBAC admin/viewer + audit** ³ | — | — | — | ✅ | ✅ | ✅ |
 
-> Kesimpulan: dari 8 fitur besar, **6 menyentuh backend & frontend**. Porsi software v0.3 setara (atau lebih besar) dari hardware — harus didesain dengan kedalaman yang sama.
+¹ Frontend ikut tersentuh: konversi UTC→lokal browser (R5) dan filter tanggal yang harus dikirim sebagai rentang UTC (R6).
+² Backend ikut tersentuh: `normalize_kartu()` harus menghasilkan format identik dengan firmware (§5.8) — kalau beda, semua kartu tidak match.
+³ Tiga baris terakhir **tidak ada di matriks versi awal** — baru muncul setelah §4–§6 dirancang.
 
-**Bukti konkret setelah §5–§7 diisi (revisi 22 Juli 2026):**
+> Kesimpulan: dari **11** fitur besar, **9 menyentuh backend & frontend**, dan 3 di antaranya justru
+> **tidak terlihat sama sekali** sebelum software-nya didesain. Porsi software v0.3 setara (atau lebih
+> besar) dari hardware — harus didesain dengan kedalaman yang sama.
+
+**Bukti konkret setelah §4–§7 diisi (revisi 23 Juli 2026):**
 
 | Layer | Wujud kerja v0.3 | Rujukan |
 |---|---|---|
 | Database | **3 tabel baru** (`controller_events`, `alarms`, `admin_logs`) · **+22 kolom** di 3 tabel lama (15 `controllers`, 4 `doors`, 3 `access_logs`) · 4 CHECK constraint · 1 kolom dilonggarkan (`kartu`) · aturan waktu R1–R6 | §4.1–4.5 |
-| Backend | 1 modul baru (`codes.py`) + 1 service baru (`reconcile_service.py` + worker thread) · 5 handler MQTT di-rework/ditambah · **10 endpoint** baru/berubah · amplop WS berversi · 5 item keamanan | §5.1–5.5 |
-| Frontend | **7 file baru + 8 file diubah** · tipe inti (`AccessResult`/`AccessReason`) berubah → menyentuh hampir semua halaman · 1 halaman baru + 1 tab baru + 1 store baru | §6.1–6.6 |
-| Proses | **5 workflow CI dari nol** · test runner frontend dari nol · perluasan simulator · test kontrak lintas layer | §7.1–7.2 |
+| Backend | **12 file baru + 8 file diubah** · 6 handler MQTT di-rework/ditambah · **10 endpoint** baru/berubah · worker thread + state machine sync · siklus hidup alarm · amplop WS 4 jenis pesan · 5 item keamanan + RBAC | §5.0–5.10 |
+| Frontend | **11 file baru + 12 file diubah** · tipe inti (`AccessResult`/`AccessReason`) berubah → merembet ke semua halaman log · 1 halaman baru + 1 tab baru + 1 store baru · RBAC dari nol · WS jadi 4 jenis pesan + perbaikan token | §6.0–6.11 |
+| Proses & rilis | **8 workflow dari nol** (termasuk `db-ci` di MySQL sungguhan) · test runner frontend dari nol · test backend pindah dari SQLite ke MySQL · perluasan simulator + 8 skenario end-to-end · test kontrak lintas layer · pipeline artefak rilis 5 keluaran + penomoran versi 3 layer | §7.0–7.7 |
 
 > Artinya: kalimat "scope backend/frontend belum matang" sekarang sudah punya angka. Yang tersisa bukan
 > lagi *mendesain*, tapi **memangkas** — pakai §7.3 untuk memutuskan mana yang v0.3.0 dan mana yang ditunda.
 
 ---
 
-## 9. Riwayat Pembekuan
+## 9. Riwayat Revisi & Pembekuan
 
-_(Isi saat dokumen diubah dari DRAFT → DIBEKUKAN: tanggal, siapa yang menyepakati, ringkasan item yang ditutup.)_
+### 9.1 Riwayat revisi dokumen
+
+| Tanggal | Oleh | Perubahan |
+|---|---|---|
+| 22 Jul 2026 | @rizzalaulia | Versi awal: kerangka §0–§8, sebagian besar berisi pertanyaan 🔴 TERBUKA |
+| 23 Jul 2026 | @rizzalaulia | **§4 Database** ditulis lengkap (opsi + alasan + 2 artefak: [`ERD_v0.3.mermaid`](ERD_v0.3.mermaid), [`001_v0.3_schema_delta.sql`](../database/migrations/001_v0.3_schema_delta.sql)); checklist D1–D9 |
+| 23 Jul 2026 | @rizzalaulia | **§5 Backend** ditulis lengkap (peta modul, kontrak threading, 6 handler, idempotensi, siklus hidup alarm, konsekuensi lintas layer); checklist B1–B8. Menambahkan `alarms.cleared_at` ke §4/ERD/SQL (D9) |
+| 23 Jul 2026 | @rizzalaulia | **§6 Frontend** ditulis lengkap (4 temuan audit, kontrak state, RBAC, WS, efek berantai tipe); checklist F1–F8 |
+| 23 Jul 2026 | @rizzalaulia | **Revisi menyeluruh:** peta status per bagian, koreksi §0.2 (WiFi bukan cadangan MQTT), §2.3 & §3.2 turun dari 🔴 ke 🟡 karena usulannya sudah ada, §3.1 jadi tabel status per topic, §8 ditambah 3 fitur yang baru terlihat setelah software didesain |
+| 23 Jul 2026 | @rizzalaulia | **§7 CI/CD, test & deployment** ditulis lengkap: 8 workflow (termasuk `db-ci` di MySQL sungguhan), batas CI vs CD, strategi test per layer + 8 skenario end-to-end, §7.6 deployment (3 lingkungan, artefak rilis, penomoran versi 3 layer, urutan pasang & rollback); checklist C1–C8. Temuan C-a/C-b/C-c dicatat |
+
+### 9.2 Koreksi yang dibuat terhadap dokumen sumber
+
+Ditulis terpisah supaya tidak hilang — ini beda dengan dokumen lain yang jadi rujukan:
+
+| Koreksi | Dokumen sumber yang perlu menyusul |
+|---|---|
+| `reason` di payload bukan kalimat Inggris (`Valid Access`) tapi **angka** | [`ARCHITECTURE-PROPOSAL-V0.3.md`](ARCHITECTURE-PROPOSAL-V0.3.md) §3A masih menulis kalimat |
+| Timestamp **UTC**, konversi dinamis di browser — **bukan** disimpan sebagai GMT+7 | [`ARCHITECTURE-PROPOSAL-V0.3.md`](ARCHITECTURE-PROPOSAL-V0.3.md) §4B masih memakai contoh `timezone(timedelta(hours=7))` |
+| Tabel DB bertambah dari 8 → **11** | Proposal §4A masih menulis "8 tabel utama" |
+| `pytest`, `requirements-dev.txt`, `backend/tests/` **sudah ada** | [`ROADMAP_v0.3.md`](ROADMAP_v0.3.md) Sprint 1 masih menulis belum ada |
+| Sebaliknya, roadmap **tidak menyebut**: test DB pindah ke MySQL (C-a), rapikan `conftest.py` (C-b), `platformio.ini` masih ESP32 klasik (C-c), dan pipeline artefak rilis (§7.6) | [`ROADMAP_v0.3.md`](ROADMAP_v0.3.md) Sprint 1 & 7 |
+| ERD lama menamai tabel auth `ADMIN_USERS`, skema nyata memakai `admins` | [`ERD_v0.2.mermaid`](ERD_v0.2.mermaid) |
+| `admin_logs` digambar di ERD v0.2 tapi tidak pernah ada di `schema.sql` | [`ERD_v0.2.mermaid`](ERD_v0.2.mermaid) vs `database/schema.sql` |
+
+### 9.3 Pembekuan
+
+_(Isi saat dokumen diubah dari DRAFT → DIBEKUKAN: tanggal, siapa yang menyepakati, ringkasan item yang ditutup.
+Syarat pembekuan: tidak ada lagi 🔴 di §1–§3, dan D1–D9 + B1–B8 sudah terjawab.)_
