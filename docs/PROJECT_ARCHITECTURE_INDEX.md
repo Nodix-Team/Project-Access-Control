@@ -41,7 +41,7 @@
    * Format: `<seq>,<card_id>,<door_number>,<status>,<reason>,<timestamp_epoch>[,REPLAYED]`
    * *Catatan: `<card_id>` dikosongkan jika dipicu tombol REX atau alarm door sensor.*
 2. **Log Event Non-Akses**: `access/{device_id}/events`
-   * Format: `<seq>,<event_code>,<timestamp_epoch>[,REPLAYED]` (Tamper, Fire, Power, Aux, dll).
+   * Format: `<seq>,<event_code>,<door_number>,<timestamp_epoch>[,REPLAYED]` (Tamper, Fire, Power, Aux, dll).
 3. **Upsert Hak Akses User**: `access/{device_id}/users/set`
    * Format: `<card_id>,<d1>,<d2>,<d3>,<d4>` (1 = boleh, 0 = tidak)
 4. **Hapus User**: `access/{device_id}/users/delete`

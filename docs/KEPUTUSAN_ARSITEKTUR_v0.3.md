@@ -151,9 +151,9 @@ Seluruh kontrak topik MQTT untuk v0.3 telah disatukan dan dibekukan. Semua paylo
 | `access/{id}/status` | C ➔ S | 1 | **Yes** | `ONLINE` atau `OFFLINE` | **LWT (Last Will & Testament)**. Deteksi status koneksi fisik kontroler secara instan. |
 | `access/{id}/heartbeat` | C ➔ S | 1 | No | `<uptime_s>,<rssi>,<free_heap>,<total_users>` | **Telemetry**. Dikirim tiap 30s. `rssi` diisi status Ethernet (`NULL`/`0`/`100`/`10`). |
 | `access/{id}/logs` | C ➔ S | 1 | No | `<seq>,<card_id>,<door_number>,<status>,<reason>,<timestamp>[,REPLAYED]` | **Log Akses Pintu** (termasuk buffer offline). `<seq>` 32-bit untuk dedup. |
-| `access/{id}/events` | C ➔ S | 1 | No | `<seq>,<event_code>,<timestamp>[,REPLAYED]` | **Log Event Non-Akses** (Tamper, Fire, Power, Aux, dll). |
+| `access/{id}/events` | C ➔ S | 1 | No | `<seq>,<event_code>,<door_number>,<timestamp>[,REPLAYED]` | **Log Event Non-Akses** (Tamper, Fire, Power, Aux, dll). |
 | `access/{id}/config/request` | S ➔ C | 1 | No | `request` (atau kosong) | **Perintah Baca Config**. Server meminta kontroler mengirim config terbarunya. |
-| `access/{id}/config/response` | C ➔ S | 1 | **Yes** | `config_version,<val>,wifi_ssid,<val>,...` | **Laporan Config Aktif**. Format berpasangan `key,value` (TANPA `wifi_pass`). |
+| `access/{id}/config/response` | C ➔ S | 1 | No | `config_version,<val>,wifi_ssid,<val>,...` | **Laporan Config Aktif**. Format berpasangan `key,value` (TANPA `wifi_pass`). |
 | `access/{id}/config/sync` | S ➔ C | 1 | No | `<door_number>,<is_active>,<open_timeout>,<held_timeout>,<alarm_dur>` | **Sinkronisasi Config Pintu** (Bulk). Contoh: `d1,1,10,30,30`. |
 | `access/{id}/fire/override` | S ➔ C | 1 | **Yes** | `<d1_override>,<d2_override>,<d3_override>,<d4_override>` | **Perintah Darurat Kebakaran**. Contoh: `1,1,0,0` (buka pintu 1 & 2). |
 | `access/{id}/relay/test` | S ➔ C | 1 | No | `<door_number>,<duration_ms>` | **Uji Relay**. Server menginstruksikan pintu terbuka sementara. |
@@ -760,7 +760,7 @@ Sekarang `access_logs` tidak punya kunci apa pun untuk menolak duplikat.
 | **C. Terima duplikat apa adanya** | Tidak ada perubahan | Log ganda di UI; tapi **alarm tidak ganda** karena `alarms` sudah di-dedup lewat `UNIQUE(source, source_id)` |
 
 - **USUL: A kalau firmware sanggup, kalau tidak C** (jangan B — B menghapus data asli).
-- **KEPUTUSAN:** ✅ **Opsi A (Firmware kirim `seq`)**. Payload MQTT log dan Event Listrik akan langsung di-update (append-only) ke dalam `CONTRACT-CODES-V0.3.md` (naik versi jadi v0.3.1) agar tetap menjadi Single Source of Truth.
+- **KEPUTUSAN:** ✅ **Opsi A (Firmware kirim `seq`)**. Payload MQTT log dan Event Listrik langsung menggunakan field `seq` v0.3.1. Firmware WAJIB menyimpan counter `last_seq` di NVS (Non-Volatile Storage) ESP32 agar nilainya bersifat monoton naik dan tidak reset ke 0 saat reboot (mencegah tabrakan UNIQUE index di DB).
 
 ---
 

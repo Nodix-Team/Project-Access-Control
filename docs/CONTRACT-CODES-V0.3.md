@@ -94,7 +94,8 @@ Topik: `access/{device_id}/logs` (QoS 1).
 ## Tabel EVENTS (Non-Akses)
 
 Dikirim melalui topik `access/{device_id}/events`. Format Payload:
-`<seq>,<event_code>,<timestamp_epoch>[,REPLAYED]`
+`<seq>,<event_code>,<door_number>,<timestamp_epoch>[,REPLAYED]`
+*(Catatan: `<door_number>` dikosongkan bila event tidak terikat pintu spesifik seperti Tamper, Power, atau Boot)*
 
 | Angka | Kode (DB) | Status Alarm | Teks Tampilan (Frontend) | Kapan Terjadi |
 |:---:|---|:---:|---|---|
@@ -118,6 +119,7 @@ Dikirim melalui topik `access/{device_id}/events`. Format Payload:
 2. **Append-Only, Dilarang Menomori Ulang.** Kode baru dapat angka berikutnya (`10`, `11`, ...). Dilarang mengubah arti angka lama.
 3. **DB menyimpan kolom "Kode", bukan Teks UI maupun Angka Mentah.** Kode pendek stabil & netral bahasa.
 4. **Tabel ini satu-satunya sumber kebenaran.** Firmware & backend WAJIB merujuk angka yang sama dari sini.
+5. **Counter `<seq>` Persisten di NVS.** Firmware WAJIB menyimpan counter `<seq>` di NVS (Non-Volatile Storage) ESP32 agar nilainya bersifat monoton naik dan tidak reset ke 0 saat reboot.
 
 ---
 
