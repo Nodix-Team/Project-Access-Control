@@ -11,22 +11,29 @@
 > Artefak pendukung [`ERD_v0.3.mermaid`](ERD_v0.3.mermaid) dan [`001_v0.3_schema_delta.sql`](../database/migrations/001_v0.3_schema_delta.sql)
 > telah disesuaikan sepenuhnya untuk menyelaraskan urutan log (`seq`) dan penjadwalan MCFA silang ke v0.4.
 
-**Legend status:** ✅ SUDAH DIPUTUSKAN · 🔴 TERBUKA · 🟡 REKOMENDASI DANAS (Menunggu ACK Emping)
+**Legend status:** ✅ SUDAH DIPUTUSKAN & DI-ACK · 🔴 TERBUKA · 🟡 USUL/DRAFT (belum dibekukan)
 
 ### Peta status per bagian
 
-| § | Bagian | Status | Yang ditunggu |
+> **Status keseluruhan (25 Jul 2026): direview & di-ACK @rizzalaulia, di-merge ke `dev` via PR #61
+> (merge commit `8ff0f21`).** Semua checklist (§1.1 & §2.1, D1–D9, B1–B8, C1–C8) sudah terjawab dan
+> tidak ada lagi `🔴 TERBUKA` tersisa di §1–§7. F1–F8 (frontend) adalah keputusan internal
+> @rizzalaulia, tidak pernah menunggu ACK pihak lain.
+
+| § | Bagian | Status | Catatan |
 |---|---|---|---|
 | 0 | Keputusan final | ✅ 7 item | — |
-| 1 | Hardware & kelistrikan | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (pin §1.1, PTC) |
-| 2 | Firmware & integrasi fisik | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (§2.1–§2.6) |
-| 3 | Kontrak MQTT | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (§3.1–§3.2) |
-| 4 | **Database** | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (D1–D9) |
-| 5 | **Backend** | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (B1–B8) |
-| 6 | **Frontend** | 🟡 **RANCANGAN EMPING** | Ditinjau oleh @rizzalaulia (F1–F8) |
-| 7 | **Proses, CI/CD, test & deployment** | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (C1–C8) |
+| 1 | Hardware & kelistrikan | ✅ **DIPUTUSKAN & DI-ACK** | Pin §1.1, PTC per-pintu — lihat §9.1 riwayat |
+| 2 | Firmware & integrasi fisik | ✅ **DIPUTUSKAN & DI-ACK** | §2.1–§2.6, termasuk MCFA fire lokal vs v0.4 (§2.5) |
+| 3 | Kontrak MQTT | ✅ **DIPUTUSKAN & DI-ACK** | §3.1–§3.2, tabel topic final v0.3.1 |
+| 4 | **Database** | ✅ **DIPUTUSKAN & DI-ACK** | D1–D9, migrasi `001_v0.3_schema_delta.sql` |
+| 5 | **Backend** | ✅ **DIPUTUSKAN & DI-ACK** | B1–B8 |
+| 6 | **Frontend** | ✅ **DIPUTUSKAN** (internal @rizzalaulia) | F1–F8 |
+| 7 | **Proses, CI/CD, test & deployment** | ✅ **DIPUTUSKAN & DI-ACK** | C1–C8 |
 
-> **Cara membaca:** §4–§7 **bisa langsung direview** — yang bergantung ke §1–§3 sudah ditandai eksplisit di §5.8 (konsekuensi lintas layer).
+> **Yang masih perlu tindak lanjut BUKAN di dokumen ini, tapi di dokumen turunannya** (lihat §9.2 &
+> §9.4): `ROADMAP_v0.3.md`, `ARCHITECTURE-PROPOSAL-V0.3.md`, dan `HARDWARE-AUDIT-REVIEW-V0.3.md`
+> masih perlu disamakan dengan keputusan final di sini.
 
 **Dokumen sumber yang dirujuk:**
 [`ARCHITECTURE-PROPOSAL-V0.3.md`](ARCHITECTURE-PROPOSAL-V0.3.md) ·
@@ -127,8 +134,32 @@ Logika sensor pintu, timeout, dan alarm.
 - **Keamanan Fire Lokal (v0.3)**: 100% dijamin oleh hardware interlock lokal (potong VCC relay maglock secara fisik saat sinyal MCFA aktif). Tidak bergantung pada software maupun jaringan.
 - **AUX & Fire Log (v0.3)**: Berfungsi untuk pencatatan event log (`AUX_ACTIVE`/`AUX_CLEARED` dan `FIRE_ACTIVE`/`FIRE_CLEARED`) di database untuk keperluan audit trail.
 - **MCFA Silang Lintas-Controller (Ditunda ke v0.4)**:
-  - Fitur pembukaan pintu gedung tetangga via server **resmi ditunda ke v0.4** (lihat alasan & ancaman bug jalur evakuasi bersama di review PR #61).
-  - V0.4 akan membangun service `fire_orchestrator` yang menghitung UNION state kebakaran aktif sebelum melakukan lock/unlock pintu, dilengkapi jembatan global-to-local door ID dan perketatan MQTT ACL.
+  - Fitur pembukaan pintu gedung tetangga via server **resmi ditunda ke v0.4**.
+  - **Alasan konkret ditunda — bug jalur evakuasi bersama (dicatat permanen di sini, bukan cuma di komentar PR):**
+    Draft awal PR #61 mengusulkan proteksi *clear* dengan cara server publish `0,0,0,0` (blanket zero)
+    ke `fire/override` begitu menerima `FIRE_CLEARED` dari controller sumber. Itu cacat pada kasus nyata:
+    ```
+    Gedung A & Gedung C sama-sama diberi assignment membuka Pintu Evakuasi
+    di Gedung B (titik kumpul bersama).
+      1. Gedung A kebakaran  -> Pintu Evakuasi B terbuka.                    ✅
+      2. Gedung C IKUT kebakaran -> Pintu B tetap harus terbuka.
+      3. Api Gedung A padam  -> server terima FIRE_CLEARED dari A.
+      4. Proteksi "blanket 0,0,0,0" -> Pintu B TERKUNCI KEMBALI
+         -- padahal Gedung C masih kebakaran dan orang masih evakuasi lewat B.
+    ```
+    Ini bukan bug kosmetik: itu mengunci pintu evakuasi saat kebakaran masih berlangsung.
+    Clear yang benar **wajib menghitung ulang UNION seluruh kebakaran yang masih aktif**
+    per controller target sebelum publish — bukan blanket zero. Logika union, jembatan
+    `target_door_id` (global) → `(device_id, door_number)` lokal, dan threat model untuk
+    `FIRE_ACTIVE` yang bisa di-spoof (satu event palsu berpotensi membuka banyak gedung
+    sekaligus kalau MQTT ACL belum ketat) **semuanya belum ada** — itulah kenapa fitur ini
+    butuh iterasi desain sendiri, bukan disisipkan ke rilis yang sedang difinalisasi.
+  - V0.4 akan membangun service `fire_orchestrator` yang menghitung UNION state kebakaran aktif
+    sebelum melakukan lock/unlock pintu, dilengkapi jembatan global-to-local door ID dan
+    perketatan MQTT ACL, plus skenario test: dua kebakaran serentak dengan target beririsan,
+    clear-satu-sementara-lain-aktif, target offline saat fire, reconnect di tengah fire, dan
+    `FIRE_ACTIVE` yang di-spoof.
+  - Riwayat diskusi lengkap (untuk konteks historis): PR #61, komentar review 24 Jul 2026.
 - **KEPUTUSAN:** ✅ **v0.3 = Fire Lokal (Hardware Interlock) + Event Logging. MCFA Silang = Dijadwalkan ke v0.4.**
 
 ### 2.6 OTA rollback — ✅ FINAL (Keputusan Danas)
@@ -1485,6 +1516,12 @@ Centang layer yang tersentuh tiap fitur baru — memperlihatkan bahwa backend/fr
 | 23 Jul 2026 | @rizzalaulia | **Revisi menyeluruh:** peta status per bagian, koreksi §0.2 (WiFi bukan cadangan MQTT), §2.3 & §3.2 turun dari 🔴 ke 🟡 karena usulannya sudah ada, §3.1 jadi tabel status per topic, §8 ditambah 3 fitur yang baru terlihat setelah software didesain |
 | 23 Jul 2026 | @rizzalaulia | **§7 CI/CD, test & deployment** ditulis lengkap: 8 workflow (termasuk `db-ci` di MySQL sungguhan), batas CI vs CD, strategi test per layer + 8 skenario end-to-end, §7.6 deployment (3 lingkungan, artefak rilis, penomoran versi 3 layer, urutan pasang & rollback); checklist C1–C8. Temuan C-a/C-b/C-c dicatat |
 | 23 Jul 2026 | @danskiv | **REKOMENDASI FINAL DANAS:** Mengisi seluruh jawaban checklist (§1.1 & §2.1, D1–D9, B1–B8, C1–C8) dengan status final dari sisi Danas, siap diserahkan ke Emping (@rizzalaulia) untuk di-review akhir sebelum dibekukan penuh bersama. |
+| 24 Jul 2026 | @rizzalaulia | **Review PR #61.** 3 temuan mayor: (1) `fire_assignments`/`fire/override` MCFA lintas-controller menyeludupkan scope yang sudah disepakati keluar dari v0.3 (§5.9/§7.3); (2) `fire/override` Retained tanpa protokol clear — pintu bisa menganga selamanya; (3) `seq` reset saat reboot bisa membuat `UNIQUE(device_id, seq)` menolak & menghilangkan log sah. Ditulis sebagai komentar review resmi di PR |
+| 24 Jul 2026 | @danskiv | Menangkis 3 temuan: NVS `last_seq` (persist lintas-reboot), `door_number` ditambahkan ke payload event, `config/response` diubah Non-Retained. MCFA sementara di-push dengan asumsi masuk v0.3 (commit `9cbed07`) |
+| 24 Jul 2026 | @rizzalaulia | **Keputusan MCFA: ditunda ke v0.4.** Ditemukan bug jalur evakuasi bersama (2 gedung berbagi 1 pintu evakuasi, proteksi clear "blanket zero" bisa mengunci pintu saat salah satu gedung masih kebakaran) — alasan lengkap sekarang di §2.5. Diminta 4 tindak lanjut: cabut `fire_assignments`/`fire/override` dari migrasi & kontrak, tambah catatan penundaan di §2.5 |
+| 24 Jul 2026 | @danskiv | Menjalankan 4 tindak lanjut (commit `7dc1326`): `fire_assignments` dicabut dari migrasi & ERD, `fire/override` dicabut dari kontrak/Contract Codes/testing guide, §2.5 diberi catatan penundaan ke v0.4, 3 perbaikan sebelumnya dipertahankan |
+| 25 Jul 2026 | @rizzalaulia | **PR #61 di-ACK & di-merge** ke `dev` (merge commit `8ff0f21`). Semua checklist §1–§7 tertutup, tidak ada `🔴 TERBUKA` tersisa. Folder `docs/` dirapikan jadi 3 lapis (aktif v0.3 / pendukung / arsip v0.2) di commit `2c9ac0d` |
+| 25 Jul 2026 | @rizzalaulia | **Audit menyeluruh** atas `ROADMAP_v0.3.md`, `ARCHITECTURE-PROPOSAL-V0.3.md`, `HARDWARE-AUDIT-REVIEW-V0.3.md` terhadap dokumen ini. Temuan: roadmap basi total (tidak menyebut 90% pekerjaan yang sudah diputuskan); proposal arsitektur berkontradiksi aktif (reason kalimat Inggris, GMT+7, "8 tabel", tabel pin lama termasuk konflik `GPIO34` yang sudah dipindah); audit hardware ber-status "APPROVED final" tapi 2 poin (Poin 3 WDI, Poin 10 sensing PLN) sudah dianulir keputusan pin §1.1. Alasan bug evakuasi MCFA dipindah dari komentar PR ke §2.5 secara permanen. Status dokumen (bagian atas & §9.3) diperbarui mencerminkan sudah di-ACK & di-merge |
 
 ### 9.2 Koreksi yang dibuat terhadap dokumen sumber
 
@@ -1499,10 +1536,33 @@ Ditulis terpisah supaya tidak hilang — ini beda dengan dokumen lain yang jadi 
 | Sebaliknya, roadmap **tidak menyebut**: test DB pindah ke MySQL (C-a), rapikan `conftest.py` (C-b), `platformio.ini` masih ESP32 klasik (C-c), dan pipeline artefak rilis (§7.6) | [`ROADMAP_v0.3.md`](ROADMAP_v0.3.md) Sprint 1 & 7 |
 | ERD lama menamai tabel auth `ADMIN_USERS`, skema nyata memakai `admins` | [`ERD_v0.2.mermaid`](v0.2/ERD_v0.2.mermaid) |
 | `admin_logs` digambar di ERD v0.2 tapi tidak pernah ada di `schema.sql` | [`ERD_v0.2.mermaid`](v0.2/ERD_v0.2.mermaid) vs `database/schema.sql` |
+| `fire/override` payload, tabel angka event, dan skema delta — sudah naik ke **v0.3.1** (field `seq`, `door_number` di event) | [`CONTRACT-CODES-V0.3.md`](CONTRACT-CODES-V0.3.md) — **sudah diperbarui** di PR #61, tidak perlu tindak lanjut lagi |
+| Tabel pin §1 & §2A masih memakai alokasi lama (`GPIO1-4` relay, `GPIO34` dobel INTA/WDI, `GPIO1` ADC) | [`ARCHITECTURE-PROPOSAL-V0.3.md`](ARCHITECTURE-PROPOSAL-V0.3.md) §1, [`PROPOSAL-RANCANGAN-HARDWARE-V0.3.md`](PROPOSAL-RANCANGAN-HARDWARE-V0.3.md) §2A/§2B — **diperbaiki 25 Jul 2026**, lihat §9.4 |
+| Payload MQTT proposal tanpa `seq`/`door_number`, payload log masih 4 field | [`ARCHITECTURE-PROPOSAL-V0.3.md`](ARCHITECTURE-PROPOSAL-V0.3.md) §3A — **diperbaiki 25 Jul 2026** |
+| Matriks Hardware Audit Poin 3 (WDI→`GPIO34`) & Poin 10 (`GPIO1` ADC PLN) berstatus "APPROVED final" padahal sudah dianulir §1.1 | [`HARDWARE-AUDIT-REVIEW-V0.3.md`](HARDWARE-AUDIT-REVIEW-V0.3.md) — **diperbaiki 25 Jul 2026** |
+| Roadmap tidak menyebut 90% keputusan v0.3 (alarm, RBAC, MCFA, seq/NVS, CI 8 workflow, dst) | [`ROADMAP_v0.3.md`](ROADMAP_v0.3.md) — **ditulis ulang 25 Jul 2026**, lihat §9.4 |
 
-### 9.3 Status Dokumen — 🟡 REKOMENDASI FINAL DANAS (Menunggu Review Akhir Emping)
+### 9.3 Status Dokumen
 
-- **Tanggal Penyusunan Rekomendasi:** **23 Juli 2026**
-- **Disusun Oleh:** **@danskiv (Mas Danas)**
-- **Status Dokumen:** **🟡 REKOMENDASI FINAL DANAS (Belum Dibekukan Penuh)**
-- **Ringkasan:** Seluruh 34 item pertanyaan terbuka & checklist telah diisi dengan jawaban final dari Danas (solusi pin GPIO33/40/47/48/EN, Wiegand `%010lu`, skema DB delta `001_v0.3_schema_delta.sql`, dan pipeline CI/CD). Dokumen ini diserahkan kepada Emping (@rizzalaulia) untuk direview. Jika Emping memberikan ACK/penyesuaian, dokumen akan dibekukan penuh bersama.
+- **Tanggal pembekuan checklist:** **24–25 Juli 2026**
+- **Disusun oleh:** @danskiv (rekomendasi teknis) & @rizzalaulia (review, keputusan MCFA, ACK akhir)
+- **Status Dokumen:** ✅ **DI-ACK & DI-MERGE** ke `dev` via PR #61 (merge commit `8ff0f21`, 25 Jul 2026).
+  Seluruh checklist (§1.1 & §2.1, D1–D9, B1–B8, C1–C8) terjawab, F1–F8 diputuskan internal.
+  Tidak ada lagi `🔴 TERBUKA` di §1–§7.
+- **Yang tersisa bukan isi dokumen ini**, tapi menyamakan 3 dokumen turunan (roadmap, proposal arsitektur,
+  audit hardware) dengan keputusan final di sini — lihat §9.4.
+
+### 9.4 Penyelarasan dokumen turunan (25 Jul 2026)
+
+Setelah dokumen ini di-ACK & merge, tiga dokumen berikut disamakan ulang supaya tidak ada lagi yang
+berkontradiksi dengan keputusan final:
+
+| Dokumen | Perubahan |
+|---|---|
+| [`ROADMAP_v0.3.md`](ROADMAP_v0.3.md) | Ditulis ulang total. Sprint 1–7 lama (generik, pra-audit) diganti struktur sprint yang mencerminkan pekerjaan nyata: skema DB & migrasi, handler MQTT v0.3.1 (`codes.py`, `seq`, event), alarm lifecycle, RBAC, 8 workflow CI (`db-ci` dsb), 3 lingkungan deployment, MCFA v0.4 dicatat eksplisit sebagai *di luar scope v0.3* |
+| [`ARCHITECTURE-PROPOSAL-V0.3.md`](ARCHITECTURE-PROPOSAL-V0.3.md) | Tabel alokasi pin §1 diperbarui ke `GPIO33/40/47/48/EN` + `GPIO1` Digital Input; payload MQTT §3 diperbarui ke format v0.3.1 (`seq`, `door_number` event); §4 waktu diperbaiki dari contoh GMT+7 ke UTC; jumlah tabel DB diperbaiki 8→11; setiap titik yang diperbaiki ditandai `[DIPERBAIKI 25 Jul]` supaya jejak revisi tetap terlihat |
+| [`HARDWARE-AUDIT-REVIEW-V0.3.md`](HARDWARE-AUDIT-REVIEW-V0.3.md) | Poin 3 & Poin 10 ditandai **DIANULIR** oleh §1.1 (bukan dihapus — riwayat audit tetap utuh), matriks kesimpulan diberi kolom status terkini, banner diperluas menyebut `GPIO34` |
+
+Prinsip yang dipakai: **dokumen historis tidak dihapus isinya**, tapi ditandai jelas mana yang masih
+berlaku dan mana yang sudah dianulir — supaya siapa pun yang membuka dokumen lama tetap tahu ke mana
+harus merujuk untuk kebenaran terkini.
