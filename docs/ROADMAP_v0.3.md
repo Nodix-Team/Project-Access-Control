@@ -1,239 +1,315 @@
-# 📝 DRAFT PROPOSAL: Roadmap Pengembangan v0.3
+# 🛣️ Roadmap Pengembangan v0.3
 
 > [!IMPORTANT]
-> Dokumen ini adalah **DRAFT / PROPOSAL USULAN** pengembangan untuk versi 0.3. Rencana ini **belum bersifat final** dan masih memerlukan review, diskusi, masukan, serta persetujuan dari seluruh anggota tim (terutama Rizal/Peng) sebelum disahkan menjadi roadmap resmi.
-
-> Roadmap ini dirancang berdasarkan [`V0.2_CLOSURE_REPORT.md`](v0.2/V0.2_CLOSURE_REPORT.md) (perbandingan realisasi v0.2 vs
-> roadmap-nya), [`BACKLOG_PENGEMBANGAN.md`](pendukung/BACKLOG_PENGEMBANGAN.md) (usulan yang sengaja ditunda dari v0.2),
-> dan temuan audit kode langsung selama v0.2 (keamanan, testing, kesiapan hardware fisik).
-> Aturan branching, commit message, dan proses PR **mengikuti [`CONTRIBUTING.md`](../CONTRIBUTING.md) yang sudah ada — tidak berubah.**
-> Setiap milestone = 1 feature branch dari `dev`. Setelah selesai, merge via PR ke `dev`, minta review, **jangan merge sendiri**.
-
----
-
-## Prasyarat: v0.2 Harus Ditutup Resmi Dulu
-
-Sebelum Sprint 1 di bawah dimulai, 5 langkah administratif di [`V0.2_CLOSURE_REPORT.md`](v0.2/V0.2_CLOSURE_REPORT.md#tindakan-penutupan-yang-disarankan) harus selesai dulu (perbaiki `README.md`, update `CHANGELOG.md`, merge `dev`→`main`, tag `v0.2.0`). Tidak ada kode baru di langkah ini — murni administratif, tapi penting supaya `v0.3` punya titik awal yang jelas (bercabang dari `main` yang benar-benar berisi rilis v0.2, bukan dari `dev` yang belum pernah resmi dirilis).
+> **Revisi 25 Juli 2026 — ditulis ulang total.** Versi sebelumnya disusun sebelum audit
+> database/backend/frontend/CI-CD dilakukan, sehingga tidak menyebut mayoritas pekerjaan yang
+> sudah diputuskan di [`KEPUTUSAN_ARSITEKTUR_v0.3.md`](KEPUTUSAN_ARSITEKTUR_v0.3.md) (✅ di-ACK & di-merge
+> via PR #61, 25 Jul 2026). Roadmap ini disusun **berbasis isi dokumen keputusan tersebut**, bukan
+> spekulasi baru — tiap item mereferensikan bagian (`§`) yang menjadi sumbernya.
+>
+> Aturan branching, commit message, dan proses PR **mengikuti [`CONTRIBUTING.md`](../CONTRIBUTING.md)** —
+> tidak berubah. Setiap milestone = 1 feature branch dari `dev`. Merge via PR, minta review, **jangan
+> merge sendiri**.
 
 ---
 
-## Overview
+## Prasyarat: firmware & hardware harus menutup 2 blocker dulu
 
-Beda dari v0.2 (5 sprint linear yang saling menunggu), v0.3 punya **3 kategori pekerjaan yang sifatnya beda**:
+Dua item ini **memblokir semua sprint kode** (backend, frontend, database) karena keduanya menentukan
+bentuk data yang mengalir lewat MQTT:
+
+| # | Item | Rujukan | Kenapa memblokir |
+|---|---|---|---|
+| 1 | **Wiegand → `card_id` mapping** — format `%010lu` sudah diputuskan (§2.1), tinggal diimplementasi & diverifikasi di firmware sungguhan | §2.1 | Kalau format kartu firmware tidak cocok `normalize_kartu()` backend, **semua kartu terdaftar tidak match** |
+| 2 | **Konflik alokasi pin** — solusi sudah final (`GPIO33/40/47/48/EN`, `GPIO1` digital), tinggal diterapkan ke PCB/skematik | §1.1 | Tanpa ini, firmware fisik tidak bisa dites di board sungguhan |
+
+Selama dua ini belum selesai di sisi firmware, **backend/frontend/database tetap bisa jalan penuh**
+memakai `tools/simulate_esp32.py` (diperluas sesuai §7.2) — pola yang sama seperti v0.2.
+
+---
+
+## Overview — 4 track paralel
 
 ```
-KATEGORI A — Software, berurutan (saling bergantung)
-┌──────────┐      ┌──────────┐      ┌──────────┐      ┌──────────┐
-│ Sprint 1 │ ──►  │ Sprint 2 │ ──►  │ Sprint 4 │ ──►  │ Sprint 5 │
-│  CI/CD   │      │ Keamanan │      │ Backend  │      │  Fitur   │
-│ + Test   │      │          │      │ Ops      │      │  Baru    │
-└──────────┘      └──────────┘      └──────────┘      └──────────┘
+TRACK A — Database & Backend (berurutan, saling bergantung)
+┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+│ Sprint 1 │──►│ Sprint 2 │──►│ Sprint 3 │──►│ Sprint 4 │
+│ CI/CD +  │   │ Skema DB │   │ Backend  │   │ Backend  │
+│  Test    │   │ + Migrasi│   │ Handler  │   │ Endpoint │
+└──────────┘   └──────────┘   │  MQTT    │   │ + Alarm  │
+                               └──────────┘   └──────────┘
 
-KATEGORI B — Firmware fisik, mulai paralel (procurement hardware makan waktu)
+TRACK B — Frontend (mulai setelah Sprint 3 backend punya endpoint dasar)
 ┌──────────┐
-│ Sprint 3 │  ◄── mulai procurement (beli RFID reader, relay, dst) SEJAK Sprint 1 jalan,
-│ Firmware │      supaya part sudah di tangan saat giliran coding-nya tiba
-│  Fisik   │
+│ Sprint 5 │  Tipe, alarm UI, config pintu, RBAC (§6)
+│ Frontend │
 └──────────┘
 
-KATEGORI C — Produk fisik, track terpisah (bukan branch/PR kode, butuh vendor luar)
+TRACK C — Firmware fisik (paralel sejak awal, procurement dari Sprint 1)
 ┌──────────┐
-│ Sprint 6 │  ◄── berjalan independen, tidak menghalangi/dihalangi sprint kode manapun
-│  Produk  │
-│  Fisik   │
+│ Sprint 6 │  RFID, relay, watchdog, OTA, seq/NVS, MCFA lokal (§2)
+│ Firmware │
 └──────────┘
 
-Semua kategori bermuara ke:
+TRACK D — Keamanan (paralel, bisa mulai kapan saja setelah Sprint 1)
 ┌──────────┐
-│ Sprint 7 │  Integrasi & Rilis v0.3.0
+│ Sprint 7 │  RBAC, JWT, MQTT ACL (§5.5)
+│ Keamanan │
+└──────────┘
+
+Semua bermuara ke:
+┌──────────┐
+│ Sprint 8 │  Integrasi & Rilis v0.3.0
 └──────────┘
 ```
 
+> **Beda dari draft lama:** sprint lama menaruh "Backend Ops" & "Fitur Baru" belakangan seolah opsional.
+> Draft ini menaruh **skema DB & handler MQTT lebih dulu** karena hampir semua fitur v0.3 (alarm, config
+> per-pintu, sync) bergantung padanya — lihat matriks dampak §8 KEPUTUSAN: 9 dari 11 fitur besar
+> menyentuh backend & frontend sekaligus.
+
 ---
 
-## Sprint 1 — CI/CD &amp; Infrastruktur Testing
+## Sprint 1 — CI/CD & Infrastruktur Testing
 
-**Branch:** `feature/ci-cd-testing`
-**Estimasi:** ~4 hari
-**Folder:** `.github/workflows/`, `backend/tests/`, `frontend/src/**/*.test.ts`, `firmware/test/`
+**Branch:** `feature/ci-cd-testing` · **Rujukan:** §7.0–7.2 KEPUTUSAN
 
-Ini sengaja jadi **sprint pertama**, bukan terakhir — supaya setiap sprint kode setelahnya (2, 3, 4, 5) langsung bisa memakai jaring pengaman ini alih-alih menambahnya belakangan.
+### Kondisi terkini (✅ sudah ada, jangan dikerjakan ulang)
+- `backend/pytest.ini`, `backend/requirements-dev.txt`, `backend/tests/{conftest,test_models,test_user_service,test_csv_service}.py`
+- `frontend` sudah punya `oxlint`
 
 ### Checklist
-
 **Backend:**
-- [ ] `backend/requirements-dev.txt` — pisahkan dependency test (`pytest`, `httpx`, dst) dari `requirements.txt` produksi
-- [ ] `backend/pytest.ini` + `backend/tests/conftest.py` — fixture database test (SQLite in-memory atau MySQL service container), supaya test tidak lagi bergantung DB pengembangan yang sudah di-seed manual
-- [ ] Refactor `test_user_service.py`, `test_csv_service.py`, `test_models.py` yang sudah ada dari script manual (`python -m tests.x`) ke gaya pytest (`def test_x(): assert ...`)
-- [ ] Tambah test baru untuk fungsi yang belum tercakup: `normalize_kartu()`, `_group_by_controller()`, helper validasi (`_assert_doors_exist` dkk), `_is_online_expr`, `handle_config_response()`
+- [ ] **Pindahkan test DB dari SQLite ke MySQL service container** (temuan C-a) — `conftest.py`
+  sekarang membangun skema dari `Base.metadata.create_all()`, bukan dari `schema.sql`. Ini bikin
+  CHECK constraint, `ENUM`, dan `func.timestampdiff()` (`_is_online_expr`) **tidak pernah teruji**
+- [ ] Rapikan `conftest.py` jadi fixture pytest standar, bukan seed saat import (temuan C-b)
+- [ ] `backend/Dockerfile` — dibuat sebagai bahan artefak rilis (§7.6b), **bukan** pemicu deploy otomatis
 
 **Frontend:**
-- [ ] Install `vitest` (+ `@testing-library/react` untuk test level komponen kalau dibutuhkan nanti), tambah script `"test": "vitest"` di `package.json`
-- [ ] `frontend/vitest.config.ts`
-- [ ] Test untuk `utils/kartu.ts`, `utils/format.ts`
-- [ ] Ekstrak `accessToDoorIds()` (saat ini nempel di `UserDetail.tsx`) dan `toCsv()` (nempel di `AccessLogs.tsx`) ke file util terpisah, baru ditest
+- [ ] Install `vitest`, tambah script `"test": "vitest"`, buat `vitest.config.ts`
+- [ ] Ekstrak `toCsv()` dari `AccessLogs.tsx` dan `accessToDoorIds()` dari `UserDetail.tsx` ke util
+      terpisah dulu (prasyarat supaya bisa ditest) — lihat §6.6
+- [ ] Test `utils/kartu.ts`, `utils/format.ts`
 
 **Firmware:**
-- [ ] Tambah `[env:native]` di `platformio.ini` + folder `firmware/test/` (konvensi Unity/PlatformIO)
-- [ ] Test pertama: `AccessControl::checkAccess()` — kandidat paling bersih (nol ketergantungan hardware)
-- [ ] Test `UserStorage::findByKartu()`, `normalizeKartu()`, `ConfigManager::setDefaults()`
+- [ ] Tambah `[env:esp32s3_16mb]` di `platformio.ini` — **`platformio.ini` sekarang masih `[env:esp32dev]`
+      ESP32 klasik** (temuan C-c), tidak sesuai target v0.3
+- [ ] Tambah `[env:native]` + folder `firmware/test/`
+- [ ] Door state machine **wajib ditulis sebagai kelas tanpa `digitalWrite`/`millis` langsung**
+      (waktu & IO di-inject) — keputusan desain di §2.4, harus diambil sebelum kode ditulis
 
-**CI:**
-- [ ] `.github/workflows/backend-ci.yml` — jalan pytest, filter `paths: backend/**`
-- [ ] `.github/workflows/frontend-ci.yml` — `tsc --noEmit`, `npm run build`, `npx oxlint`, `vitest run`, filter `paths: frontend/**`
-- [ ] `.github/workflows/firmware-ci.yml` — `pio test -e native`, filter `paths: firmware/**`
-- [ ] Aktifkan **required status checks** di Settings → Branches untuk `dev` (PR tidak bisa di-merge kalau ada check merah)
+**CI (5 workflow gerbang-merge + 1 nightly + 1 rilis, §7.1):**
+- [ ] `.github/workflows/backend-ci.yml` — pytest di atas MySQL service container
+- [ ] `.github/workflows/frontend-ci.yml` — `tsc --noEmit` → `oxlint` → `vitest run` → `npm run build`
+- [ ] `.github/workflows/firmware-ci.yml` — `pio test -e native` + `pio run -e esp32s3_16mb`
+- [ ] `.github/workflows/db-ci.yml` — **baru** (§7.2d): jalankan `schema.sql` + migrasi + seed di atas
+      `mysql:8.0`, uji CHECK constraint benar-benar menolak nilai terlarang, uji model vs skema tidak
+      melenceng, uji `time_zone='+00:00'` aktif (aturan R2)
+- [ ] `.github/workflows/contract-ci.yml` — bandingkan tabel STATUS+REASON+EVENT di
+      `app/mqtt/codes.py` ↔ `src/constants/codes.ts` ↔ `CONTRACT-CODES-V0.3.md`
+- [ ] `.github/workflows/gitleaks.yml`
+- [ ] `.github/workflows/integration-ci.yml` — nightly + manual, **bukan** gerbang merge (lambat)
+- [ ] Aktifkan required status checks di Settings → Branches untuk `dev`
 
 ### Deliverable
-✅ Setiap PR baru otomatis diverifikasi CI sebelum bisa direview/merge
-✅ Minimal 1 test otomatis per layer (backend/frontend/firmware) sebagai fondasi awal
+✅ CI hijau wajib sebelum merge, test backend jalan di MySQL sungguhan (bukan SQLite)
+✅ Firmware bisa dites tanpa hardware fisik (`[env:native]`)
 
 ---
 
-## Sprint 2 — Keamanan &amp; Hardening
+## Sprint 2 — Skema Database & Migrasi
 
-**Branch:** `feature/security-hardening`
-**Estimasi:** ~4 hari
-**Folder:** `backend/app/`, `backend/app/mqtt/`, `tools/setup_emqx_auth.py`
+**Branch:** `feature/database-v0.3` · **Rujukan:** §4 KEPUTUSAN (D1–D9)
+
+Migrasi ini **backward-compatible** — bisa dijalankan sebelum backend v0.3 mulai, sistem v0.2 tetap
+jalan (§4.5). Artefaknya sudah ditulis, sprint ini tinggal menerapkan & memverifikasi.
 
 ### Checklist
-
-**Backend:**
-- [ ] Validasi `JWT_SECRET_KEY` wajib diisi &amp; cukup panjang saat startup (gagal boot kalau kosong/lemah, bukan diam-diam jalan)
-- [ ] Refresh token — supaya sesi tidak hard-expire tiap 1 jam
-- [ ] Rate limiting di `POST /api/auth/login` (mis. `slowapi`)
-- [ ] RBAC minimal 2 role (`admin` penuh vs `viewer`/`operator` read-only) — perlu keputusan bersama role apa saja yang relevan
-- [ ] HTTPS — minimal via reverse proxy (nginx/Caddy) dengan TLS, bukan langsung expose uvicorn HTTP polos
-
-**MQTT:**
-- [ ] Aktifkan TLS di EMQX (port 8883), update backend + firmware pakai koneksi TLS
-- [ ] ACL per-topic sungguhan di `tools/setup_emqx_auth.py` (saat ini cuma auth username/password, `ctrl-A` secara teori masih bisa publish ke topic `ctrl-B`)
-- [ ] Implementasi LWT (`will_set()`) di publisher backend supaya deteksi offline instan, tidak cuma andalkan timeout heartbeat
+- [ ] Jalankan [`database/migrations/001_v0.3_schema_delta.sql`](../database/migrations/001_v0.3_schema_delta.sql)
+      di database dev/staging, verifikasi terhadap [`ERD_v0.3.mermaid`](ERD_v0.3.mermaid)
+- [ ] Perbarui `database/schema.sql` jadi DDL utuh (bukan cuma file delta) untuk instalasi baru
+- [ ] Perbarui `database/seed.sql` — 8 baris `doors` butuh nilai config default (`is_active`,
+      `open_timeout_s`, `held_timeout_s`, `alarm_duration_s`); tambah 1 admin `viewer` untuk uji RBAC
+- [ ] Model SQLAlchemy baru: `app/models/controller_event.py`, `app/models/alarm.py`,
+      `app/models/admin_log.py`
+- [ ] Perbarui model existing: `Controller` (+15 kolom sync/health), `Door` (+4 kolom config),
+      `AccessLog` (`kartu` nullable, +`door_number`/`device_id`/`device_ts`/`device_seq`), `Admin`
+      (role `viewer`)
+- [ ] Verifikasi `time_zone='+00:00'` di MySQL server & `?init_command` di `app/database.py` (aturan R2)
 
 ### Deliverable
-✅ Backend tidak bisa jalan dengan JWT secret lemah/kosong
-✅ Login terlindung dari brute-force dasar
-✅ Semua trafik backend↔frontend dan backend↔MQTT terenkripsi
-✅ Minimal 2 role akses berbeda
+✅ Skema v0.3 lengkap (11 tabel) berjalan di database dev, model backend cocok 1:1 dengan skema
 
 ---
 
-## Sprint 3 — Firmware Fisik: RFID, Relay &amp; Reliabilitas
+## Sprint 3 — Backend: Handler MQTT & Kontrak v0.3.1
 
-**Branch:** `feature/firmware-hardware`
-**Estimasi:** ~7 hari (paling tidak pasti — bergantung ketersediaan hardware &amp; hasil keputusan desain)
-**Folder:** `firmware/`
-
-⚠️ **Mulai procurement hardware (beli modul RFID, relay, dst) sejak Sprint 1 berjalan** — supaya part sudah di tangan saat giliran sprint ini, bukan baru dipesan setelah sprint 1-2 selesai.
-
-### Keputusan desain yang harus diambil DULU (sebelum coding dimulai)
-
-- [ ] **Fail-safe vs fail-secure** — kalau listrik padam, pintu harus otomatis terbuka (fail-safe, wajib di banyak jalur evakuasi kebakaran) atau tetap terkunci (fail-secure)? Ini bukan keputusan teknis semata, kemungkinan perlu cek kode bangunan/regulasi lokasi pemasangan.
-- [ ] Pilihan pembaca RFID: 125kHz (EM4100, lebih murah, lebih gampang diduplikasi) vs 13.56MHz (MIFARE, lebih aman) — pengaruh ke jarak baca &amp; kompatibilitas kartu yang sudah beredar (kalau ada)
+**Branch:** `feature/backend-mqtt-v0.3` · **Rujukan:** §5.1–§5.2, §5.6–§5.8 KEPUTUSAN
 
 ### Checklist
-
-**RFID &amp; Aktuator:**
-- [ ] Integrasi driver pembaca RFID sungguhan (RC522/PN532, sesuai keputusan di atas), gantikan `SerialSim` sebagai sumber input utama (tetap pertahankan `SerialSim` untuk mode debug/testing tanpa hardware)
-- [ ] Kontrol relay/solenoid pintu — `AccessControl::checkAccess()` yang `granted` memicu `digitalWrite()` sungguhan, bukan cuma `Serial.println`
-- [ ] Buzzer/LED feedback (opsional, sesuai roadmap v0.2 yang belum sempat dikerjakan)
-
-**Keandalan:**
-- [ ] Watchdog timer — device restart otomatis kalau hang, bukan diam total
-- [ ] OTA update (`ArduinoOTA` atau setara) — supaya update firmware tidak wajib colok USB fisik per unit
-- [ ] Flash encryption/secure boot — kredensial WiFi/MQTT di `config.json` saat ini plaintext, siapa pun yang pegang device bisa ekstrak
-- [ ] Kurangi pemakaian `String` Arduino di jalur panas (`MqttManager.cpp` paling berat, 59 pemakaian) — ganti buffer tetap/`std::string` di bagian yang dipanggil sering, supaya tidak fragmentasi heap kalau device nyala berbulan-bulan
-- [ ] RTC atau NTP time sync — timestamp `REPLAYED` saat ini cuma estimasi dari `uptime_ms`
-
-**Perbaikan dari v0.2 (item yang sempat dikerjakan lalu di-rollback):**
-- [ ] `DEVICE_ID` default firmware (`esp32-ac-001`) tidak cocok controller manapun di seed data — perlu keputusan: daftarkan device_id sungguhan (butuh endpoint `POST /api/controllers` baru, lihat Sprint 4) atau firmware pakai `device_id` yang sudah ada (`ctrl-A`/`ctrl-B`). **Perbaikan ini sempat diterapkan &amp; diverifikasi live saat pengujian v0.2** (device jadi `ctrl-B`, `is_online: true`, Full Sync 49 user berhasil) tapi di-rollback atas permintaan sebelum sempat di-PR — tinggal diterapkan ulang begitu keputusan device_id final diambil.
-
-**Backlog dari v0.2 (dipindah dari `BACKLOG_PENGEMBANGAN.md`):**
-- [ ] **WiFi vs Ethernet (W5500)** — evaluasi mode tunggal WiFi-only, Ethernet-only, atau dual/redundant. Termasuk selesaikan masalah reconnect WiFi yang belum tuntas didesain di v0.2 (usulan sementara: throttle reconnect 30 menit — perlu dicek apakah ada pendekatan yang lebih baik, misal exponential backoff)
+- [ ] **Baru:** `app/mqtt/codes.py` — terjemahan angka↔kode DB untuk STATUS, REASON, **EVENT**
+      (0–10), cermin [`CONTRACT-CODES-V0.3.md`](CONTRACT-CODES-V0.3.md) v0.3.1
+- [ ] Rework `handle_log` — 6 field (`seq,card_id,door_number,status,reason,timestamp[,REPLAYED]`),
+      toleransi format v0.2 lama, sanity guard RTC (aturan R4), hapus mekanisme `_boot_estimate`
+- [ ] **Baru:** `handle_heartbeat` — `uptime_s,rssi,free_heap,total_users`, deteksi reboot dari
+      `uptime_s` turun, drift check user count
+- [ ] Rework `handle_status` — jadi dispatcher LWT (`ONLINE`/`OFFLINE`) vs heartbeat v0.2 lama
+      (deprecated, tetap ditoleransi selama masa transisi) — bentrok topic ini didokumentasikan di §5.1(a)
+- [ ] **Baru:** `handle_event` — payload `seq,event_code,door_number,timestamp[,REPLAYED]`,
+      perbarui `tamper_state`/`fire_state`/`power_state` di `controllers`
+- [ ] Rework `handle_config_response` — validasi `config_version` vs DB, picu reconcile kalau beda
+- [ ] **Firmware — wajib bersamaan:** `seq` 32-bit disimpan di NVS ESP32, monoton naik, tidak reset
+      saat reboot (mencegah `UNIQUE(device_id, seq)` menolak log sah — ini bug nyata yang sempat
+      ditemukan saat review PR #61)
+- [ ] `app/services/reconcile_service.py` — worker thread + queue (**bukan** blocking di handler
+      MQTT), state machine `sync_state` (§5.2b), backoff, anti-loop 3× gagal < 5 menit
+- [ ] Perbarui `sync_service.py` untuk format `users/set` baru (bitmask 4 pintu, ganti dari `1|3`)
 
 ### Deliverable
-✅ Device bisa membaca kartu RFID fisik sungguhan &amp; membuka pintu fisik sungguhan — ini yang bikin project ini benar-benar jadi "access control", bukan simulator
-✅ Firmware bisa di-update tanpa colok USB fisik ke tiap unit
-✅ Device tahan nyala lama tanpa restart manual
+✅ Semua event/log v0.3.1 diproses benar, dedup `seq` teruji, tidak ada handler yang blocking thread paho
 
 ---
 
-## Sprint 4 — Backend: Operasional &amp; Refactor
+## Sprint 4 — Backend: Endpoint, Alarm & Keamanan
 
-**Branch:** `feature/backend-ops`
-**Estimasi:** ~4 hari
-**Folder:** `backend/`, `database/migrations/`
+**Branch:** `feature/backend-endpoints-v0.3` · **Rujukan:** §5.3–§5.5, §5.7 KEPUTUSAN
 
 ### Checklist
+**Endpoint (E1–E10, §5.3):**
+- [ ] `POST`/`DELETE /api/controllers` — verifikasi provisioning EMQX auth untuk controller baru
+- [ ] `GET`/`PUT /api/controllers/{id}/doors/config` — bulk config per-pintu
+- [ ] `POST /api/controllers/{id}/sync/users` (rename dari `/sync`, alias lama dipertahankan
+      deprecated) & `POST .../sync/config`
+- [ ] `POST /api/controllers/{id}/doors/{n}/test` — relay test: role `admin` saja, wajib tulis
+      `admin_logs`, ditolak kalau controller offline, `duration_ms` dibatasi maks 10 detik
+- [ ] `GET /api/alarms` & `POST /api/alarms/{id}/ack`
+- [ ] `GET /api/controllers/{id}/health`
+- [ ] Tambah `error_code` di semua `HTTPException` baru (backlog v0.2, murah kalau dari awal)
 
-- [ ] Setup Alembic — migrasi skema DB bertahap &amp; ter-versi, bukan lagi SQL manual (`database/migrations/` saat ini cuma berisi rencana, belum ada isinya)
-- [ ] Script backup/restore MySQL + dokumentasi disaster recovery dasar
-- [ ] `backend/Dockerfile` — kemas aplikasi FastAPI sendiri jadi image, bukan cuma pakai image pihak ketiga untuk MySQL/EMQX
-- [ ] Refactor helper validasi yang terduplikasi (`_assert_doors_exist` ada 2 salinan nyaris identik di `routes/users.py` dan `routes/doors.py`) jadi satu fungsi shared
-- [ ] Tambah field `error_code` (string pendek, mis. `DUPLICATE_KARTU`) di response error `HTTPException`, berdampingan dengan `detail` yang sudah ada — supaya frontend/log bisa pegang identitas error yang stabil, tidak bergantung teks bahasa
-- [ ] Logging terstruktur (JSON log) + endpoint metrics dasar (mis. `/metrics` format Prometheus) — fondasi monitoring, belum perlu dashboard penuh dulu
-- [ ] **Backlog dari v0.2:** `POST`/`DELETE /api/controllers` — CRUD controller dinamis lewat admin (saat ini controller cuma bisa ditambah lewat SQL manual). **Klaim di backlog bahwa ini "nol dampak firmware" dan "tanpa perubahan protokol" perlu diverifikasi ulang saat implementasi**, terutama soal provisioning EMQX auth untuk controller baru — apakah benar otomatis lewat auth berbasis MySQL, atau perlu langkah manual tambahan
+**Alarm lifecycle (§5.7):**
+- [ ] `app/services/alarm_service.py` — raise/clear/ack, `UNIQUE(source, source_id)` untuk idempotensi
+- [ ] **`cleared_at` ≠ `acked_at`** — kondisi fisik normal lagi bukan berarti admin sudah lihat
+- [ ] Anti-badai: alarm aktif yang sama untuk device+door yang sama tidak melahirkan baris baru,
+      cukup naikkan penghitung
+
+**Keamanan (§5.5, subset v0.3):**
+- [ ] Validasi `JWT_SECRET_KEY` wajib & cukup panjang saat startup
+- [ ] Rate limit `POST /api/auth/login` (`slowapi`)
+- [ ] RBAC `admin`/`viewer` — `viewer` baca-saja, dilarang aksi fisik (relay test, ack alarm, sync)
+- [ ] MQTT ACL per-controller sungguhan di `tools/setup_emqx_auth.py`
+
+**WebSocket (§5.4):**
+- [ ] Amplop berversi `{v:1, type, data}` — 4 jenis: `log`, `alarm`, `controller_status`, `sync_state`
+- [ ] Log `REPLAYED` tidak dibroadcast sebagai kejadian baru (hindari banjir saat reconnect)
 
 ### Deliverable
-✅ Perubahan skema DB bisa di-rollback, tidak lagi manual SQL sekali jalan
-✅ Ada jalur backup/restore yang terdokumentasi
-✅ Admin bisa daftar/hapus controller lewat UI, tidak perlu akses SQL langsung
+✅ Admin bisa kelola controller & alarm dari API, RBAC mencegah `viewer` melakukan aksi fisik
 
 ---
 
-## Sprint 5 — Fitur Baru &amp; Perbaikan Backlog v0.2
+## Sprint 5 — Frontend: Alarm, Config Pintu & RBAC
 
-**Branch:** `feature/v0.3-enhancements`
-**Estimasi:** ~4 hari
-**Folder:** `backend/app/services/csv_service.py`, `frontend/src/pages/Logs/`
+**Branch:** `feature/frontend-v0.3` · **Rujukan:** §6 KEPUTUSAN
+
+### Perbaikan yang wajib sebelum fitur baru (temuan audit §6.0b)
+- [ ] **`useLiveFeed()` tidak pernah mengirim token** — perbaiki bersamaan dengan aktivasi
+      `AUTH_ENABLED` (Sprint 4), kalau tidak live feed mati diam-diam
+- [ ] `AccessResult` → `"GRANTED"|"DENIED"|"ALARM"`, filter log tambah opsi `ALARM`
+- [ ] `resultColor()`/Badge tambah warna alarm — sekarang `ALARM` tampil sama dengan `DENIED`
 
 ### Checklist
-
-- [ ] **Backlog:** Auto-create department saat CSV upload berisi nama department yang belum terdaftar — **dengan syarat**: normalisasi nama department dulu (exact-match case-sensitive saat ini rawan duplikat department mirip-mirip, mis. "IT" vs "I.T" vs "it ", persis kelas bug yang sama dengan normalisasi kartu Jane Smith di v0.2)
-- [ ] Export CSV di Access Logs mencakup seluruh rentang tanggal terfilter (fetch semua halaman sebelum export), bukan cuma halaman yang sedang tampil — batasan yang sudah dicatat sejak Sprint 5 v0.2
-- [ ] `POST /api/controllers/{id}/config/request` + konsumen frontend untuk `config/response` — item opsional yang sempat ditunda 2 sprint berturut-turut (v0.2 Sprint 3), putuskan apakah memang masih dibutuhkan atau di-drop permanen dari roadmap
+- [ ] `constants/codes.ts` — `STATUS_TEXT`, `REASON_TEXT`, `EVENT_TEXT`, fallback `"UNKNOWN"` untuk
+      kode asing, test konsistensi vs backend (masuk `contract-ci.yml`)
+- [ ] Tab "Pintu" di `ControllerConfigModal.tsx` — grid 4×4 config, validasi `held ≥ open` saat
+      mengetik, umpan balik 2 tahap (tersimpan DB → tersinkron controller)
+- [ ] `AlarmBanner.tsx` (di `Layout`), halaman `pages/Alarms/Alarms.tsx`, `store/alarmStore.ts` —
+      di-seed dari `GET /api/alarms?acked=false`, diperbarui dari WS
+- [ ] 2 indikator status controller (`is_online` + `link_state`), 2 tombol sync, Test Relay dengan
+      konfirmasi nama pintu + disabled saat offline
+- [ ] `hooks/useRole.ts` — aksi terlarang di-disable + tooltip, **bukan** disembunyikan
+- [ ] Satu koneksi WS terpusat (`useRealtime()`), reconnect backoff, indikator koneksi di header
 
 ### Deliverable
-✅ CSV upload lebih toleran terhadap department baru tanpa bikin data kotor
-✅ Export CSV benar-benar mencerminkan seluruh data terfilter, bukan cuma yang tampil di layar
+✅ Admin bisa atur config per-pintu & lihat/ack alarm dari dashboard, `viewer` dibatasi dengan benar
 
 ---
 
-## Sprint 6 — Produk Fisik (Track Terpisah, Berjalan Paralel)
+## Sprint 6 — Firmware Fisik
 
-**Bukan branch/PR kode** — ini keputusan desain hardware &amp; proses procurement/sertifikasi yang melibatkan pihak di luar repository ini. Dicatat di sini supaya tidak hilang dari radar, tapi **tidak menghalangi maupun dihalangi** sprint 1-5 di atas.
+**Branch:** `feature/firmware-hardware` · **Rujukan:** §1–§2 KEPUTUSAN, §7.2b
+
+⚠️ **Mulai procurement hardware sejak Sprint 1 berjalan.**
 
 ### Checklist
-
-- [ ] Desain enclosure — IP rating (tahan debu/air sesuai lokasi pasang), tahan vandal
-- [ ] Spesifikasi PoE dan/atau battery backup — supaya perilaku fail-safe/fail-secure (keputusan Sprint 3) tetap terjaga saat listrik padam
-- [ ] BOM (Bill of Materials) &amp; estimasi biaya produksi per unit
-- [ ] Riset kebutuhan sertifikasi (FCC/CE/RoHS untuk perangkat berradio WiFi; standar access control fisik seperti UL 294/EN 60839 kalau menyangkut jalur evakuasi) — tahap awal cukup riset regulasi mana yang berlaku di target pasar, belum perlu submit sertifikasi
-- [ ] Draf manual instalasi &amp; panduan technician lapangan
+- [ ] Terapkan alokasi pin final ke board (`GPIO33/40/47/48/EN`, `GPIO1` Digital Input `MAINS_LOST`,
+      `GPIO2` ADC `POWER_LOW`) — §1.1
+- [ ] Integrasi RFID sungguhan (RC522/PN532), `normalizeKartu()` format `%010lu` identik dengan backend
+- [ ] Kontrol relay/solenoid sungguhan menggantikan `Serial.println`
+- [ ] Watchdog eksternal TPS3823-33 → `GPIO47` (WDI) + `EN` (RESET); ULN2003 via pulldown saat reset
+- [ ] OTA A/B partition + auto-rollback (gagal boot/crash 3× dalam 10 menit → rollback) — §2.6
+- [ ] **Reconnect jaringan wajib non-blocking** — kehilangan koneksi dilarang mengunci loop utama
+      atau memicu watchdog reset; kartu/REX tetap diproses lokal saat offline
+- [ ] `seq` 32-bit persist di NVS (lihat Sprint 3)
+- [ ] Fire lokal: hardware interlock (P-MOSFET cut-off VCC) — **cukup ini untuk v0.3**, MCFA
+      lintas-controller resmi ditunda ke v0.4 (§2.5)
+- [ ] Event: `AUX_ACTIVE`/`CLEARED`, `TAMPER_OPEN`/`CLOSED`, `FIRE_ACTIVE`/`CLEARED`,
+      `MAINS_LOST`/`OK`, `POWER_LOW`/`NORMAL` — payload ikut buffer offline & `REPLAYED`
+- [ ] Kurangi pemakaian `String` Arduino di `MqttManager.cpp`
 
 ### Deliverable
-✅ Ada gambaran jelas biaya &amp; kelayakan produksi sebelum commit ke manufaktur skala besar
+✅ Kartu fisik → pintu fisik, log & event v0.3.1 terkirim benar, device tahan lama tanpa restart manual
 
 ---
 
-## Sprint 7 — Integrasi &amp; Rilis v0.3
+## Sprint 7 — Produk Fisik (Track Terpisah, Non-Kode)
 
-**Branch:** `dev` (merge semua feature branch)
-**Estimasi:** ~2 hari
+**Bukan branch/PR kode.** Berjalan paralel, tidak menghalangi sprint lain.
 
 ### Checklist
-
-- [ ] Merge semua feature branch v0.3 ke `dev`
-- [ ] Test end-to-end penuh dengan CI hijau di semua layer (bukan cuma manual seperti v0.2 — ini bedanya, Sprint 1 v0.3 sudah menyediakan otomasinya)
-- [ ] Test end-to-end fisik: kartu RFID sungguhan → relay membuka pintu sungguhan → log muncul di dashboard
-- [ ] Update `CHANGELOG.md` untuk v0.3.0
-- [ ] Update `README.md`
-- [ ] Merge `dev` → `main`
-- [ ] Tag release: `git tag -a v0.3.0 -m "Release v0.3.0"`
-- [ ] Push: `git push origin main && git push origin v0.3.0`
+- [ ] Desain enclosure — IP rating, tahan vandal
+- [ ] PoE dan/atau battery backup
+- [ ] BOM & estimasi biaya produksi — termasuk 19 poin proteksi dari
+      [`HARDWARE-AUDIT-REVIEW-V0.3.md`](HARDWARE-AUDIT-REVIEW-V0.3.md)
+- [ ] Riset sertifikasi (FCC/CE/RoHS, UL 294/EN 60839)
+- [ ] Draf manual instalasi & panduan technician
 
 ### Deliverable
-✅ **v0.3.0 Released** — sistem access control dengan hardware fisik fungsional, CI/CD aktif, dan keamanan production-grade dasar
+✅ Gambaran biaya & kelayakan produksi sebelum commit ke manufaktur skala besar
+
+---
+
+## Sprint 8 — Integrasi & Rilis v0.3
+
+**Branch:** `dev` (merge semua feature branch) · **Rujukan:** §7.3–§7.6 KEPUTUSAN
+
+### Checklist
+- [ ] Merge semua feature branch, CI hijau di semua layer (5 workflow gerbang-merge)
+- [ ] Jalankan 8 skenario end-to-end §7.2(d): tap valid, REX+forced-open, offline/reconnect/replay,
+      drift heartbeat, `SYNC_ERROR_ATTENTION_REQUIRED`, tamper open/close, config push, reason asing
+- [ ] Test end-to-end fisik: kartu RFID sungguhan → relay → log muncul di dashboard
+- [ ] Build artefak rilis (§7.6b): `backend`, `frontend dist`, `firmware.bin`, `schema.sql`+migrasi,
+      versi ditanam di 3 layer dari tag (`fw_version` terisi — sekarang mustahil terisi tanpa ini)
+- [ ] Pasang ke staging (VM, [`pendukung/VM_TESTING_PLAN.md`](pendukung/VM_TESTING_PLAN.md)) dulu,
+      **1 controller fisik** sebelum OTA massal
+- [ ] Update `CHANGELOG.md`, `README.md`
+- [ ] Merge `dev` → `main`, tag `v0.3.0`, push
+
+### Deliverable
+✅ **v0.3.0 Released** — hardware fisik fungsional, alarm & RBAC aktif, CI/CD penuh, MCFA lokal
+   (lintas-controller resmi di v0.4)
+
+---
+
+## Yang TIDAK masuk v0.3 (ditunda ke v0.4, §5.9/§6.10/§7.1e)
+
+- **MCFA lintas-controller** (`fire_orchestrator`, `fire_assignments`) — butuh desain union-state +
+  threat model ACL, lihat §2.5 KEPUTUSAN untuk alasan lengkap (bug jalur evakuasi bersama)
+- Auto-reconciliation penuh baru terasa nilainya setelah ada controller yang sering putus-nyambung
+  di lapangan — versi dasarnya (Sprint 3) tetap masuk v0.3, yang ditunda adalah penyempurnaan lanjut
+- Refresh token, HTTPS wajib, MQTT TLS — kenyamanan/deployment, bukan pemblokir fungsi inti
+- Live door monitoring real-time (§6.4)
+- Auto-deploy ke server, registry image publik — CD berhenti di artefak (§7.1b)
 
 ---
 
@@ -242,12 +318,13 @@ Ini sengaja jadi **sprint pertama**, bukan terakhir — supaya setiap sprint kod
 | Sprint | @danskiv | @rizzalaulia |
 |--------|----------|--------------|
 | 1. CI/CD + Testing | Review | ✅ Lead |
-| 2. Keamanan | ✅ Berdua | ✅ Berdua |
-| 3. Firmware Fisik | ✅ Lead | Review |
-| 4. Backend Ops | Review | ✅ Lead |
-| 5. Fitur Baru | ✅ Berdua | ✅ Berdua |
-| 6. Produk Fisik | ✅ Lead (procurement/hardware) | Review |
-| 7. Integrasi &amp; Rilis | ✅ Berdua | ✅ Berdua |
+| 2. Skema Database | Review | ✅ Lead |
+| 3. Backend MQTT | Review | ✅ Lead |
+| 4. Backend Endpoint & Alarm | Review | ✅ Lead |
+| 5. Frontend | Review | ✅ Lead |
+| 6. Firmware Fisik | ✅ Lead | Review |
+| 7. Produk Fisik | ✅ Lead (procurement/hardware) | Review |
+| 8. Integrasi & Rilis | ✅ Berdua | ✅ Berdua |
 
 ---
 
@@ -256,12 +333,13 @@ Ini sengaja jadi **sprint pertama**, bukan terakhir — supaya setiap sprint kod
 ```
 main ──────────────────────────────────────────────────────────► v0.3.0
   │
-  └── dev (bercabang dari main SETELAH v0.2.0 resmi di-tag)
-        ├── feature/ci-cd-testing ──────── Sprint 1 ──► merge ke dev
-        ├── feature/security-hardening ─── Sprint 2 ──► merge ke dev
-        ├── feature/firmware-hardware ──── Sprint 3 ──► merge ke dev (mulai paralel dgn Sprint 1)
-        ├── feature/backend-ops ────────── Sprint 4 ──► merge ke dev
-        ├── feature/v0.3-enhancements ──── Sprint 5 ──► merge ke dev
-        │        (Sprint 6 — track terpisah, non-kode, tidak ada branch)
-        └── (integration testing) ──────── Sprint 7 ──► merge ke main + tag v0.3.0
+  └── dev
+        ├── feature/ci-cd-testing ────────── Sprint 1
+        ├── feature/database-v0.3 ────────── Sprint 2
+        ├── feature/backend-mqtt-v0.3 ────── Sprint 3
+        ├── feature/backend-endpoints-v0.3 ─ Sprint 4
+        ├── feature/frontend-v0.3 ────────── Sprint 5
+        ├── feature/firmware-hardware ────── Sprint 6 (paralel sejak Sprint 1)
+        │        (Sprint 7 — track terpisah, non-kode, tidak ada branch)
+        └── (integration testing) ────────── Sprint 8 ──► merge ke main + tag v0.3.0
 ```
