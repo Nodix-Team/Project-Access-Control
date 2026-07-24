@@ -6,11 +6,10 @@
 > Jawaban dari sisi Danas sudah final. Dokumen ini diajukan ke Emping (@rizzalaulia) untuk di-review/ACK akhir sebelum dibekukan penuh bersama. Jika ada masukan/penyesuaian dari Emping, Danas siap menyesuaikan.
 
 > [!NOTE]
-> **Revisi 23 Juli 2026 — Jawaban & Rekomendasi Final Danas.**
-> Seluruh checklist (**§1.1 & §2.1**, **§4.6 D1–D9**, **§5.10 B1–B8**, **§7.7 C1–C8**) telah diisi dengan
-> **jawaban & rekomendasi final dari @danskiv** dan siap direview oleh @rizzalaulia.
-> Dua artefak pendukung sudah disesuaikan: [`ERD_v0.3.mermaid`](ERD_v0.3.mermaid) dan
-> [`001_v0.3_schema_delta.sql`](../database/migrations/001_v0.3_schema_delta.sql).
+> **Revisi 24 Juli 2026 — Jawaban & Rekomendasi Final Danas.**
+> **Seluruh item checklist** (§1 hingga §7) telah diisi dengan **jawaban & rekomendasi final dari @danskiv** dan siap direview sepenuhnya oleh @rizzalaulia.
+> Artefak pendukung [`ERD_v0.3.mermaid`](ERD_v0.3.mermaid) dan [`001_v0.3_schema_delta.sql`](../database/migrations/001_v0.3_schema_delta.sql)
+> telah disesuaikan sepenuhnya untuk menyelaraskan urutan log (`seq`) dan relasi MCFA (`fire_assignments`).
 
 **Legend status:** ✅ SUDAH DIPUTUSKAN · 🔴 TERBUKA · 🟡 REKOMENDASI DANAS (Menunggu ACK Emping)
 
@@ -19,16 +18,15 @@
 | § | Bagian | Status | Yang ditunggu |
 |---|---|---|---|
 | 0 | Keputusan final | ✅ 7 item | — |
-| 1 | Hardware & kelistrikan | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (pin §1.1) |
-| 2 | Firmware & integrasi fisik | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (Wiegand 10-digit `%010lu` §2.1) |
-| 3 | Kontrak MQTT | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (tabel topic final) |
+| 1 | Hardware & kelistrikan | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (pin §1.1, PTC) |
+| 2 | Firmware & integrasi fisik | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (§2.1–§2.6) |
+| 3 | Kontrak MQTT | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (§3.1–§3.2) |
 | 4 | **Database** | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (D1–D9) |
 | 5 | **Backend** | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (B1–B8) |
 | 6 | **Frontend** | 🟡 **RANCANGAN EMPING** | Ditinjau oleh @rizzalaulia (F1–F8) |
 | 7 | **Proses, CI/CD, test & deployment** | 🟡 **REKOMENDASI FINAL DANAS** | Review & ACK akhir @rizzalaulia (C1–C8) |
 
-> **Cara membaca:** §1–§3 masih menunggu keputusan hardware/firmware. §4–§7 **tidak menunggu itu untuk
-> bisa direview** — yang bergantung ke §1–§3 sudah ditandai eksplisit di §5.8 (konsekuensi lintas layer).
+> **Cara membaca:** §4–§7 **bisa langsung direview** — yang bergantung ke §1–§3 sudah ditandai eksplisit di §5.8 (konsekuensi lintas layer).
 
 **Dokumen sumber yang dirujuk:**
 [`ARCHITECTURE-PROPOSAL-V0.3.md`](ARCHITECTURE-PROPOSAL-V0.3.md) ·
@@ -62,22 +60,36 @@ Biar tidak dibahas ulang — ini sudah disepakati, tinggal dirujuk:
 ## 1. HARDWARE & KELISTRIKAN
 
 ### 1.1 Konflik alokasi pin §2B — 🟡 REKOMENDASI FINAL DANAS
-Rekomendasi alokasi ulang pin dari @danskiv:
-- `GPIO1`/`GPIO2` dikhususkan untuk **ADC Sensing 12V** (PLN & External Battery/PSU 12V).
-- Relay 1–2 dipindahkan ke **`GPIO33`** dan **`GPIO40`** (Relay 3-4 di `GPIO41`/`GPIO42`).
-- Watchdog WDI dipindahkan ke **`GPIO47`** (membebaskan `GPIO34` khusus MCP23017 `INTA`).
-- Reader 4 D1 dipindahkan ke **`GPIO48`** (membebaskan `GPIO22` yang tidak ada di ESP32-S3).
-- Watchdog RESET dicolokkan ke pin **`EN`** (Chip Enable ESP32-S3).
-- **KEPUTUSAN:** 🟡 **REKOMENDASI FINAL DANAS (Menunggu Review & ACK Emping)**.
+Solusi teknis sudah diusulkan (tinggal diterapkan Danas ke tabel §2B):
+- `GPIO1`/`GPIO2` dobel (relay vs ADC) → relay 1–2 pindah ke `GPIO33`/`GPIO40`
+- `GPIO34` dobel (MCP INTA vs watchdog WDI) → WDI pindah ke `GPIO47`
+- `GPIO22` **tidak ada di ESP32-S3** → Reader 4 D1 pindah ke `GPIO48`
+- Watchdog RESET → pin `EN` (bukan GPIO)
+- **Rekomendasi Final Danas:**
+  - Relay 1–2 pindah ke **`GPIO33`** & **`GPIO40`**. WDI ke **`GPIO47`**. Reader 4 D1 ke **`GPIO48`**. Watchdog RESET ke **`EN`**.
+  - **`GPIO2`** (ADC) khusus membaca voltase Rel 12V Utama untuk mendeteksi `POWER_LOW` (baterai drop).
+  - **`GPIO1`** diubah desainnya dari ADC menjadi **Digital Input** (opsional) untuk mendeteksi `MAINS_LOST` (kabel terhubung ke AC Fail Relay dari Smart PSU atau External AC Relay).
+- **KEPUTUSAN:** 🟡 **REKOMENDASI FINAL DANAS**.
 
 ### 1.2 Mekanisme watchdog mematikan relay — 🟡 REKOMENDASI FINAL DANAS
-- **KEPUTUSAN:** 🟡 ULN2003 dikontrol via pulldown input ULN saat watchdog reset.
+`ULN2003` **tidak punya pin ENABLE**. Bagaimana watchdog menaruh relay ke safe-state saat MCU hang?
+- **Rekomendasi Final Danas:** ULN2003 dikontrol via pulldown input ULN saat watchdog reset.
+- **KEPUTUSAN:** 🟡 **REKOMENDASI FINAL DANAS**.
 
 ### 1.3 Fail-safe vs fail-secure — 🟡 REKOMENDASI FINAL DANAS
-- **KEPUTUSAN:** 🟡 Catatan spec disetujui. Saat `FIRE_ACTIVE`, backend menekan pembuatan alarm `DOOR_FORCED_OPEN` baru (sesuai usulan B5).
+Disepakati: pemilihan fail-safe/secure **mengikuti doorlock** yang dipasang.
+Catatan yang perlu dicantumkan di spec: **fire interlock (potong VCC) hanya melepas maglock (fail-safe)**.
+- ⚠️ **Dampak ke software (baru, lihat §5.8):** karena fire interlock memutus VCC **tanpa lewat controller**, semua maglock terlepas dan controller akan melaporkan `DOOR_FORCED_OPEN` beruntun.
+- **Rekomendasi Final Danas:** Catatan spec disetujui. Saat `FIRE_ACTIVE`, backend menekan pembuatan alarm `DOOR_FORCED_OPEN` baru (sesuai usulan B5).
+- **KEPUTUSAN:** 🟡 **REKOMENDASI FINAL DANAS**.
 
 ### 1.4 Catatan wet/dry — 🟡 REKOMENDASI FINAL DANAS
-- **KEPUTUSAN:** 🟡 Output WET khusus beban DC. Proteksi fuse utama 5A digunakan untuk v0.3.
+- Dioda flyback `1N4007` itu **DC-only** → mode DRY untuk beban AC bermasalah. Perlu diperjelas: DRY = DC saja, atau flyback bisa di-bypass?
+- **Belum ada fuse per-pintu di output lock WET** — korslet kabel lock hanya dilindungi fuse utama 5A (relay bisa keburu weld). Tambah PTC per output lock?
+- **Rekomendasi Final Danas:** 
+  1. Output WET khusus beban DC.
+  2. Disetujui penambahan **Polyfuse PTC SMD per-pintu** (4 pcs) untuk mencegah relay weld jika terjadi short circuit.
+- **KEPUTUSAN:** 🟡 **REKOMENDASI FINAL DANAS**.
 
 ---
 
@@ -91,72 +103,70 @@ Reader Wiegand kirim biner (26/34-bit). Sistem memakai kartu **10-digit ternorma
   3. C++ firmware `normalizeKartu()` dan Python backend `normalize_kartu()` dijamin menghasilkan string identik 100%.
 - **KEPUTUSAN:** 🟡 **REKOMENDASI FINAL DANAS (Menunggu Review & ACK Emping)**.
 
-### 2.2 Sumber waktu RTC — 🔴 TERBUKA
-RTC DS3231 di-set awalnya dari mana? (NTP via Ethernet / push dari backend / manual). Kalau RTC ngaco, semua timestamp ngaco.
-- **Mitigasi sisi backend sudah dirancang:** sanity guard **R4** (§4.3) menolak `device_ts` di luar
-  `2025-01-01 .. NOW()+5 menit` dan jatuh ke `NOW()`. Ini **menahan kerusakan, bukan menggantikan** jawaban
-  pertanyaan ini — RTC yang ngaco tetap membuat log offline salah waktu.
-- **KEPUTUSAN:** _(belum)_
+### 2.2 Sumber waktu RTC — ✅ FINAL (Keputusan Danas)
+RTC DS3231 di-set awalnya dan disinkronisasi secara berkala dari server backend.
+- **Rekomendasi Final Danas (Opsi B):** Ketika kontroler terhubung ke broker MQTT, server akan mem-push epoch waktu UTC secara berkala (pada saat boot dan secara berkala setiap 24 jam) untuk menyesuaikan jam RTC lokal.
+- **KEPUTUSAN:** ✅ **Opsi B (Disuapi oleh Backend via MQTT)**.
 
-### 2.3 Otoritas waktu untuk log LIVE — 🟡 USUL (usulan sudah ada, tinggal ACK)
+### 2.3 Otoritas waktu untuk log LIVE — ✅ FINAL (Keputusan Danas)
 Pertanyaan awal: untuk log **live**, waktu otoritatif = backend `NOW()` atau epoch controller?
-- **USUL (§4.3 R3):** **LIVE → `server_ts = NOW()` backend** (controller tetap mengirim epoch, disimpan di
-  kolom baru `device_ts` untuk diagnosa). **REPLAYED → `server_ts = device_ts`** dari RTC, supaya log
-  offline terurut kronologis.
-- **`device_uptime_ms` (jawaban catatan lama):** **jangan** diisi epoch — nama kolomnya berarti "milidetik
-  sejak boot". Kolom dipertahankan untuk log v0.2, diisi `NULL` untuk log v0.3; penggantinya `device_ts`.
-- **KEPUTUSAN:** _(ACK R3 + perlakuan `device_uptime_ms`? — ini bagian dari D7)_
+- **Rekomendasi Final Danas (Opsi A):** 
+  - **LIVE** -> `server_ts = NOW()` backend (epoch controller tetap dikirim dan disimpan di kolom `device_ts` untuk audit).
+  - **REPLAYED** -> `server_ts = device_ts` (dari RTC offline controller) agar log terurut secara kronologis di database.
+  - Kolom usang `device_uptime_ms` diisi `NULL` untuk log v0.3.
+- **KEPUTUSAN:** ✅ **Opsi A (LIVE = Server TS, REPLAYED = Device TS)**.
 
-### 2.4 Door state machine — 🟡 USUL
-Logika sudah dijelaskan (forced-open, held-open, granted-unopened). Yang belum: timing, debouncing sensor,
-edge-case (REX saat forced-open, sensor bounce).
-- ⚠️ **Permintaan dari sisi test (§7.2):** supaya state machine ini bisa ditest di `[env:native]` tanpa
-  board, ia harus ditulis sebagai **kelas yang tidak memanggil `digitalWrite`/`millis` langsung** (waktu &
-  IO di-inject). Ini keputusan desain yang harus diambil **sebelum** kode ditulis, bukan sesudah.
-- **Sensor bounce → badai alarm:** debouncing yang longgar akan mengirim puluhan `DOOR_FORCED_OPEN`.
-  Backend sudah menyiapkan peredam (§5.7 #4), tapi sumber masalahnya tetap di firmware.
-- **KEPUTUSAN:** _(perlu detail implementasi + edge case + ACK desain testable)_
+### 2.4 Door state machine — ✅ FINAL (Keputusan Danas)
+Logika sensor pintu, timeout, dan alarm.
+- **Rekomendasi Final Danas (Opsi A):** 
+  - Logika pintu dipisah dalam kelas C++ terisolasi (Modular) dengan dependensi waktu (`millis()`) dan IO (`digitalWrite`) yang di-inject dari luar agar bisa di-unit-test di native PC (`[env:native]` / PlatformIO) & CI.
+  - Debouncing sensor pintu minimal 50ms dilakukan di tingkat firmware untuk mencegah badai alarm.
+- **KEPUTUSAN:** ✅ **Opsi A (Modular & Testable)**.
 
-### 2.5 Aux input & cross-controller trigger — 🔴 TERBUKA
-Aux "software-configurable" termasuk **kirim perintah ke controller lain** (MQTT antar-controller). Ini jalur komunikasi baru.
-- **Batas scope yang diusulkan:** aux **dicatat** sebagai event (`AUX_ACTIVE`/`AUX_CLEARED`, §4.2) di v0.3,
-  tapi **cross-controller trigger lewat backend TIDAK masuk v0.3** (§5.9). Kalau triggernya murni
-  controller↔controller lewat broker, itu jalur firmware yang tidak menyentuh backend sama sekali —
-  perlu ditegaskan yang mana yang dimaksud.
-- **KEPUTUSAN:** _(belum — desain topic + siapa broker perantaranya + apakah backend terlibat)_
+### 2.5 Aux input & cross-controller trigger — ✅ FINAL (Keputusan Danas)
+Input AUX dan integrasi MCFA (Fire Alarm) lintas kontroler.
+- **Rekomendasi Final Danas (Opsi Hybrid lewat Server):**
+  - **AUX Input**: Untuk v0.3 dibatasi hanya sebagai pencatatan event (`AUX_ACTIVE` / `AUX_CLEARED`) saja di database, belum memicu aksi silang ke controller lain.
+  - **MCFA / Fire Alarm**: Jika salah satu kontroler mendeteksi input MCFA aktif, ia mengirim event `FIRE_ACTIVE`. Server backend akan membaca tabel `fire_assignments` dan mem-publish perintah buka paksa pintu secara massal ke kontroler target via topik `access/{device_id}/fire/override` dengan format payload CSV `<d1>,<d2>,<d3>,<d4>`.
+- **KEPUTUSAN:** ✅ **Opsi Hybrid (MCFA silang lewat Server via CSV)**.
 
-### 2.6 OTA rollback — 🟡 USUL
-Disebut "Safe OTA Rollback ke partisi pabrik". Mekanismenya (A/B partition, health check) belum detail.
-- **Batas scope:** **OTA push dari backend TIDAK masuk v0.3** (§5.9). Untuk v0.3 cukup jalur Web Config
-  lokal 8081, jadi pertanyaan ini tidak memblokir backend/frontend.
-- **KEPUTUSAN:** _(belum)_
+### 2.6 OTA rollback — ✅ FINAL (Keputusan Danas)
+Mekanisme pengamanan proses OTA agar device tidak mati total (bricked).
+- **Rekomendasi Final Danas (Opsi A + Proteksi Non-Blocking):** 
+  - Wajib menggunakan skema partisi A/B (app0 dan app1 masing-masing 3MB) dengan fitur auto-rollback bawaan ESP32.
+  - Jika firmware baru gagal boot atau crash berturut-turut sebanyak 3 kali (memicu Watchdog Reset) dalam 10 menit pertama, bootloader otomatis mengembalikan (rollback) boot ke partisi versi stabil sebelumnya.
+  - **Aturan Non-Blocking Wajib**: Penanganan koneksi ulang jaringan (MQTT/Backend) harus ditulis secara asinkron (non-blocking). Hilangnya koneksi jaringan dilarang keras mengunci program utama (delay/looping) dan tidak boleh memicu Watchdog Reset. Kontroler harus tetap bisa memproses pembacaan kartu dan REX secara lokal (offline mode) saat tidak ada koneksi ke server.
+- **KEPUTUSAN:** ✅ **Opsi A (Automatic Rollback via Partisi A/B & Proteksi Non-Blocking)**.
 
 ---
 
 ## 3. KONTRAK MQTT (harus dibekukan lengkap, bukan cuma reason code)
 
-### 3.1 Daftar topic lengkap v0.3 — 🔴 TERBUKA (bahan usulan sudah lengkap)
+### 3.1 Daftar topic lengkap v0.3 — ✅ FINAL (Keputusan Danas)
 
-Contract Codes baru mencakup payload `logs`. Status tiap topic setelah §4–§6 dirancang:
+Seluruh kontrak topik MQTT untuk v0.3 telah disatukan dan dibekukan. Semua payload menggunakan format murni CSV untuk efisiensi RAM di ESP32:
 
-| Topic | Arah | Status | Rujukan usulan |
-|---|---|---|---|
-| `access/{id}/logs` | C→S | ✅ format final | Contract Codes |
-| `access/{id}/heartbeat` | C→S | 🟡 `uptime_s,rssi,free_heap,total_users` — **makna `rssi` dipertanyakan** | §5.1(d), **B1** |
-| `access/{id}/status` | C→S | ⚠️ **BENTROK** dengan heartbeat v0.2 | §5.1(a), **B6** |
-| `access/{id}/events` | C→S | 🟡 usulan baru + tabel angka event 0–10 | §4.2, **D4/D6** |
-| `access/{id}/config/request` · `/response` · `/sync` | 2 arah | 🟡 +`config_version` | §5.2(d)(f), **B8** |
-| `access/{id}/users/sync/*` · `users/set` · `users/delete` | S→C | ✅ sama seperti v0.2 | KEPUTUSAN v0.2 §2 |
-| `access/{id}/relay/test` | S→C | 🟡 usulan baru `<door>,<duration_ms>` | §5.3, **B3** |
-| Prefix versi `v1,` (aturan v0.2 #11) | — | 🔴 **belum ditegaskan** apakah masih dipakai di v0.3 | KEPUTUSAN v0.2 §2 |
+| Topic | Arah | QoS | Retained | Format Payload (CSV) | Keterangan / Fungsi |
+|---|:---:|:---:|:---:|---|---|
+| `access/{id}/status` | C ➔ S | 1 | **Yes** | `ONLINE` atau `OFFLINE` | **LWT (Last Will & Testament)**. Deteksi status koneksi fisik kontroler secara instan. |
+| `access/{id}/heartbeat` | C ➔ S | 1 | No | `<uptime_s>,<rssi>,<free_heap>,<total_users>` | **Telemetry**. Dikirim tiap 30s. `rssi` diisi status Ethernet (`NULL`/`0`/`100`/`10`). |
+| `access/{id}/logs` | C ➔ S | 1 | No | `<seq>,<card_id>,<door_number>,<status>,<reason>,<timestamp>[,REPLAYED]` | **Log Akses Pintu** (termasuk buffer offline). `<seq>` 32-bit untuk dedup. |
+| `access/{id}/events` | C ➔ S | 1 | No | `<seq>,<event_code>,<timestamp>[,REPLAYED]` | **Log Event Non-Akses** (Tamper, Fire, Power, Aux, dll). |
+| `access/{id}/config/request` | S ➔ C | 1 | No | `request` (atau kosong) | **Perintah Baca Config**. Server meminta kontroler mengirim config terbarunya. |
+| `access/{id}/config/response` | C ➔ S | 1 | **Yes** | `config_version,<val>,wifi_ssid,<val>,...` | **Laporan Config Aktif**. Format berpasangan `key,value` (TANPA `wifi_pass`). |
+| `access/{id}/config/sync` | S ➔ C | 1 | No | `<door_number>,<is_active>,<open_timeout>,<held_timeout>,<alarm_dur>` | **Sinkronisasi Config Pintu** (Bulk). Contoh: `d1,1,10,30,30`. |
+| `access/{id}/fire/override` | S ➔ C | 1 | **Yes** | `<d1_override>,<d2_override>,<d3_override>,<d4_override>` | **Perintah Darurat Kebakaran**. Contoh: `1,1,0,0` (buka pintu 1 & 2). |
+| `access/{id}/relay/test` | S ➔ C | 1 | No | `<door_number>,<duration_ms>` | **Uji Relay**. Server menginstruksikan pintu terbuka sementara. |
+| `access/{id}/users/sync/start` | S ➔ C | 1 | No | `<sync_id>` | **Mulai Sinkronisasi Massal**. Kontroler membuka buffer RAM baru. |
+| `access/{id}/users/sync/end` | S ➔ C | 1 | No | `<sync_id>,<count>` | **Selesai Sinkronisasi**. Kontroler mem-validasi total user lalu menulis ke flash. |
+| `access/{id}/users/set` | S ➔ C | 1 | No | `<card_id>,<d1>,<d2>,<d3>,<d4>` | **Simpan/Edit Hak Akses User**. Nilai `dX` berupa `1` (boleh) atau `0` (tidak). |
+| `access/{id}/users/delete` | S ➔ C | 1 | No | `<card_id>` | **Hapus User** dari memori kontroler. |
 
-- **KEPUTUSAN:** _(gabungkan jadi 1 tabel kontrak final: topic | arah | payload | QoS | retained.
-  Bahannya sudah ada semua di kolom "rujukan" — tinggal dibekukan)_
+- **KEPUTUSAN:** ✅ **Tabel Kontrak MQTT Dibekukan (Komplet CSV)**.
 
-### 3.2 Event non-akses (tamper/fire/aux) dikirim lewat topic apa? — 🟡 USUL (usulan sudah ada)
-- **USUL:** **topic `access/{id}/events` sendiri**, bukan numpang `logs`. Alasan lengkap + tabel angka
-  event (0–10) + aturan penempatan ke tabel DB ada di **§4.2**; ini pertanyaan **D4** & **D6**.
-- **KEPUTUSAN:** _(ACK topic terpisah + tabel angka event?)_
+### 3.2 Event non-akses (tamper/fire/aux) dikirim lewat topic apa? — ✅ FINAL (Keputusan Danas)
+- **Rekomendasi Final Danas:** Event non-akses (tamper/fire/power/aux) wajib dikirim lewat topik terpisah `access/{device_id}/events` (QoS 1) secara independen, tidak menumpang pada log akses pintu. Hal ini untuk memisahkan domain data operasional (log akses) dari domain data kesehatan/keamanan perangkat (events/alarms).
+- **KEPUTUSAN:** ✅ **Disetujui topik `access/{id}/events` terpisah**.
 
 ---
 
@@ -211,7 +221,7 @@ Rancangan di bawah sudah dicek terhadap 5 aturan ini — kalau ada usulan tandin
 - (a) Firmware menerima config sebagai **key satuan** (`config/set` → `d1_open_timeout_s,10`, 16 pesan) atau **satu pesan bulk**? Ini menentukan bentuk `config/sync` di §3.1.
 - (b) `dX_active=false` mematikan **seluruh** peripheral pintu itu (reader, REX, sensor, relay, alarm) sesuai proposal — konfirmasi? Kalau ya, backend juga harus **menolak memberi akses** ke pintu non-aktif, bukan cuma controller yang mengabaikan.
 - (c) Default 10/30/30 detik dari proposal — dipakai apa adanya?
-- **KEPUTUSAN:** _(Opsi A/B/C? jawaban a–c?)_
+- **KEPUTUSAN:** ✅ **Opsi A (Kolom di tabel `doors`)**. Jawaban pertanyaan: (a) **Satu pesan bulk CSV** per pintu (`d1,1,10,30,30`), (b) **Ya, dX_active=false mematikan seluruh peripheral** dan backend ikut menolak akses, (c) **Ya, default proposal 10/30/30s dipakai**.
 
 ---
 
@@ -276,7 +286,7 @@ Topic `access/{device_id}/events` (QoS 1), tetap **angka di kabel** seperti Cont
 - (a) Setuju event **tidak** dicampur ke `logs` dan punya topic `events` sendiri? (§3.2 menunggu ini)
 - (b) Event mengirim **pasangan aktif/clear** (`TAMPER_OPEN`/`TAMPER_CLOSED`) atau cuma saat aktif? Rancangan ini mengandalkan pasangan supaya `tamper_state` bisa kembali `OK` tanpa reboot.
 - (c) Event ikut masuk buffer offline & di-`REPLAYED` juga, atau kejadian saat offline hilang?
-- **KEPUTUSAN:** _(usul 2 tabel / opsi cadangan 1 tabel? ACK tabel angka event?)_
+- **KEPUTUSAN:** ✅ **Usul 2 tabel (`controller_events` & `alarms`)** disetujui. Jawaban pertanyaan: (a) **Ya, topic `events` terpisah**, (b) **Ya, mengirim pasangan aktif/clear**, (c) **Ya, event offline di-buffer & REPLAYED**. Tabel angka event 0-10 disetujui (dibekukan).
 
 ---
 
@@ -296,7 +306,7 @@ Topic `access/{device_id}/events` (QoS 1), tetap **angka di kabel** seperti Cont
   data lama dan baru tidak bisa dibedakan. Penggantinya kolom baru `device_ts DATETIME(3)`.
 - **Konsekuensi ke `handlers.py`:** seluruh mekanisme `_boot_estimate` (rekonstruksi waktu dari uptime)
   **dihapus** untuk jalur v0.3 — itu tambal sulam karena controller v0.2 tidak punya jam.
-- **KEPUTUSAN:** _(ACK R1–R6? R2 perlu perubahan konfigurasi MySQL, tolong dicek di mesin @danskiv juga)_
+- **KEPUTUSAN:** ✅ **ACK R1–R6**. Skema UTC murni disetujui. Urutan log REPLAYED mengikuti `device_ts`.
 
 ---
 
@@ -342,7 +352,7 @@ Yang harus ikut diperbarui begitu §4 dibekukan:
 - [ ] `frontend/src/types/index.ts` — cermin tipe (§6.0)
 - [ ] `docs/ERD_v0.2.mermaid` diberi catatan "digantikan ERD_v0.3.mermaid"
 
-- **KEPUTUSAN:** _(ACK file migrasi + urutan penerapan?)_
+- **KEPUTUSAN:** ✅ **ACK file migrasi & urutan penerapan**. Migrasi delta SQL aman dijalankan lebih dulu.
 
 ---
 
@@ -353,7 +363,7 @@ Seluruh usulan skema database & ERD ditinjau oleh @danskiv (menunggu ACK akhir @
 | # | Pertanyaan | Usulan saya | Rekomendasi Final Danas |
 |---|---|---|---|
 | D1 | Config per-pintu: kolom di `doors`, tabel `door_config` terpisah, atau kolom JSON? | **Kolom di `doors`** (§4.1 Opsi A) | ✅ **Kolom di `doors`** (Opsi A) |
-| D2 | Config dikirim per-key (16 pesan) atau 1 pesan bulk per pintu? | Bulk — 1 payload per pintu | ✅ **Bulk** (1 payload per pintu) |
+| D2 | Config dikirim per-key (16 pesan) atau 1 pesan bulk per pintu? | Bulk — 1 payload per pintu | ✅ **Bulk** (1 payload per pintu via CSV, contoh: `d1,1,10,30,30`) |
 | D3 | `dX_active=false` mematikan seluruh peripheral pintu? | Ya, **dan** backend ikut menolak memberi akses ke pintu itu | ✅ **Ya** (Backend ikut menolak akses pintu non-aktif) |
 | D4 | Event non-akses: topic `events` sendiri atau numpang `logs`? | **Topic `events` sendiri** + tabel `controller_events` | ✅ **Topic `events` sendiri** + tabel `controller_events` |
 | D5 | Tabel `alarms` terpisah, atau kolom ack menempel di tabel event? | **Tabel `alarms` terpisah** (idempoten + log tetap immutable) | ✅ **Tabel `alarms` terpisah** |
@@ -449,7 +459,7 @@ Ini belum tertulis di mana pun dan bisa membuat backend diam-diam salah parse:
   *dispatcher*: kalau payload `ONLINE`/`OFFLINE` → perlakukan sebagai LWT, kalau CSV 4 angka → heartbeat
   lama (deprecated, log warning). Firmware baru cukup pakai `heartbeat` + `status`. Tanpa ini, satu
   controller lama di lapangan bikin handler crash/salah tulis `last_seen`.
-- **KEPUTUSAN:** _(ACK / tolak / usul lain — dan sinkronkan ke §3.1)_
+- **KEPUTUSAN:** ✅ **ACK**. Mendukung transisi status dan heartbeat v0.3 secara asinkron, sinkron dengan spesifikasi §3.1.
 
 #### (b) Daftar handler final v0.3
 
@@ -493,7 +503,7 @@ selama masa transisi, jalur v0.3 tidak.
 
 **Kolom baru yang wajib diisi** (§4.4): `door_number`, `device_id`, `device_ts`; `device_uptime_ms` = `NULL`.
 
-- **KEPUTUSAN:** _(ACK alur 1–9? Terutama #4 — REPLAYED memakai waktu RTC sebagai `server_ts`)_
+- **KEPUTUSAN:** ✅ **ACK alur 1–9**. Log `REPLAYED` resmi menggunakan `device_ts` sebagai `server_ts`.
 
 #### (d) `handle_heartbeat` — baru 🟡 USUL
 
@@ -568,7 +578,7 @@ log dari controller lain ikut berhenti.
 
 - **USUL:** tambah `backend/app/services/reconcile_service.py` dengan **1 worker thread + queue**.
   Handler MQTT hanya `queue.put(device_id)` lalu langsung `return`. Worker yang menjalankan sync.
-- **KEPUTUSAN:** _(ACK worker thread? atau pindah backend ke async penuh — jauh lebih mahal)_
+- **KEPUTUSAN:** ✅ **ACK Worker Thread & Queue** untuk menghindari pemblokiran (*blocking*) pada thread paho MQTT.
 
 #### (b) State machine per controller
 
@@ -617,7 +627,7 @@ Sudah dirancang di §4 dan masuk migrasi 001: `sync_state`, `sync_fail_count`, `
 - **TETAP dilarang auto-push:** `wifi_*`, `mqtt_*`, `ip_*` — vektor bricking, keputusan v0.2 #5 masih
   berlaku. Perubahan itu tetap tersimpan di DB dan diterapkan lewat Web Config lokal port 8081
   (jaring pengaman yang memang disediakan hardware v0.3).
-- **KEPUTUSAN:** _(ACK state machine + tabel pemicu + backoff + batasan key?)_
+- **KEPUTUSAN:** ✅ **ACK State Machine & Backoff**. Pengiriman otomatis dibatasi untuk parameter aman (`dX_*` dan `heartbeat_s`). Parameter sensitif wajib lewat portal lokal Web Config 8081.
 
 ---
 
@@ -672,7 +682,7 @@ Sudah dirancang di §4 dan masuk migrasi 001: `sync_state`, `sync_fail_count`, `
   berantai akan memutus `door_id` di log riwayat.
 - **Error code**: roadmap Sprint 4 minta field `error_code` di `HTTPException`. Usul **masuk v0.3**,
   diterapkan ke semua endpoint baru sejak awal (murah di awal, mahal kalau retrofit).
-- **KEPUTUSAN:** _(coret endpoint yang tidak jadi v0.3 — daftar ini sengaja maksimal)_
+- **KEPUTUSAN:** ✅ **Daftar Endpoint E1–E10 Disetujui** untuk rilis v0.3. E5 rename disetujui dengan alias `/sync` lama tetap dipertahankan sebagai deprecated. E7 dibatasi maksimum 10 detik dan mencatat audit log wajib. E2 tetap RESTRICT.
 
 ---
 
@@ -706,7 +716,7 @@ Sudah dirancang di §4 dan masuk migrasi 001: `sync_state`, `sync_fail_count`, `
   frontend menampilkannya di bawah/terpisah — atau tidak dibroadcast sama sekali dan cukup muncul saat
   halaman log di-refresh.
 - **Batas scope:** notifikasi email/Telegram/push **TIDAK** masuk v0.3.
-- **KEPUTUSAN:** _(ACK amplop `{v,type,data}` + 4 jenis pesan + perlakuan REPLAYED?)_
+- **KEPUTUSAN:** ✅ **ACK Amplop Berversi `{v,type,data}` & 4 Jenis Pesan**. Log `REPLAYED` tidak dibroadcast ke live-feed utama untuk menghindari spamming.
 
 ---
 
@@ -724,7 +734,7 @@ Roadmap Sprint 2 menyebut 8 item. Usulan pemilahan, dengan alasan:
 | Refresh token | 🟡 Tunda | Kenyamanan, bukan keamanan. Bisa v0.4 |
 | HTTPS (reverse proxy) | 🟡 Tunda / non-kode | Urusan deployment, tidak memblokir kode. Wajib sebelum keluar LAN |
 | MQTT TLS (8883) | 🟡 Tunda | Butuh sinkron dengan firmware (sertifikat di device) — jangan digabung dengan rework protokol di rilis yang sama |
-- **KEPUTUSAN:** _(setuju pembagian ini? RBAC dan ACL sengaja ditaruh di "ya" karena fitur baru v0.3 memperbesar dampaknya)_
+- **KEPUTUSAN:** ✅ **Setuju Pembagian Keamanan**. Pembatasan RBAC `admin`/`viewer` dan MQTT ACL wajib diterapkan di v0.3, sedangkan TLS dan Refresh Token ditunda ke v0.4.
 
 **RBAC — batas yang diusulkan:** `viewer` boleh membaca semua (user, log, alarm, status controller),
 tapi **tidak boleh**: mengubah user/akses, mengubah config, memicu sync, meng-ack alarm, dan yang paling
@@ -750,7 +760,7 @@ Sekarang `access_logs` tidak punya kunci apa pun untuk menolak duplikat.
 | **C. Terima duplikat apa adanya** | Tidak ada perubahan | Log ganda di UI; tapi **alarm tidak ganda** karena `alarms` sudah di-dedup lewat `UNIQUE(source, source_id)` |
 
 - **USUL: A kalau firmware sanggup, kalau tidak C** (jangan B — B menghapus data asli).
-- **KEPUTUSAN:** _(A / B / C?)_
+- **KEPUTUSAN:** ✅ **Opsi A (Firmware kirim `seq`)**. Payload MQTT log dan Event Listrik akan langsung di-update (append-only) ke dalam `CONTRACT-CODES-V0.3.md` (naik versi jadi v0.3.1) agar tetap menjadi Single Source of Truth.
 
 ---
 
@@ -816,10 +826,10 @@ Seluruh usulan integrasi backend & firmware ditinjau oleh @danskiv (menunggu ACK
 
 | # | Pertanyaan | Usulan saya | Rekomendasi Final Danas |
 |---|---|---|---|
-| B1 | `rssi` di heartbeat: dipertahankan, diisi status link Ethernet, atau diganti `eth_link`? | Ganti maknanya jadi status Ethernet; nama field tetap demi kompatibilitas | ✅ **Diisi status link Ethernet** (100/10/0 Mbps, nama field `rssi` dipertahankan) |
-| B2 | Sensing daya: satu dimensi (`POWER_LOW/NORMAL`) atau dua (PLN + aki terpisah)? | Satu dimensi dari ADC `GPIO2` sensing aki/PSU 12V | ✅ **1 Dimensi (`POWER_NORMAL/POWER_LOW`)** dari ADC `GPIO2` |
+| B1 | `rssi` di heartbeat: dipertahankan, diisi status link Ethernet, atau diganti `eth_link`? | Ganti maknanya jadi status Ethernet; nama field tetap demi kompatibilitas | ✅ **Diisi status link Ethernet** (`NULL` untuk belum ada data, `0` untuk link putus, >0 untuk speed) |
+| B2 | Sensing daya: satu dimensi (`POWER_LOW/NORMAL`) atau dua (PLN + aki terpisah)? | Satu dimensi dari ADC `GPIO2` sensing aki/PSU 12V | ✅ **2 Dimensi** (`GPIO2` ADC pantau baterai, `GPIO1` Digital Input pantau `MAINS_LOST`) |
 | B3 | Topic relay test: `access/{id}/relay/test` dengan payload `<door>,<duration_ms>`? | ACK, dan controller membalas hasilnya | ✅ **ACK** (`access/{id}/relay/test` + payload `<door>,<duration_ms>`) |
-| B4 | Firmware sanggup menyertakan `seq` (nomor urut log per device)? | Sanggup → dedup benar | ✅ **Sanggup (Opsi A)** (Firmware menyertakan 32-bit `seq` counter) |
+| B4 | Firmware sanggup menyertakan `seq` (nomor urut log per device)? | Sanggup → dedup benar | ✅ **Sanggup (Opsi A)** (Firmware kirim `seq` 32-bit, Contract Codes langsung di-update ke v0.3.1) |
 | B5 | Saat `FIRE_ACTIVE`, alarm forced-open ditekan supaya tidak badai alarm? | Ya — tetap dicatat sebagai log, tapi tidak melahirkan alarm | ✅ **Ya** (Menekan alarm `DOOR_FORCED_OPEN` saat `FIRE_ACTIVE`) |
 | B6 | Bentrok topic `status` (heartbeat v0.2 vs LWT v0.3) — firmware v0.3 pakai yang mana? | `heartbeat` untuk telemetry, `status` untuk LWT; backend tetap toleran | ✅ **`heartbeat` untuk telemetry, `status` untuk LWT** |
 | B7 | Event ikut buffer offline & `REPLAYED`, atau hilang saat offline? | Ikut di-buffer — tamper saat jaringan mati justru yang paling penting | ✅ **Ikut di-buffer & `REPLAYED`** (disimpan di LittleFS saat offline) |
@@ -914,7 +924,7 @@ supaya tidak jadi tiga sumber kebenaran yang saling bertengkar:
 - **Konflik dua admin:** `config_version` dikirim balik saat PUT; kalau versi di server sudah lebih
   baru, tolak dengan `error_code: CONFIG_VERSION_CONFLICT` dan minta muat ulang. Tanpa ini, dua admin
   yang membuka modal bersamaan akan saling menimpa diam-diam.
-- **KEPUTUSAN:** _(tab di modal atau halaman sendiri? ACK aturan validasi + umpan balik 2 tahap + konflik versi?)_
+- **KEPUTUSAN:** ✅ **Tab di modal, validasi lintas-field (held >= open), umpan balik 2 tahap, dan penolakan konflik versi (config_version) disetujui** sesuai usulan F1, F7.
 
 ---
 
@@ -956,7 +966,7 @@ Ini yang paling gampang salah dirancang di UI:
 - **Anti-badai (cermin §5.7 #4):** kalau backend mengirim penghitung, tampilkan `DOOR_FORCED_OPEN ×12`
   dalam **satu baris**, bukan 12 baris.
 - **`viewer` tidak boleh meng-ack** (§6.7) — tombolnya di-disable dengan alasan, bukan disembunyikan.
-- **KEPUTUSAN:** _(ACK 3 lapis + pemisahan cleared/acked + suara default menyala?)_
+- **KEPUTUSAN:** ✅ **ACK 3 lapis tampilan alarm (banner, halaman Alarms, baris log), pemisahan cleared/acked, dan suara alarm default menyala (bisa di-toggle)** sesuai F2, F3.
 
 ---
 
@@ -990,7 +1000,7 @@ Perubahan pada `Controllers.tsx` (sekarang 6 kolom, 2 aksi):
   `sync_state` & tamper/fire/power didorong lewat WS supaya tidak menunggu interval polling.
 - **Konsistensi istilah:** label UI **Bahasa Indonesia**, kode status/reason **English uppercase**
   sesuai Contract Codes. Campuran ini disengaja — perlu di-ACK, jangan sampai nanti setengah diterjemahkan.
-- **KEPUTUSAN:** _(ACK 2 indikator status + 2 tombol sync + perlakuan khusus Test Relay?)_
+- **KEPUTUSAN:** ✅ **ACK 2 indikator status (is_online + link_state), 2 tombol sync (User & Config), dan perlakuan khusus Test Relay (konfirmasi nama pintu, disabled saat offline)** sesuai F5, F8.
 
 ---
 
@@ -1002,7 +1012,7 @@ Alasan konkret (bukan sekadar "hemat waktu"):
 - Butuh backend menyimpan *current state* per pintu (state, bukan event) — model data baru.
 - Nilai operasionalnya sebagian **sudah tercakup** alarm `DOOR_HELD_OPEN` (§6.2): pintu yang terbuka
   terlalu lama tetap terdeteksi tanpa panel live.
-- **KEPUTUSAN:** _(tunda? kalau tidak, ia harus masuk §3.1 sebagai topic baru sekarang juga)_
+- **KEPUTUSAN:** ✅ **Tunda ke v0.4** untuk menyederhanakan scope firmware dan database.
 
 ---
 
@@ -1017,7 +1027,7 @@ Alasan konkret (bukan sekadar "hemat waktu"):
 - **Bahaya duplikasi:** tabel yang sama akan ada di 3 tempat (`firmware` angka, `backend/app/mqtt/codes.py`,
   `frontend/src/constants/codes.ts`). **Usul mitigasi:** satu test di CI yang membandingkan daftar kode
   backend vs frontend (§7.2), supaya drift ketahuan otomatis, bukan saat demo.
-- **KEPUTUSAN:** _(ACK lokasi file + test konsistensi di CI?)_
+- **KEPUTUSAN:** ✅ **ACK `src/constants/codes.ts` dan test konsistensi kode di CI** sesuai F6.
 
 ---
 
@@ -1047,7 +1057,7 @@ admin penuh. `useMe()` sudah mengembalikan `role`, jadi bahannya ada, tinggal di
 - **Menu `Alarms` tetap terlihat** untuk viewer (boleh baca), tapi tombol Acknowledge disabled.
 - **Batas tegas:** UI **hanya kosmetik**. Penegakan sesungguhnya di backend (§5.3). Tidak boleh ada
   satu pun aksi yang aman semata-mata karena tombolnya disembunyikan.
-- **KEPUTUSAN:** _(ACK disable-bukan-hide? role apa saja yang benar-benar dipakai — cuma admin/viewer?)_
+- **KEPUTUSAN:** ✅ **ACK disable-bukan-hide untuk viewer dan pembatasan role `admin` vs `viewer`** sesuai F4.
 
 ---
 
@@ -1068,7 +1078,7 @@ admin penuh. `useMe()` sudah mengembalikan `role`, jadi bahannya ada, tinggal di
 - **Banjir REPLAYED** (§5.4): log replay **tidak** masuk live feed sebagai kejadian baru.
 - **Dedup di klien:** buang pesan dengan `id` yang sudah ada di daftar — perlindungan lapis dua
   terhadap duplikat QoS 1 (§5.6), murah dan tidak bergantung keputusan B4.
-- **KEPUTUSAN:** _(ACK satu koneksi terpusat + backoff + indikator koneksi?)_
+- **KEPUTUSAN:** ✅ **ACK satu koneksi terpusat (`useRealtime`), reconnect backoff, dan indikator koneksi di header** sesuai F5.
 
 ---
 
@@ -1219,7 +1229,7 @@ Ini jawaban langsung untuk temuan **C-a**. Jalan di atas service container `mysq
 > Dengan W4 ada, `backend-ci` (W1) juga sebaiknya dipindah ke MySQL service container yang sama —
 > supaya `_is_online_expr` (`func.timestampdiff`) dan handler baru bisa benar-benar dites, bukan dilewati.
 
-- **KEPUTUSAN:** _(ACK "CI dulu, blocking"? ACK 8 workflow — terutama **W4 db-ci** dan pemindahan test backend ke MySQL?)_
+- **KEPUTUSAN:** ✅ **ACK**. Required status checks W1–W6 wajib hijau sebelum merge (blocking), W4 (`db-ci.yml`) disetujui berjalan di atas MySQL container, dan test backend dipindahkan ke MySQL service container.
 
 #### (e) Yang TIDAK masuk v0.3
 Auto-deploy ke server, registry image publik, canary/blue-green, dan dashboard monitoring. `backend/Dockerfile`
@@ -1274,7 +1284,7 @@ Ini yang menggantikan "colok hardware dulu baru ketahuan":
 | S7 | Ubah config pintu → push → controller balas `config_version` baru | Rekonsiliasi config (§5.2f) |
 | S8 | Kirim angka reason yang belum terdaftar (mis. `99`) | Sistem **tidak crash**, tercatat `UNKNOWN` (aturan kontrak #1) |
 
-- **KEPUTUSAN:** _(ACK (a)–(d)? Perluasan simulator ini **pekerjaan backend**, bukan firmware — perlu disepakati siapa yang mengerjakan)_
+- **KEPUTUSAN:** ✅ **ACK (a)–(d) dan 8 skenario end-to-end**. Perluasan simulator disepakati sebagai tanggung jawab pekerjaan backend.
 
 ---
 
@@ -1297,7 +1307,7 @@ integrasi raksasa di akhir, persis pola yang bikin v0.2 molor.
   setelah ada controller yang benar-benar sering putus-nyambung di lapangan** — sesuatu yang belum bisa
   diamati sebelum v0.3.0 terpasang.
 
-- **KEPUTUSAN:** _(pecah seperti di atas / satu rilis / garis pemisah lain?)_
+- **KEPUTUSAN:** ✅ **Rilis dipecah menjadi v0.3.0 (fondasi & integrasi fisik) dan v0.3.1/v0.4 (otomatisasi penuh & UI lengkap)** sesuai rekomendasi. Skema database dijalankan utuh di v0.3.0.
 
 ---
 
@@ -1327,7 +1337,7 @@ menghubungkan hanya dokumen kontrak").
 Sebuah fitur v0.3 baru boleh disebut selesai kalau: **(1)** ada test otomatis yang gagal sebelum fitur dibuat,
 **(2)** CI hijau, **(3)** bisa didemokan lewat simulator tanpa hardware, **(4)** kontrak yang dipakainya
 sudah tertulis di dokumen ini — bukan cuma di kepala yang mengerjakan.
-- **KEPUTUSAN:** _(ACK 4 syarat ini?)_
+- **KEPUTUSAN:** ✅ **ACK 4 syarat Definition of Done (DoD)** untuk menjamin kualitas rilis.
 
 ---
 
@@ -1404,7 +1414,7 @@ Sekarang versi ditulis manual dan sudah mulai salah: `components/Layout.tsx` mas
 - `JWT_SECRET_KEY` divalidasi saat startup (§5.5) — deploy dengan secret kosong **gagal boot**,
   bukan jalan diam-diam.
 
-- **KEPUTUSAN:** _(ACK 3 lingkungan + daftar artefak + urutan pasang 6 langkah + penomoran versi 3 layer?)_
+- **KEPUTUSAN:** ✅ **ACK 3 Lingkungan (Dev/Staging/Prod), daftar 5 artefak rilis, 6 langkah urutan pasang, dan penomoran versi 3 layer** sesuai usulan.
 
 ---
 

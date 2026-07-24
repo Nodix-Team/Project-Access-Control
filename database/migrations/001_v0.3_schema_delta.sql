@@ -92,11 +92,14 @@ ALTER TABLE access_logs
     ADD COLUMN device_id   VARCHAR(50)      NULL AFTER controller_id,
     -- Waktu apa adanya dari RTC DS3231 (UTC). server_ts tetap kolom otoritatif untuk
     -- urutan/tampilan; device_ts dipakai mendeteksi RTC ngaco (§4.3 R4).
-    ADD COLUMN device_ts   DATETIME(3)      NULL AFTER server_ts;
+    ADD COLUMN device_ts   DATETIME(3)      NULL AFTER server_ts,
+    -- Nomor urut log dari firmware untuk dedup 100% (Keputusan B4)
+    ADD COLUMN device_seq  INT UNSIGNED     NULL AFTER device_ts;
 
 -- Filter "tampilkan hanya ALARM" di dashboard & halaman log.
 ALTER TABLE access_logs
-    ADD INDEX idx_result_ts (result, server_ts);
+    ADD INDEX idx_result_ts (result, server_ts),
+    ADD UNIQUE INDEX unq_device_seq (device_id, device_seq);
 
 -- device_uptime_ms TIDAK di-drop: log v0.2 lama masih memakainya. Untuk log v0.3 diisi NULL.
 
@@ -109,6 +112,7 @@ CREATE TABLE controller_events (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
     controller_id INT NULL,                       -- sengaja BUKAN FK (konsisten dgn access_logs)
     device_id     VARCHAR(50) NOT NULL,           -- SNAPSHOT
+    device_seq    INT UNSIGNED NULL,              -- nomor urut dari firmware untuk dedup
     event_type    ENUM('TAMPER','FIRE','POWER','AUX','SYNC','SYSTEM') NOT NULL,
     event_code    VARCHAR(40) NOT NULL,           -- TAMPER_OPEN, FIRE_ACTIVE, POWER_LOW, BOOT, ...
     severity      ENUM('INFO','WARNING','ALARM') NOT NULL DEFAULT 'INFO',
@@ -120,7 +124,8 @@ CREATE TABLE controller_events (
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_ev_ctrl_ts (controller_id, server_ts),
     INDEX idx_ev_type_ts (event_type, server_ts),
-    INDEX idx_ev_sev_ts  (severity, server_ts)
+    INDEX idx_ev_sev_ts  (severity, server_ts),
+    UNIQUE INDEX unq_ev_device_seq (device_id, device_seq)
 );
 
 -- ═══════════════════════════════════════════
@@ -179,12 +184,26 @@ CREATE TABLE admin_logs (
 ALTER TABLE admins
     MODIFY COLUMN role ENUM('admin','viewer') NOT NULL DEFAULT 'admin';
 
+-- ═══════════════════════════════════════════
+-- 8. FIRE_ASSIGNMENTS — relasi pembukaan pintu akibat MCFA silang (§2.5)
+-- ═══════════════════════════════════════════
+
+CREATE TABLE fire_assignments (
+    id                   INT AUTO_INCREMENT PRIMARY KEY,
+    source_controller_id INT NOT NULL,                -- Kontroler tempat kabel MCFA terpasang
+    target_door_id       INT NOT NULL,                -- Pintu target yang harus dibuka (FK)
+    created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (source_controller_id) REFERENCES controllers(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_door_id) REFERENCES doors(id) ON DELETE CASCADE,
+    UNIQUE KEY unq_fire_assignment (source_controller_id, target_door_id)
+);
+
 COMMIT;
 
 -- ═══════════════════════════════════════════
 -- ROLLBACK MANUAL (kalau perlu balik ke v0.2)
 -- ═══════════════════════════════════════════
--- DROP TABLE IF EXISTS admin_logs, alarms, controller_events;
+-- DROP TABLE IF EXISTS fire_assignments, admin_logs, alarms, controller_events;
 -- ALTER TABLE doors
 --     DROP CONSTRAINT ck_door_held_ge_open, DROP CONSTRAINT ck_door_alarm_dur,
 --     DROP CONSTRAINT ck_door_held_timeout, DROP CONSTRAINT ck_door_open_timeout,
@@ -197,7 +216,7 @@ COMMIT;
 --     DROP COLUMN link_state, DROP COLUMN config_version, DROP COLUMN last_sync_error,
 --     DROP COLUMN last_sync_at, DROP COLUMN sync_fail_count, DROP COLUMN sync_state;
 -- ALTER TABLE access_logs
---     DROP INDEX idx_result_ts, DROP COLUMN device_ts,
---     DROP COLUMN device_id, DROP COLUMN door_number;
+--     DROP INDEX idx_result_ts, DROP INDEX unq_device_seq, DROP COLUMN device_seq,
+--     DROP COLUMN device_ts, DROP COLUMN device_id, DROP COLUMN door_number;
 --     -- kartu TIDAK dikembalikan ke NOT NULL: baris alarm v0.3 punya kartu NULL.
 -- ALTER TABLE admins MODIFY COLUMN role ENUM('admin') DEFAULT 'admin';

@@ -1,8 +1,8 @@
 # 🏗️ Arsitektur Access Control System — Proposal v0.3 (Revisi 2)
 
-> [!NOTE]
-> Dokumen ini adalah proposal spesifikasi arsitektur terintegrasi untuk rilis versi 0.3. 
-> Proposal ini menyatukan spesifikasi hardware baru, firmware, MQTT, dan database MySQL.
+> [!WARNING]
+> **DOKUMEN PROPOSAL OUTDATED:** Dokumen ini bersifat historis/proposal awal. Beberapa konfigurasi teknis (seperti alokasi pin dan format payload MQTT) yang tertulis di sini telah diubah demi keandalan sistem.
+> Acuan keputusan final yang mengikat dan wajib digunakan adalah **[`docs/KEPUTUSAN_ARSITEKTUR_v0.3.md`](KEPUTUSAN_ARSITEKTUR_v0.3.md)**.
 
 ---
 

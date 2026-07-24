@@ -28,6 +28,8 @@ erDiagram
     CONTROLLER_EVENTS ||..o| ALARMS : "memicu (polymorphic)"
     ADMINS ||--o{ ALARMS : "acknowledge"
     ADMINS ||--o{ ADMIN_LOGS : "melakukan"
+    CONTROLLERS ||--o{ FIRE_ASSIGNMENTS : "memicu (MCFA)"
+    DOORS ||--o{ FIRE_ASSIGNMENTS : "dibuka-oleh"
 
     CONTROLLERS {
         int id PK
@@ -115,6 +117,7 @@ erDiagram
         varchar door_nama "SNAPSHOT saat kejadian"
         int controller_id "bukan FK - log tetap ada walau controller dihapus"
         varchar device_id "BARU - SNAPSHOT ctrl-A"
+        int device_seq "BARU - nomor urut dedup dari firmware"
         enum result "GRANTED / DENIED / ALARM"
         varchar reason "Kode DB: VALID_ACCESS / DOOR_FORCED_OPEN / ..."
         datetime server_ts "OTORITATIF - waktu KEJADIAN (UTC)"
@@ -128,6 +131,7 @@ erDiagram
         bigint id PK "BARU - kejadian NON-akses, tanpa kartu & (biasanya) tanpa pintu"
         int controller_id "bukan FK - konsisten dgn access_logs"
         varchar device_id "SNAPSHOT"
+        int device_seq "BARU - nomor urut dedup dari firmware"
         enum event_type "TAMPER / FIRE / POWER / AUX / SYNC / SYSTEM"
         varchar event_code "TAMPER_OPEN / FIRE_ACTIVE / POWER_LOW / BOOT / OTA_ROLLBACK"
         enum severity "INFO / WARNING / ALARM"
@@ -170,4 +174,11 @@ erDiagram
         varchar target "device_id / kartu"
         json detail "before/after"
         datetime server_ts
+    }
+
+    FIRE_ASSIGNMENTS {
+        int id PK "BARU - relasi MCFA silang lewat server"
+        int source_controller_id FK "kontroler yang dicolok kabel MCFA"
+        int target_door_id FK "pintu yang dibuka paksa"
+        datetime created_at
     }
