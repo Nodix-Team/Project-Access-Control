@@ -1,6 +1,6 @@
 # Backend — FastAPI
 
-Access Control API v0.2 — REST API untuk manajemen user, department, controller, pintu, dan log akses. MQTT (sinkronisasi ke controller ESP32) belum diimplementasikan di sini — lihat [ROADMAP_v0.2.md](../docs/ROADMAP_v0.2.md) Sprint 3.
+Access Control API v0.2 — REST API untuk manajemen user, department, controller, pintu, dan log akses. MQTT (sinkronisasi ke controller ESP32) belum diimplementasikan di sini — lihat [ROADMAP_v0.2.md](../docs/v0.2/ROADMAP_v0.2.md) Sprint 3.
 
 ## Setup
 

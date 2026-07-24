@@ -322,7 +322,7 @@ Topic `access/{device_id}/events` (QoS 1), tetap **angka di kabel** seperti Cont
 | `admins` | **UBAH** | `role` → `ENUM('admin','viewer')` |
 | `controller_events` | **BARU** | Kejadian non-akses (§4.2) |
 | `alarms` | **BARU** | Antrian + acknowledge (§4.2) |
-| `admin_logs` | **BARU** | ⚠️ Sudah digambar di [`ERD_v0.2.mermaid`](ERD_v0.2.mermaid) **tapi tidak pernah dibuat** di `schema.sql`. Wajib sekarang karena v0.3 punya endpoint yang **membuka pintu fisik** (relay test, §5.3 E7) |
+| `admin_logs` | **BARU** | ⚠️ Sudah digambar di [`ERD_v0.2.mermaid`](v0.2/ERD_v0.2.mermaid) **tapi tidak pernah dibuat** di `schema.sql`. Wajib sekarang karena v0.3 punya endpoint yang **membuka pintu fisik** (relay test, §5.3 E7) |
 | `users`, `user_access`, `departments`, `department_access` | Tidak berubah | — |
 
 > Catatan penamaan: ERD v0.2 menyebut tabel auth `ADMIN_USERS`, `schema.sql` yang jalan memakai `admins`.
@@ -350,7 +350,7 @@ Yang harus ikut diperbarui begitu §4 dibekukan:
 - [ ] `database/seed.sql` — 8 baris `doors` butuh nilai config default; tambah 1 user `viewer` untuk uji RBAC
 - [ ] `backend/app/models/{controller,door,access_log}.py` + model baru `controller_event.py`, `alarm.py`, `admin_log.py`
 - [ ] `frontend/src/types/index.ts` — cermin tipe (§6.0)
-- [ ] `docs/ERD_v0.2.mermaid` diberi catatan "digantikan ERD_v0.3.mermaid"
+- [ ] `docs/v0.2/ERD_v0.2.mermaid` diberi catatan "digantikan ERD_v0.3.mermaid"
 
 - **KEPUTUSAN:** ✅ **ACK file migrasi & urutan penerapan**. Migrasi delta SQL aman dijalankan lebih dulu.
 
@@ -1140,7 +1140,7 @@ untuk menunggu jawaban @danskiv:
 | Lint | `oxlint` sudah ada di frontend (`npm run lint`); backend belum ada linter |
 | Secret scanning | Belum ada (gitleaks). `.env` sudah masuk `.gitignore` ✅ |
 | Branch protection | Belum aktif |
-| Deployment | Manual sepenuhnya. Referensi terdekat: [`VM_TESTING_PLAN.md`](VM_TESTING_PLAN.md) (VM Debian + Docker `mysql:8.0` & `emqx/emqx:5.8` + uvicorn) |
+| Deployment | Manual sepenuhnya. Referensi terdekat: [`VM_TESTING_PLAN.md`](pendukung/VM_TESTING_PLAN.md) (VM Debian + Docker `mysql:8.0` & `emqx/emqx:5.8` + uvicorn) |
 
 #### Dua temuan yang mengubah rancangan CI (⚠️ hasil audit, bukan asumsi)
 
@@ -1186,7 +1186,7 @@ Supaya tidak salah harap sejak awal:
 **CD di v0.3 berhenti di "menghasilkan artefak", bukan "memasang ke server".** Tiga alasan:
 1. Memasang berarti menyentuh sistem yang **mengendalikan pintu fisik**. Deploy otomatis ke perangkat
    keamanan tanpa manusia menekan tombol bukan penghematan yang sepadan.
-2. Target pasangnya masih satu VM di LAN ([`VM_TESTING_PLAN.md`](VM_TESTING_PLAN.md)) — GitHub Actions
+2. Target pasangnya masih satu VM di LAN ([`VM_TESTING_PLAN.md`](pendukung/VM_TESTING_PLAN.md)) — GitHub Actions
    tidak bisa menjangkaunya tanpa membuka jalur masuk baru ke jaringan gedung.
 3. Kredensial produksi (DB, MQTT, JWT) belum punya tempat penyimpanan yang layak.
 
@@ -1325,7 +1325,7 @@ Yang harus dijawab **paling dulu** karena memblokir orang lain:
 | 6 | §6.11 **F1–F8** | @rizzalaulia | Frontend saja — **tidak memblokir siapa pun**, boleh diputuskan sendiri |
 
 Setelah 1–3 dijawab, **backend & frontend bisa jalan paralel penuh dengan firmware** — sama seperti pola
-v0.2 yang berhasil (lihat [`KEPUTUSAN_ARSITEKTUR_v0.2.md`](KEPUTUSAN_ARSITEKTUR_v0.2.md) §2: "yang
+v0.2 yang berhasil (lihat [`KEPUTUSAN_ARSITEKTUR_v0.2.md`](v0.2/KEPUTUSAN_ARSITEKTUR_v0.2.md) §2: "yang
 menghubungkan hanya dokumen kontrak").
 
 > **Yang bisa dimulai SEKARANG tanpa menunggu jawaban apa pun:** migrasi DB (§4.5 — backward-compatible,
@@ -1348,7 +1348,7 @@ sudah tertulis di dokumen ini — bukan cuma di kepala yang mengerjakan.
 | Lingkungan | Di mana | Isi | Siapa |
 |---|---|---|---|
 | **Dev** | Laptop masing-masing (Windows) | MySQL + EMQX via Docker, uvicorn + `npm run dev`, `simulate_esp32.py` sebagai pengganti controller | Masing-masing |
-| **Staging** | VM Debian di LAN ([`VM_TESTING_PLAN.md`](VM_TESTING_PLAN.md)) | Container `mysql:8.0` + `emqx/emqx:5.8` + backend, **controller fisik sungguhan** di LAN yang sama | Berdua, sebelum rilis |
+| **Staging** | VM Debian di LAN ([`VM_TESTING_PLAN.md`](pendukung/VM_TESTING_PLAN.md)) | Container `mysql:8.0` + `emqx/emqx:5.8` + backend, **controller fisik sungguhan** di LAN yang sama | Berdua, sebelum rilis |
 | **Produksi** | Server/mini-PC di gedung | Sama seperti staging + reverse proxy TLS (§5.5, ditunda) | Pemasangan manual |
 
 > Staging **wajib dilewati** sebelum firmware disebar. Ini satu-satunya tempat kombinasi
@@ -1497,8 +1497,8 @@ Ditulis terpisah supaya tidak hilang — ini beda dengan dokumen lain yang jadi 
 | Tabel DB bertambah dari 8 → **11** | Proposal §4A masih menulis "8 tabel utama" |
 | `pytest`, `requirements-dev.txt`, `backend/tests/` **sudah ada** | [`ROADMAP_v0.3.md`](ROADMAP_v0.3.md) Sprint 1 masih menulis belum ada |
 | Sebaliknya, roadmap **tidak menyebut**: test DB pindah ke MySQL (C-a), rapikan `conftest.py` (C-b), `platformio.ini` masih ESP32 klasik (C-c), dan pipeline artefak rilis (§7.6) | [`ROADMAP_v0.3.md`](ROADMAP_v0.3.md) Sprint 1 & 7 |
-| ERD lama menamai tabel auth `ADMIN_USERS`, skema nyata memakai `admins` | [`ERD_v0.2.mermaid`](ERD_v0.2.mermaid) |
-| `admin_logs` digambar di ERD v0.2 tapi tidak pernah ada di `schema.sql` | [`ERD_v0.2.mermaid`](ERD_v0.2.mermaid) vs `database/schema.sql` |
+| ERD lama menamai tabel auth `ADMIN_USERS`, skema nyata memakai `admins` | [`ERD_v0.2.mermaid`](v0.2/ERD_v0.2.mermaid) |
+| `admin_logs` digambar di ERD v0.2 tapi tidak pernah ada di `schema.sql` | [`ERD_v0.2.mermaid`](v0.2/ERD_v0.2.mermaid) vs `database/schema.sql` |
 
 ### 9.3 Status Dokumen — 🟡 REKOMENDASI FINAL DANAS (Menunggu Review Akhir Emping)
 

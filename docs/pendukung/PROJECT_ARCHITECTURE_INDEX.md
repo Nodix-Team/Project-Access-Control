@@ -103,11 +103,21 @@ Project-Access_control/
 │   │   ├── pages/                  ← Page Views (Dashboard, Users, Doors, Logs, Controllers)
 │   │   └── ws/liveFeed.ts          ← Real-time WebSocket listener
 │   └── package.json
-└── docs/                           ← Archive & Detailed Specifications
-    ├── ARCHITECTURE-PROPOSAL-V0.3.md ← Spesifikasi proposal arsitektur v0.3
+└── docs/                           ← Dokumentasi (3 lapis, lihat docs/README.md)
+    ├── KEPUTUSAN_ARSITEKTUR_v0.3.md ← DOKUMEN KERJA UTAMA v0.3 (kontrak semua layer)
+    ├── CONTRACT-CODES-V0.3.md      ← Kontrak kode 3 lapis v0.3.1 (FINAL/APPROVED)
+    ├── ERD_v0.3.mermaid            ← ERD v0.3 (11 tabel)
+    ├── ARCHITECTURE-PROPOSAL-V0.3.md ← Proposal arsitektur v0.3 (sebagian digantikan, lihat banner)
     ├── PROPOSAL-RANCANGAN-HARDWARE-V0.3.md ← Proposal rancangan hardware v0.3
-    ├── ROADMAP_v0.3.md             ← Draft proposal roadmap v0.3
-    └── PROJECT_ARCHITECTURE_INDEX.md← Dokumen acuan ringkas arsitektur ini
+    ├── HARDWARE-AUDIT-REVIEW-V0.3.md ← Evaluasi review hardware
+    ├── ROADMAP_v0.3.md             ← Draft roadmap v0.3
+    ├── pendukung/                  ← Lintas versi, masih dipakai di v0.3
+    │   ├── VM_TESTING_PLAN.md      ← Dasar lingkungan staging
+    │   ├── testing_guide.md        ← Panduan uji & simulator
+    │   ├── BACKLOG_PENGEMBANGAN.md ← Item yang ditunda
+    │   ├── OFFLINE_BUFFER_CAPACITY_ANALYSIS.md
+    │   └── PROJECT_ARCHITECTURE_INDEX.md ← Dokumen acuan ringkas ini
+    └── v0.2/                       ← ARSIP rilis v0.2 (historis, jangan diedit)
 ```
 
 ---
@@ -128,7 +138,7 @@ Project-Access_control/
 
 * **2026-07-21**:
   - **Synchronization**: Melakukan `git pull origin main` (fast-forward 87 commit) dari repositori GitHub.
-  - **Verification**: Memeriksa dan memastikan keselarasan aturan pada `CONTRIBUTING.md` dan `docs/testing_guide.md`.
+  - **Verification**: Memeriksa dan memastikan keselarasan aturan pada `CONTRIBUTING.md` dan `docs/pendukung/testing_guide.md`.
   - **Token Efficiency Setup**: Membuat file indeks arsitektur [`docs/PROJECT_ARCHITECTURE_INDEX.md`](file:///C:/Users/tech/Documents/GitHub/Project-Access_control/docs/PROJECT_ARCHITECTURE_INDEX.md).
   - **Hardware Verification**: ESP32 terdeteksi di `COM13` (CH9102, MAC: `ec:64:c9:87:1c:74`).
   - **Firmware Flashing**: Berhasil kompilasi & flash Firmware v0.2.0 ke ESP32 pada `COM13` (Success 100%).

@@ -3,8 +3,8 @@
 > [!IMPORTANT]
 > Dokumen ini adalah **DRAFT / PROPOSAL USULAN** pengembangan untuk versi 0.3. Rencana ini **belum bersifat final** dan masih memerlukan review, diskusi, masukan, serta persetujuan dari seluruh anggota tim (terutama Rizal/Peng) sebelum disahkan menjadi roadmap resmi.
 
-> Roadmap ini dirancang berdasarkan [`V0.2_CLOSURE_REPORT.md`](V0.2_CLOSURE_REPORT.md) (perbandingan realisasi v0.2 vs
-> roadmap-nya), [`BACKLOG_PENGEMBANGAN.md`](BACKLOG_PENGEMBANGAN.md) (usulan yang sengaja ditunda dari v0.2),
+> Roadmap ini dirancang berdasarkan [`V0.2_CLOSURE_REPORT.md`](v0.2/V0.2_CLOSURE_REPORT.md) (perbandingan realisasi v0.2 vs
+> roadmap-nya), [`BACKLOG_PENGEMBANGAN.md`](pendukung/BACKLOG_PENGEMBANGAN.md) (usulan yang sengaja ditunda dari v0.2),
 > dan temuan audit kode langsung selama v0.2 (keamanan, testing, kesiapan hardware fisik).
 > Aturan branching, commit message, dan proses PR **mengikuti [`CONTRIBUTING.md`](../CONTRIBUTING.md) yang sudah ada — tidak berubah.**
 > Setiap milestone = 1 feature branch dari `dev`. Setelah selesai, merge via PR ke `dev`, minta review, **jangan merge sendiri**.
@@ -13,7 +13,7 @@
 
 ## Prasyarat: v0.2 Harus Ditutup Resmi Dulu
 
-Sebelum Sprint 1 di bawah dimulai, 5 langkah administratif di [`V0.2_CLOSURE_REPORT.md`](V0.2_CLOSURE_REPORT.md#tindakan-penutupan-yang-disarankan) harus selesai dulu (perbaiki `README.md`, update `CHANGELOG.md`, merge `dev`→`main`, tag `v0.2.0`). Tidak ada kode baru di langkah ini — murni administratif, tapi penting supaya `v0.3` punya titik awal yang jelas (bercabang dari `main` yang benar-benar berisi rilis v0.2, bukan dari `dev` yang belum pernah resmi dirilis).
+Sebelum Sprint 1 di bawah dimulai, 5 langkah administratif di [`V0.2_CLOSURE_REPORT.md`](v0.2/V0.2_CLOSURE_REPORT.md#tindakan-penutupan-yang-disarankan) harus selesai dulu (perbaiki `README.md`, update `CHANGELOG.md`, merge `dev`→`main`, tag `v0.2.0`). Tidak ada kode baru di langkah ini — murni administratif, tapi penting supaya `v0.3` punya titik awal yang jelas (bercabang dari `main` yang benar-benar berisi rilis v0.2, bukan dari `dev` yang belum pernah resmi dirilis).
 
 ---
 

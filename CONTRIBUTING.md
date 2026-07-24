@@ -107,7 +107,7 @@ mysql -u root -p access_control < database/seed.sql   # data dummy
 ## Referensi
 
 - [Indeks Dokumentasi Lengkap](docs/README.md) — peta semua dokumen di `docs/`
-- [Architecture Proposal v0.2 (Rev 3)](docs/architecture_proposal_v0.2.md)
-- [Architecture Review](docs/architecture_review.md)
-- [Testing Guide](docs/testing_guide.md)
+- [Architecture Proposal v0.2 (Rev 3)](docs/v0.2/architecture_proposal_v0.2.md)
+- [Architecture Review](docs/v0.2/architecture_review.md)
+- [Testing Guide](docs/pendukung/testing_guide.md)
 - [Roadmap v0.3](docs/ROADMAP_v0.3.md)
