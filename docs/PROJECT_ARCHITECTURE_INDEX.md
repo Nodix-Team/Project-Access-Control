@@ -54,10 +54,7 @@
 7. **Config via MQTT**:
    * Request: `access/{device_id}/config/request`
    * Response: `access/{device_id}/config/response` → `key,value` pairs CSV format (TANPA `wifi_pass`)
-   * Bulk Sync: `access/{device_id}/config/sync` → `<door_number>,<is_active>,<open_timeout>,<held_timeout>,<alarm_dur>`
-8. **Perintah Darurat Kebakaran**: `access/{device_id}/fire/override`
-   * Format: `<d1_override>,<d2_override>,<d3_override>,<d4_override>` (1 = override buka paksa, 0 = normal)
-9. **Uji Relay**: `access/{device_id}/relay/test`
+8. **Uji Relay**: `access/{device_id}/relay/test`
    * Format: `<door_number>,<duration_ms>`
 
 ---
@@ -75,7 +72,6 @@
 * **`controller_events`**: Kejadian non-akses seperti tamper, fire alarm, power drop, dll.
 * **`alarms`**: Antrean alarm aktif yang membutuhkan perhatian/ack admin.
 * **`admin_logs`**: Jejak audit aktivitas admin (relay test, ubah config, dll).
-* **`fire_assignments`**: Konfigurasi darurat MCFA lintas kontroler lewat server.
 
 ---
 

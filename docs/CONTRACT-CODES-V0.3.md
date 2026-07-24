@@ -129,16 +129,3 @@ Dikirim melalui topik `access/{device_id}/events`. Format Payload:
 2. **Timezone Timestamp**: `<timestamp_epoch>` di kabel bersifat UTC murni. Backend menyimpan dan menampilkan waktu secara **dinamis mengikuti zona waktu lokal Server & Browser User** (tidak di-hardcode kaku ke GMT+7).
 
 ---
-
-## Format Payload Command (Server → Controller)
-
-### 1. Fire Override (Buka Paksa Kebakaran)
-Topik: `access/{device_id}/fire/override` (QoS 1, Retained)
-Payload CSV: `<d1_override>,<d2_override>,<d3_override>,<d4_override>`
-
-| Nilai | Arti |
-|---|---|
-| `1` | Override AKTIF (buka kunci paksa) |
-| `0` | Mode NORMAL (kembali normal, ikuti RFID/REX) |
-
-Contoh Payload: `1,1,0,0` (Membuka paksa Pintu 1 & 2, Pintu 3 & 4 terkunci normal).

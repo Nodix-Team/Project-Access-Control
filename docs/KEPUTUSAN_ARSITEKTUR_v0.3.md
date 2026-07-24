@@ -9,7 +9,7 @@
 > **Revisi 24 Juli 2026 — Jawaban & Rekomendasi Final Danas.**
 > **Seluruh item checklist** (§1 hingga §7) telah diisi dengan **jawaban & rekomendasi final dari @danskiv** dan siap direview sepenuhnya oleh @rizzalaulia.
 > Artefak pendukung [`ERD_v0.3.mermaid`](ERD_v0.3.mermaid) dan [`001_v0.3_schema_delta.sql`](../database/migrations/001_v0.3_schema_delta.sql)
-> telah disesuaikan sepenuhnya untuk menyelaraskan urutan log (`seq`) dan relasi MCFA (`fire_assignments`).
+> telah disesuaikan sepenuhnya untuk menyelaraskan urutan log (`seq`) dan penjadwalan MCFA silang ke v0.4.
 
 **Legend status:** ✅ SUDAH DIPUTUSKAN · 🔴 TERBUKA · 🟡 REKOMENDASI DANAS (Menunggu ACK Emping)
 
@@ -123,12 +123,13 @@ Logika sensor pintu, timeout, dan alarm.
   - Debouncing sensor pintu minimal 50ms dilakukan di tingkat firmware untuk mencegah badai alarm.
 - **KEPUTUSAN:** ✅ **Opsi A (Modular & Testable)**.
 
-### 2.5 Aux input & cross-controller trigger — ✅ FINAL (Keputusan Danas)
-Input AUX dan integrasi MCFA (Fire Alarm) lintas kontroler.
-- **Rekomendasi Final Danas (Opsi Hybrid lewat Server):**
-  - **AUX Input**: Untuk v0.3 dibatasi hanya sebagai pencatatan event (`AUX_ACTIVE` / `AUX_CLEARED`) saja di database, belum memicu aksi silang ke controller lain.
-  - **MCFA / Fire Alarm**: Jika salah satu kontroler mendeteksi input MCFA aktif, ia mengirim event `FIRE_ACTIVE`. Server backend akan membaca tabel `fire_assignments` dan mem-publish perintah buka paksa pintu secara massal ke kontroler target via topik `access/{device_id}/fire/override` dengan format payload CSV `<d1>,<d2>,<d3>,<d4>`.
-- **KEPUTUSAN:** ✅ **Opsi Hybrid (MCFA silang lewat Server via CSV)**.
+### 2.5 Aux input & MCFA Fire Safety — ✅ FINAL (Keputusan Danas & Reviewer)
+- **Keamanan Fire Lokal (v0.3)**: 100% dijamin oleh hardware interlock lokal (potong VCC relay maglock secara fisik saat sinyal MCFA aktif). Tidak bergantung pada software maupun jaringan.
+- **AUX & Fire Log (v0.3)**: Berfungsi untuk pencatatan event log (`AUX_ACTIVE`/`AUX_CLEARED` dan `FIRE_ACTIVE`/`FIRE_CLEARED`) di database untuk keperluan audit trail.
+- **MCFA Silang Lintas-Controller (Ditunda ke v0.4)**:
+  - Fitur pembukaan pintu gedung tetangga via server **resmi ditunda ke v0.4** (lihat alasan & ancaman bug jalur evakuasi bersama di review PR #61).
+  - V0.4 akan membangun service `fire_orchestrator` yang menghitung UNION state kebakaran aktif sebelum melakukan lock/unlock pintu, dilengkapi jembatan global-to-local door ID dan perketatan MQTT ACL.
+- **KEPUTUSAN:** ✅ **v0.3 = Fire Lokal (Hardware Interlock) + Event Logging. MCFA Silang = Dijadwalkan ke v0.4.**
 
 ### 2.6 OTA rollback — ✅ FINAL (Keputusan Danas)
 Mekanisme pengamanan proses OTA agar device tidak mati total (bricked).
@@ -155,7 +156,6 @@ Seluruh kontrak topik MQTT untuk v0.3 telah disatukan dan dibekukan. Semua paylo
 | `access/{id}/config/request` | S ➔ C | 1 | No | `request` (atau kosong) | **Perintah Baca Config**. Server meminta kontroler mengirim config terbarunya. |
 | `access/{id}/config/response` | C ➔ S | 1 | No | `config_version,<val>,wifi_ssid,<val>,...` | **Laporan Config Aktif**. Format berpasangan `key,value` (TANPA `wifi_pass`). |
 | `access/{id}/config/sync` | S ➔ C | 1 | No | `<door_number>,<is_active>,<open_timeout>,<held_timeout>,<alarm_dur>` | **Sinkronisasi Config Pintu** (Bulk). Contoh: `d1,1,10,30,30`. |
-| `access/{id}/fire/override` | S ➔ C | 1 | **Yes** | `<d1_override>,<d2_override>,<d3_override>,<d4_override>` | **Perintah Darurat Kebakaran**. Contoh: `1,1,0,0` (buka pintu 1 & 2). |
 | `access/{id}/relay/test` | S ➔ C | 1 | No | `<door_number>,<duration_ms>` | **Uji Relay**. Server menginstruksikan pintu terbuka sementara. |
 | `access/{id}/users/sync/start` | S ➔ C | 1 | No | `<sync_id>` | **Mulai Sinkronisasi Massal**. Kontroler membuka buffer RAM baru. |
 | `access/{id}/users/sync/end` | S ➔ C | 1 | No | `<sync_id>,<count>` | **Selesai Sinkronisasi**. Kontroler mem-validasi total user lalu menulis ke flash. |

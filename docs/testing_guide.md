@@ -67,14 +67,6 @@ Mengubah setingan pintu pada ESP32 secara sekaligus per pintu.
 * **Payload**: *(kosong)*
 * Amati tanggapan ESP32 di topic `access/{device_id}/config/response`. Format balasan CSV berisi semua key-value config aktif (berpasangan `key,value`, tanpa wifi/mqtt password demi keamanan).
 
-#### 6. Perintah Darurat Kebakaran (Fire Override)
-* **Topic**: `access/{device_id}/fire/override`
-* **Payload CSV**:
-  ```csv
-  1,1,0,0
-  ```
-  *(Membuka paksa Pintu 1 & 2 secara permanen, Pintu 3 & 4 tetap normal)*
-
 ---
 
 ## 🖥️ BAGIAN 2: PENGUJIAN VIA LOCAL WEB SERVER (Port 8081)

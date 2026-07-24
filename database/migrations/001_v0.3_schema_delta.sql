@@ -184,26 +184,12 @@ CREATE TABLE admin_logs (
 ALTER TABLE admins
     MODIFY COLUMN role ENUM('admin','viewer') NOT NULL DEFAULT 'admin';
 
--- ═══════════════════════════════════════════
--- 8. FIRE_ASSIGNMENTS — relasi pembukaan pintu akibat MCFA silang (§2.5)
--- ═══════════════════════════════════════════
-
-CREATE TABLE fire_assignments (
-    id                   INT AUTO_INCREMENT PRIMARY KEY,
-    source_controller_id INT NOT NULL,                -- Kontroler tempat kabel MCFA terpasang
-    target_door_id       INT NOT NULL,                -- Pintu target yang harus dibuka (FK)
-    created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (source_controller_id) REFERENCES controllers(id) ON DELETE CASCADE,
-    FOREIGN KEY (target_door_id) REFERENCES doors(id) ON DELETE CASCADE,
-    UNIQUE KEY unq_fire_assignment (source_controller_id, target_door_id)
-);
-
 COMMIT;
 
 -- ═══════════════════════════════════════════
 -- ROLLBACK MANUAL (kalau perlu balik ke v0.2)
 -- ═══════════════════════════════════════════
--- DROP TABLE IF EXISTS fire_assignments, admin_logs, alarms, controller_events;
+-- DROP TABLE IF EXISTS admin_logs, alarms, controller_events;
 -- ALTER TABLE doors
 --     DROP CONSTRAINT ck_door_held_ge_open, DROP CONSTRAINT ck_door_alarm_dur,
 --     DROP CONSTRAINT ck_door_held_timeout, DROP CONSTRAINT ck_door_open_timeout,

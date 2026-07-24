@@ -28,8 +28,6 @@ erDiagram
     CONTROLLER_EVENTS ||..o| ALARMS : "memicu (polymorphic)"
     ADMINS ||--o{ ALARMS : "acknowledge"
     ADMINS ||--o{ ADMIN_LOGS : "melakukan"
-    CONTROLLERS ||--o{ FIRE_ASSIGNMENTS : "memicu (MCFA)"
-    DOORS ||--o{ FIRE_ASSIGNMENTS : "dibuka-oleh"
 
     CONTROLLERS {
         int id PK
@@ -174,11 +172,4 @@ erDiagram
         varchar target "device_id / kartu"
         json detail "before/after"
         datetime server_ts
-    }
-
-    FIRE_ASSIGNMENTS {
-        int id PK "BARU - relasi MCFA silang lewat server"
-        int source_controller_id FK "kontroler yang dicolok kabel MCFA"
-        int target_door_id FK "pintu yang dibuka paksa"
-        datetime created_at
     }
