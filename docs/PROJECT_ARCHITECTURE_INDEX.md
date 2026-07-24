@@ -177,6 +177,10 @@ Project-Access_control/
     - Mengubah kode REX menjadi **`VALID_EXIT`** (Angka `3`) dan **`VALID_EXIT_UNOPENED`** (Angka `4`).
     - Menegaskan pengiriman 2 field (`<status>` & `<reason>`) pada payload MQTT dan penanganan zona waktu dinamis mengikuti lokasi Server & Browser User.
     - Memperbarui [`docs/ARCHITECTURE-PROPOSAL-V0.3.md`](file:///C:/Users/tech/Documents/GitHub/Project-Access_control/docs/ARCHITECTURE-PROPOSAL-V0.3.md), `database/schema.sql`, dan `backend/app/mqtt/handlers.py` agar 100% selaras.
+  - **Roadmap Prototyping Hardware Fisik v0.3 ([`docs/HARDWARE_PROTOTYPING_ROADMAP_v0.3.md`](file:///C:/Users/tech/Documents/GitHub/Project-Access_control/docs/HARDWARE_PROTOTYPING_ROADMAP_v0.3.md))**:
+    - Menerbitkan panduan pengujian fisik 7 Fase di breadboard untuk board **ESP32-WROOM-32D (38-Pin)** (Silicon Rev 3).
+    - Menambahkan **Hardware Abstraction Layer (HAL)** `pin_config.h` untuk migrasi seamless ke target produksi ESP32-S3 (§1.1).
+
 
 
 

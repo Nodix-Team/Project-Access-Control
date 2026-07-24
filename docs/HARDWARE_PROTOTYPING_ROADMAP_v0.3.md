@@ -3,7 +3,19 @@
 > [!IMPORTANT]
 > **Status: 🔵 DALAM PROSES RISET & PROTOTYPING BERTAHAP**
 > Dokumen ini adalah panduan kerja fisik di meja lab (breadboard) dan rekam jejak pengujian (*test log*) untuk implementasi firmware & hardware v0.3.
-> Dokumen acuan utama: [`KEPUTUSAN_ARSITEKTUR_v0.3.md`](KEPUTUSAN_ARSITEKTUR_v0.3.md) dan [`CONTRACT-CODES-V0.3.md`](CONTRACT-CODES-V0.3.md).
+
+---
+
+## 📚 Dokumen Acuan & Link Terkait
+
+Dokumen roadmap prototyping ini terhubung 100% dengan seluruh dokumen arsitektur proyek:
+
+1. **[KEPUTUSAN_ARSITEKTUR_v0.3.md](KEPUTUSAN_ARSITEKTUR_v0.3.md)** — Master Keputusan Arsitektur v0.3 (Sensing 2D §1.1, RTC Opsi B §2.2, State Machine §2.4, OTA §2.6).
+2. **[CONTRACT-CODES-V0.3.md](CONTRACT-CODES-V0.3.md)** — Kode Status Akses, Reason Code, Kode Event Non-Akses, dan Format CSV MQTT.
+3. **[PROJECT_ARCHITECTURE_INDEX.md](PROJECT_ARCHITECTURE_INDEX.md)** — Peta Arsitektur Ringkas Sistem & Daftar Port/Broker.
+4. **[ERD_v0.3.mermaid](ERD_v0.3.mermaid)** — Mermaid ERD 11 Tabel Database v0.3.
+5. **[001_v0.3_schema_delta.sql](../database/migrations/001_v0.3_schema_delta.sql)** — Script Migrasi Delta SQL MySQL v0.3.
+6. **[testing_guide.md](testing_guide.md)** — Panduan Pengujian & Simulasi Hardware/MQTT.
 
 ---
 
