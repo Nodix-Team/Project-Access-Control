@@ -92,11 +92,14 @@ ALTER TABLE access_logs
     ADD COLUMN device_id   VARCHAR(50)      NULL AFTER controller_id,
     -- Waktu apa adanya dari RTC DS3231 (UTC). server_ts tetap kolom otoritatif untuk
     -- urutan/tampilan; device_ts dipakai mendeteksi RTC ngaco (§4.3 R4).
-    ADD COLUMN device_ts   DATETIME(3)      NULL AFTER server_ts;
+    ADD COLUMN device_ts   DATETIME(3)      NULL AFTER server_ts,
+    -- Nomor urut log dari firmware untuk dedup 100% (Keputusan B4)
+    ADD COLUMN device_seq  INT UNSIGNED     NULL AFTER device_ts;
 
 -- Filter "tampilkan hanya ALARM" di dashboard & halaman log.
 ALTER TABLE access_logs
-    ADD INDEX idx_result_ts (result, server_ts);
+    ADD INDEX idx_result_ts (result, server_ts),
+    ADD UNIQUE INDEX unq_device_seq (device_id, device_seq);
 
 -- device_uptime_ms TIDAK di-drop: log v0.2 lama masih memakainya. Untuk log v0.3 diisi NULL.
 
@@ -109,6 +112,7 @@ CREATE TABLE controller_events (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
     controller_id INT NULL,                       -- sengaja BUKAN FK (konsisten dgn access_logs)
     device_id     VARCHAR(50) NOT NULL,           -- SNAPSHOT
+    device_seq    INT UNSIGNED NULL,              -- nomor urut dari firmware untuk dedup
     event_type    ENUM('TAMPER','FIRE','POWER','AUX','SYNC','SYSTEM') NOT NULL,
     event_code    VARCHAR(40) NOT NULL,           -- TAMPER_OPEN, FIRE_ACTIVE, POWER_LOW, BOOT, ...
     severity      ENUM('INFO','WARNING','ALARM') NOT NULL DEFAULT 'INFO',
@@ -120,7 +124,8 @@ CREATE TABLE controller_events (
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_ev_ctrl_ts (controller_id, server_ts),
     INDEX idx_ev_type_ts (event_type, server_ts),
-    INDEX idx_ev_sev_ts  (severity, server_ts)
+    INDEX idx_ev_sev_ts  (severity, server_ts),
+    UNIQUE INDEX unq_ev_device_seq (device_id, device_seq)
 );
 
 -- ═══════════════════════════════════════════
@@ -197,7 +202,7 @@ COMMIT;
 --     DROP COLUMN link_state, DROP COLUMN config_version, DROP COLUMN last_sync_error,
 --     DROP COLUMN last_sync_at, DROP COLUMN sync_fail_count, DROP COLUMN sync_state;
 -- ALTER TABLE access_logs
---     DROP INDEX idx_result_ts, DROP COLUMN device_ts,
---     DROP COLUMN device_id, DROP COLUMN door_number;
+--     DROP INDEX idx_result_ts, DROP INDEX unq_device_seq, DROP COLUMN device_seq,
+--     DROP COLUMN device_ts, DROP COLUMN device_id, DROP COLUMN door_number;
 --     -- kartu TIDAK dikembalikan ke NOT NULL: baris alarm v0.3 punya kartu NULL.
 -- ALTER TABLE admins MODIFY COLUMN role ENUM('admin') DEFAULT 'admin';

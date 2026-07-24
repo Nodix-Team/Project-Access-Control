@@ -1,6 +1,9 @@
 # 🛠️ HASIL AUDIT & REVIEW HARDWARE V0.3 (MASUKAN TEKNIS EMPING / RIZAL)
 
-> **Dokumen Evaluasi Kritis & Matriks Penyelesaian Hardware Grade-Industri**  
+> [!WARNING]
+> **DOKUMEN EVALUASI AWAL:** Dokumen ini memuat kritik dan matriks usulan awal.
+> Skema final penyelesaian masalah kelistrikan (seperti GPIO1 Digital Input, GPIO2 ADC, dan PTC per-pintu) wajib merujuk ke dokumen **[`docs/KEPUTUSAN_ARSITEKTUR_v0.3.md`](KEPUTUSAN_ARSITEKTUR_v0.3.md) §1 & §2**.
+
 > *Status: **DISENTUSUI SEPENUHNYA (ALL APPROVED)** oleh Tim Engineering pada 22 Juli 2026. Dokumen ini menjadi acuan spesifikasi final produksi massal.*
 
 ---
