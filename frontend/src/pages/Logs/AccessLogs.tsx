@@ -7,6 +7,7 @@ import { useControllers } from "../../api/controllers";
 import { useDoors } from "../../api/doors";
 import { useUiStore } from "../../store/uiStore";
 import { formatDateTime } from "../../utils/format";
+import { toCsv } from "../../utils/csv";
 
 const PAGE_SIZE = 20;
 
@@ -22,36 +23,6 @@ const RANGE_PRESETS: { label: string; days: number }[] = [
   { label: "7 hari terakhir", days: 6 },
   { label: "30 hari terakhir", days: 29 },
 ];
-
-function toCsv(logs: ApiAccessLog[]): string {
-  const header = [
-    "id",
-    "server_ts",
-    "kartu",
-    "user_nama",
-    "door_nama",
-    "controller_id",
-    "result",
-    "reason",
-    "is_replayed",
-  ];
-  const rows = logs.map((log) =>
-    [
-      log.id,
-      log.server_ts,
-      log.kartu,
-      log.user_nama ?? "",
-      log.door_nama ?? "",
-      log.controller_id ?? "",
-      log.result,
-      log.reason ?? "",
-      log.is_replayed,
-    ]
-      .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-      .join(","),
-  );
-  return [header.join(","), ...rows].join("\n");
-}
 
 function downloadCsv(content: string, filename: string) {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });

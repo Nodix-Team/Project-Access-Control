@@ -1,0 +1,89 @@
+# Integration CI — NIGHTLY + manual, BUKAN gerbang merge (KEPUTUSAN §7.1 W7).
+#
+# Sengaja TIDAK dijalankan tiap PR: menyalakan MySQL + EMQX + backend itu lambat dan rawan flaky
+# karena hal yang tak berhubungan (timeout broker), yang akan memperlambat review kalau jadi gerbang.
+#
+# Sprint 1 memasang FONDASI + smoke test substrat (DB load + roundtrip MQTT ke EMQX). 8 skenario
+# end-to-end §7.2(d) ditulis sebagai langkah placeholder — diisi bertahap begitu potongannya landing:
+#   Sprint 2 (skema) -> Sprint 3 (handler MQTT + simulate_esp32 diperluas) -> Sprint 4 (endpoint/alarm).
+name: integration-ci
+
+on:
+  schedule:
+    - cron: "0 18 * * *"   # 18:00 UTC tiap hari (~01:00 WIB)
+  workflow_dispatch: {}      # bisa dipicu manual sebelum rilis
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: access_control
+          TZ: UTC
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+      emqx:
+        image: emqx/emqx:5.8
+        ports:
+          - 1883:1883
+        options: >-
+          --health-cmd="emqx ctl status"
+          --health-interval=10s --health-timeout=10s --health-retries=12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Load skema penuh v0.3 (schema + migrasi + seed)
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot access_control < database/schema.sql
+          mysql -h 127.0.0.1 -uroot -proot access_control < database/migrations/001_v0.3_schema_delta.sql
+          mysql -h 127.0.0.1 -uroot -proot access_control < database/seed.sql
+
+      - name: Smoke test MQTT — pub/sub roundtrip ke EMQX
+        run: |
+          pip install paho-mqtt
+          python - <<'PY'
+          import sys, time, paho.mqtt.client as mqtt
+          got = []
+          c = mqtt.Client()
+          c.on_message = lambda cl, u, m: got.append(m.payload.decode())
+          c.connect("127.0.0.1", 1883, 30)
+          c.subscribe("access/ci-smoke/logs")
+          c.loop_start()
+          time.sleep(1)
+          c.publish("access/ci-smoke/logs", "1,0000123456,1,1,1,1784567890", qos=1)
+          for _ in range(20):
+              if got: break
+              time.sleep(0.25)
+          c.loop_stop()
+          assert got == ["1,0000123456,1,1,1,1784567890"], f"roundtrip gagal: {got}"
+          print("OK: EMQX pub/sub roundtrip berhasil")
+          PY
+
+      # ------------------------------------------------------------------
+      # 8 skenario end-to-end §7.2(d) — placeholder, diisi bertahap.
+      # Setiap skenario nanti: publish payload lewat simulate_esp32.py yang diperluas,
+      # lalu assert baris muncul benar di MySQL / broadcast WS.
+      # ------------------------------------------------------------------
+      - name: "S1-S8 end-to-end (PENDING — Sprint 3/4)"
+        run: |
+          echo "Kerangka skenario §7.2(d), diisi setelah handler MQTT & simulator v0.3 landing:"
+          echo "  S1 tap kartu valid -> log di DB & WS"
+          echo "  S2 REX (kartu kosong) & DOOR_FORCED_OPEN -> kartu NULLABLE jalan"
+          echo "  S3 putus mendadak -> LWT -> reconnect -> replay 50 log"
+          echo "  S4 heartbeat total_users salah -> drift check picu sync"
+          echo "  S5 controller nakal gagal sync 3x -> SYNC_ERROR_ATTENTION_REQUIRED"
+          echo "  S6 tamper open lalu close -> alarm cleared_at terisi tapi tetap menunggu ack"
+          echo "  S7 ubah config pintu -> push -> config_version baru"
+          echo "  S8 reason angka asing (99) -> tidak crash, tercatat UNKNOWN"

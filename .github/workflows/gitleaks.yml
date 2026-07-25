@@ -1,0 +1,23 @@
+# Secret scanning — gerbang merge (KEPUTUSAN §7.1 W6).
+# Repo menyimpan config MQTT/DB; .env sudah di-.gitignore, tapi riwayat, contoh config, dan
+# kredensial yang tak sengaja ter-commit tetap perlu discan tiap PR.
+name: gitleaks
+
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # gitleaks butuh riwayat penuh untuk memindai commit, bukan cuma snapshot terakhir.
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

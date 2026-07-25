@@ -1,3 +1,14 @@
+# Dependency khusus pengembangan & CI (dipisah dari requirements.txt produksi).
+# Dipasang di workflow backend-ci.yml bersama requirements.txt.
 pytest
 pytest-asyncio
 httpx
+
+# Linter — dijalankan di backend-ci.yml (`ruff check`). Ringan, cepat, tanpa konfigurasi wajib.
+ruff
+
+# Driver MySQL untuk test di CI (TEST_DATABASE_URL menunjuk ke service container mysql:8.0).
+# Sudah ada juga di requirements.txt produksi; diulang di sini supaya CI yang hanya memasang
+# requirements-dev tetap bisa konek MySQL.
+pymysql
+cryptography

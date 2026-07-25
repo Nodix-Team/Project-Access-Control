@@ -1,0 +1,11 @@
+# Jangan ikutkan ke image produksi: venv, cache, test, env rahasia.
+venv/
+.venv/
+__pycache__/
+*.pyc
+tests/
+.pytest_cache/
+.ruff_cache/
+.env
+.env.*
+*.db

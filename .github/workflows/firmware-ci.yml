@@ -1,0 +1,50 @@
+# Firmware CI — gerbang merge (KEPUTUSAN §7.1 W3).
+#
+# Dua langkah:
+#   1. `pio test -e native`         -> GERBANG KERAS. Unit test logika murni (kartu_normalize dst)
+#                                      jalan di PC pakai gcc bawaan runner Ubuntu.
+#   2. `pio run -e esp32s3_16mb`    -> compile check target produksi. SOFT (continue-on-error) di
+#                                      Sprint 1 karena port ESP32-S3 baru dikerjakan di Sprint 6;
+#                                      kode firmware saat ini masih basis esp32dev v0.1. Jadikan
+#                                      GERBANG KERAS (hapus continue-on-error) begitu Sprint 6 landing.
+name: firmware-ci
+
+on:
+  pull_request:
+    paths:
+      - "firmware/**"
+      - ".github/workflows/firmware-ci.yml"
+  push:
+    branches: [dev, main]
+    paths:
+      - "firmware/**"
+      - ".github/workflows/firmware-ci.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: firmware
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install platformio
+
+      - name: Native unit tests (pio test -e native)
+        run: pio test -e native
+
+      - name: Compile check target produksi (esp32s3_16mb)
+        # SOFT gate di Sprint 1 — lihat catatan di header. Jadikan keras di Sprint 6.
+        continue-on-error: true
+        run: pio run -e esp32s3_16mb
