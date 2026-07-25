@@ -13,6 +13,7 @@
 #include "serial/SerialSim.h"
 #include "storage/UserStorage.h"
 #include "storage/OfflineLogBuffer.h"
+#include "storage/NVSManager.h"
 #include "web/WebConfigServer.h"
 #include "sensing/PowerSensor.h"
 #include "time/SystemClock.h"
@@ -43,8 +44,9 @@ const String DOOR_NAMES[4] = {
 ConfigManager    configManager;
 UserStorage      userStorage;
 OfflineLogBuffer offlineLogBuffer;
+NVSManager       nvsManager;
 AccessControl    accessControl(userStorage);
-MqttManager      mqttManager(configManager, userStorage, offlineLogBuffer);
+MqttManager      mqttManager(configManager, userStorage, offlineLogBuffer, nvsManager);
 SerialSim        serialSim(accessControl, userStorage, configManager);
 WebConfigServer  webConfigServer(configManager, userStorage);
 PowerSensor      powerSensor;
@@ -57,7 +59,10 @@ void setup() {
   Serial.begin(115200);
   delay(500);
 
-  Serial.println("\n[SYS] Booting ESP32 Access Control v0.2.0...");
+  Serial.println("\n[SYS] Booting ESP32 Access Control v0.3.0...");
+
+  // 0. Inisialisasi NVS Storage (Fase 5 Prototipe)
+  nvsManager.begin();
 
   // 1. Inisialisasi LittleFS
   if (!LittleFS.begin(true)) {

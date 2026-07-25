@@ -1,6 +1,6 @@
 // ============================================================
 //  MqttManager.cpp
-//  ESP32 Access Control System — v0.2.0
+//  ESP32 Access Control System — v0.3.0
 // ============================================================
 #include "MqttManager.h"
 #include "../time/SystemClock.h"
@@ -11,10 +11,11 @@ extern SystemClock systemClock;
 MqttManager* MqttManager::_instance = nullptr;
 
 // ─── Constructor ─────────────────────────────────────────────
-MqttManager::MqttManager(ConfigManager& config, UserStorage& storage, OfflineLogBuffer& offlineLog)
+MqttManager::MqttManager(ConfigManager& config, UserStorage& storage, OfflineLogBuffer& offlineLog, NVSManager& nvs)
     : _config(config),
       _storage(storage),
       _offlineLog(offlineLog),
+      _nvs(nvs),
       _mqtt(_wifiClient),
       _lastReconnectMs(0),
       _lastStatusMs(0),
@@ -100,22 +101,23 @@ bool MqttManager::isConnected() {
 void MqttManager::publishLog(const String& kartu, int door, bool granted, const String& resultReason) {
     String statusStr = granted ? "GRANTED" : "DENIED";
     String timestamp = systemClock.getTimestamp();
+    uint32_t seqId = _nvs.getNextSequenceId(); // Sequence counter persisten 32-bit uint
     
     if (!_mqtt.connected()) {
         // Simpan log secara lokal karena sedang offline
-        Serial.println("[MQTT] Offline, menyimpan log transaksi ke LittleFS...");
-        _offlineLog.appendLog(timestamp, kartu, door, statusStr, resultReason);
+        Serial.printf("[MQTT] Offline, menyimpan log (Seq: %u) ke LittleFS...\n", seqId);
+        _offlineLog.appendLog(seqId, timestamp, kartu, door, statusStr, resultReason);
         return;
     }
 
-    // Format: timestamp,kartu,door_number,status,reason
-    String payload = timestamp + "," + kartu + "," + String(door) + "," + statusStr + "," + resultReason;
+    // Format: seq_id,timestamp,kartu,door_number,status,reason
+    String payload = String(seqId) + "," + timestamp + "," + kartu + "," + String(door) + "," + statusStr + "," + resultReason;
     String topic = _getTopic("logs");
 
     bool ok = _mqtt.publish(topic.c_str(), payload.c_str(), true); // QoS 1 simulation
     if (!ok) {
-        Serial.println("[MQTT] Gagal publish log, menyimpan ke buffer offline");
-        _offlineLog.appendLog(timestamp, kartu, door, statusStr, resultReason);
+        Serial.printf("[MQTT] Gagal publish log, menyimpan (Seq: %u) ke buffer offline\n", seqId);
+        _offlineLog.appendLog(seqId, timestamp, kartu, door, statusStr, resultReason);
     }
 }
 
@@ -123,16 +125,17 @@ void MqttManager::publishLog(const String& kartu, int door, bool granted, const 
 void MqttManager::publishStatus() {
     if (!_mqtt.connected()) return;
 
-    // Format CSV: total_doors,user_count,free_heap,uptime_ms
+    // Format CSV: total_doors,user_count,free_heap,uptime_ms,last_seq_id
     String payload = String(_config.getConfig().total_doors) + "," +
                      String(_storage.getUserCount()) + "," +
                      String(ESP.getFreeHeap()) + "," +
-                     String(millis());
+                     String(millis()) + "," +
+                     String(_nvs.getCurrentSequenceId());
 
     String topic = _getTopic("status");
     _mqtt.publish(topic.c_str(), payload.c_str(), false);
-    Serial.printf("[MQTT] Status published -> %d users, Heap: %d\n",
-                  _storage.getUserCount(), (int)ESP.getFreeHeap());
+    Serial.printf("[MQTT] Status published -> %d users, Heap: %d, LastSeq: %u\n",
+                  _storage.getUserCount(), (int)ESP.getFreeHeap(), _nvs.getCurrentSequenceId());
 }
 
 // ─── Private: Connect WiFi ────────────────────────────────────
@@ -414,35 +417,8 @@ void MqttManager::_handleConfigRequest(const String& payload) {
 
 // ─── Helper: Replay Offline Log ──────────────────────────────
 bool MqttManager::_sendOfflineLog(const String& csvLine) {
-    int firstComma = csvLine.indexOf(',');
-    if (firstComma == -1) return true;
-    String uptime = csvLine.substring(0, firstComma);
-    
-    int secondComma = csvLine.indexOf(',', firstComma + 1);
-    if (secondComma == -1) return true;
-    String kartu = csvLine.substring(firstComma + 1, secondComma);
-
-    int thirdComma = csvLine.indexOf(',', secondComma + 1);
-    if (thirdComma == -1) return true;
-    String door = csvLine.substring(secondComma + 1, thirdComma);
-
-    int fourthComma = csvLine.indexOf(',', thirdComma + 1);
-    
-    String status;
-    String reason;
-    if (fourthComma == -1) {
-        // Fallback robust untuk file log format 4 kolom lama (atau format baru dengan timestamp di depan)
-        status = csvLine.substring(thirdComma + 1);
-        status.trim();
-        reason = (status == "GRANTED") ? "OK" : "NO_ACCESS";
-    } else {
-        status = csvLine.substring(thirdComma + 1, fourthComma);
-        reason = csvLine.substring(fourthComma + 1);
-        status.trim();
-        reason.trim();
-    }
-
-    String payload = uptime + "," + kartu + "," + door + "," + status + "," + reason + ",REPLAYED";
+    // Format csvLine dari OfflineLogBuffer: seq_id,timestamp,kartu,door,status,reason
+    String payload = csvLine + ",REPLAYED";
     String topic = _getTopic("logs");
 
     return _mqtt.publish(topic.c_str(), payload.c_str(), true);
