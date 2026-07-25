@@ -12,6 +12,7 @@
 #include "storage/UserStorage.h"
 #include "storage/OfflineLogBuffer.h"
 #include "web/WebConfigServer.h"
+#include "sensing/PowerSensor.h"
 #include <WiFi.h>
 
 // ============================================================
@@ -43,6 +44,7 @@ AccessControl    accessControl(userStorage);
 MqttManager      mqttManager(configManager, userStorage, offlineLogBuffer);
 SerialSim        serialSim(accessControl, userStorage, configManager);
 WebConfigServer  webConfigServer(configManager, userStorage);
+PowerSensor      powerSensor;
 
 // ─── setup() ─────────────────────────────────────────────────
 void setup() {
@@ -88,6 +90,9 @@ void setup() {
   WiFi.mode(WIFI_STA); // Inisialisasi TCP/IP stack agar WebServer tidak crash
   webConfigServer.begin();
 
+  // 6.5. Inisialisasi Power Sensor (Fase 1 Prototipe)
+  powerSensor.begin();
+
   // 7. Pengujian Koneksi & Mekanisme Rollback (Anti-Brick)
   if (configManager.isPending()) {
     Serial.println("[SYS] DETEKSI CONFIG PENDING! Menjalankan uji koneksi selama 60 detik...");
@@ -127,4 +132,5 @@ void loop() {
   mqttManager.loop();
   serialSim.loop();
   webConfigServer.handleClient();
+  powerSensor.loop();
 }
