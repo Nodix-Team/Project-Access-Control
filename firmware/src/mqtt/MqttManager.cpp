@@ -3,6 +3,9 @@
 //  ESP32 Access Control System — v0.2.0
 // ============================================================
 #include "MqttManager.h"
+#include "../time/SystemClock.h"
+
+extern SystemClock systemClock;
 
 // Static instance untuk callback PubSubClient
 MqttManager* MqttManager::_instance = nullptr;
@@ -96,22 +99,23 @@ bool MqttManager::isConnected() {
 // ─── publishLog() ────────────────────────────────────────────
 void MqttManager::publishLog(const String& kartu, int door, bool granted, const String& resultReason) {
     String statusStr = granted ? "GRANTED" : "DENIED";
+    String timestamp = systemClock.getTimestamp();
     
     if (!_mqtt.connected()) {
         // Simpan log secara lokal karena sedang offline
         Serial.println("[MQTT] Offline, menyimpan log transaksi ke LittleFS...");
-        _offlineLog.appendLog(millis(), kartu, door, statusStr, resultReason);
+        _offlineLog.appendLog(timestamp, kartu, door, statusStr, resultReason);
         return;
     }
 
-    // Format: kartu,door_number,status,reason,uptime_ms
-    String payload = kartu + "," + String(door) + "," + statusStr + "," + resultReason + "," + String(millis());
+    // Format: timestamp,kartu,door_number,status,reason
+    String payload = timestamp + "," + kartu + "," + String(door) + "," + statusStr + "," + resultReason;
     String topic = _getTopic("logs");
 
     bool ok = _mqtt.publish(topic.c_str(), payload.c_str(), true); // QoS 1 simulation
     if (!ok) {
         Serial.println("[MQTT] Gagal publish log, menyimpan ke buffer offline");
-        _offlineLog.appendLog(millis(), kartu, door, statusStr, resultReason);
+        _offlineLog.appendLog(timestamp, kartu, door, statusStr, resultReason);
     }
 }
 
@@ -427,7 +431,7 @@ bool MqttManager::_sendOfflineLog(const String& csvLine) {
     String status;
     String reason;
     if (fourthComma == -1) {
-        // Fallback robust untuk file log format 4 kolom lama
+        // Fallback robust untuk file log format 4 kolom lama (atau format baru dengan timestamp di depan)
         status = csvLine.substring(thirdComma + 1);
         status.trim();
         reason = (status == "GRANTED") ? "OK" : "NO_ACCESS";
@@ -438,7 +442,7 @@ bool MqttManager::_sendOfflineLog(const String& csvLine) {
         reason.trim();
     }
 
-    String payload = kartu + "," + door + "," + status + "," + reason + "," + uptime + ",REPLAYED";
+    String payload = uptime + "," + kartu + "," + door + "," + status + "," + reason + ",REPLAYED";
     String topic = _getTopic("logs");
 
     return _mqtt.publish(topic.c_str(), payload.c_str(), true);

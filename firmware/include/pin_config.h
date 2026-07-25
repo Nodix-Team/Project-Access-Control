@@ -27,8 +27,8 @@
   #define PIN_LED_GREEN      12  // Granted Status LED
   #define PIN_LED_RED        14  // Denied/Alarm Status LED
 
-  #define PIN_SENS_MAINS_LOST 1  // Digital Input PLN Fail
-  #define PIN_SENS_POWER_LOW  2  // ADC Battery Drop
+  #define PIN_SENS_MAINS_LOST 27  // (Dipindah dari 1/TX0) Digital Input PLN Fail
+  #define PIN_SENS_POWER_LOW  34  // (Dipindah dari 2/Strapping) ADC1 Battery Drop
   #define PIN_BTN_WEB_AP     32  // Hotspot Portal Button
 
 #elif defined(BOARD_TARGET_PRODUCTION_ESP32S3_N16)

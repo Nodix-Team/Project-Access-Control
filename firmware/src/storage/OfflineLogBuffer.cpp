@@ -18,7 +18,7 @@ bool OfflineLogBuffer::begin() {
     return true;
 }
 
-void OfflineLogBuffer::appendLog(unsigned long uptimeMs, const String& kartu, int door, const String& status, const String& reason) {
+void OfflineLogBuffer::appendLog(const String& timestamp, const String& kartu, int door, const String& status, const String& reason) {
     // 1. Batasi ukuran ring buffer
     _enforceRingBufferLimit();
 
@@ -28,8 +28,8 @@ void OfflineLogBuffer::appendLog(unsigned long uptimeMs, const String& kartu, in
         Serial.println("[OfflineLog] Gagal membuka file log untuk append");
         return;
     }
-    // Format: uptime_ms,kartu,door_number,status,reason
-    f.printf("%lu,%s,%d,%s,%s\n", uptimeMs, kartu.c_str(), door, status.c_str(), reason.c_str());
+    // Format: timestamp,kartu,door_number,status,reason
+    f.printf("%s,%s,%d,%s,%s\n", timestamp.c_str(), kartu.c_str(), door, status.c_str(), reason.c_str());
     f.close();
 }
 

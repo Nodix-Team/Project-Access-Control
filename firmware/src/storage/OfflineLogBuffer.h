@@ -22,7 +22,7 @@ public:
      * Tambahkan log baru ke buffer offline.
      * Jika total baris melebihi 500, baris terlama akan dibuang secara FIFO.
      */
-    void appendLog(unsigned long uptimeMs, const String& kartu, int door, const String& status, const String& reason);
+    void appendLog(const String& timestamp, const String& kartu, int door, const String& status, const String& reason);
 
     /**
      * Replay (kirim ulang) semua log offline ke MQTT.

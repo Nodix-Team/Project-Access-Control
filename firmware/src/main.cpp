@@ -13,6 +13,7 @@
 #include "storage/OfflineLogBuffer.h"
 #include "web/WebConfigServer.h"
 #include "sensing/PowerSensor.h"
+#include "time/SystemClock.h"
 #include <WiFi.h>
 
 // ============================================================
@@ -45,6 +46,7 @@ MqttManager      mqttManager(configManager, userStorage, offlineLogBuffer);
 SerialSim        serialSim(accessControl, userStorage, configManager);
 WebConfigServer  webConfigServer(configManager, userStorage);
 PowerSensor      powerSensor;
+SystemClock      systemClock;
 
 // ─── setup() ─────────────────────────────────────────────────
 void setup() {
@@ -79,6 +81,9 @@ void setup() {
     Serial.println("[SYS] WARNING: UserStorage gagal load, mulai dari kosong");
   }
   Serial.printf("[SYS] User terdaftar: %d\n", userStorage.getUserCount());
+
+  // 4.5. Inisialisasi Jam RTC (Fase 2 Prototipe)
+  systemClock.begin();
 
   // 5. Setup SerialSim + callback untuk MQTT log
   serialSim.setLogCallback([](const String& kartu, int door, bool granted, const String& reason) {
