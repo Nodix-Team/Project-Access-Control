@@ -6,6 +6,7 @@
 #include <LittleFS.h>
 
 #include "access/AccessControl.h"
+#include "access/WiegandReader.h"
 #include "config/ConfigManager.h"
 #include "mqtt/MqttManager.h"
 #include "serial/SerialSim.h"
@@ -47,6 +48,7 @@ SerialSim        serialSim(accessControl, userStorage, configManager);
 WebConfigServer  webConfigServer(configManager, userStorage);
 PowerSensor      powerSensor;
 SystemClock      systemClock;
+WiegandReader    wiegand1(PIN_WIEGAND_D0, PIN_WIEGAND_D1);
 
 // ─── setup() ─────────────────────────────────────────────────
 void setup() {
@@ -98,6 +100,9 @@ void setup() {
   // 6.5. Inisialisasi Power Sensor (Fase 1 Prototipe)
   powerSensor.begin();
 
+  // 6.6. Inisialisasi Wiegand Reader (Fase 3 Prototipe)
+  wiegand1.begin();
+
   // 7. Pengujian Koneksi & Mekanisme Rollback (Anti-Brick)
   if (configManager.isPending()) {
     Serial.println("[SYS] DETEKSI CONFIG PENDING! Menjalankan uji koneksi selama 60 detik...");
@@ -138,4 +143,21 @@ void loop() {
   serialSim.loop();
   webConfigServer.handleClient();
   powerSensor.loop();
+  
+  // Deteksi Tap Kartu Fisik
+  if (wiegand1.available()) {
+    String uid = wiegand1.getCardUID();
+    Serial.printf("\n[WIEGAND] Kartu fisik terdeteksi! UID: %s\n", uid.c_str());
+    
+    AccessResult result = accessControl.checkAccess(uid, 1); // Asumsi Pintu 1
+    
+    if (result.granted) {
+      Serial.println("[DOOR 1] Akses DIBERIKAN. (Simulasi Relay Terbuka)");
+    } else {
+      Serial.println("[DOOR 1] Akses DITOLAK. (Simulasi Buzzer Menolak)");
+    }
+    
+    // Publikasikan log secara fisik ke server (atau simpan ke NVS jika offline)
+    mqttManager.publishLog(uid, 1, result.granted, result.reason);
+  }
 }
