@@ -24,6 +24,8 @@
   #define PIN_RELAY_3        25
   #define PIN_RELAY_4        26
 
+  #define PIN_REX_1          13  // Request to Exit Button untuk Pintu 1
+
   #define PIN_LED_GREEN      12  // Granted Status LED
   #define PIN_LED_RED        14  // Denied/Alarm Status LED
 
@@ -49,6 +51,8 @@
   #define PIN_RELAY_2        40  // Ref: §1.1
   #define PIN_RELAY_3        41
   #define PIN_RELAY_4        42
+
+  #define PIN_REX_1          47  // Contoh pin untuk REX di ESP32-S3
 
   #define PIN_LED_GREEN      38
   #define PIN_LED_RED        39

@@ -57,6 +57,35 @@ void SerialSim::_processLine(const String& line) {
         _printCardPrompt();
         return;
     }
+    
+    // Fitur Cheat / Bantuan Prototyping
+    if (upper.startsWith("ADD ")) {
+        String uid = upper.substring(4);
+        uid.trim();
+        uid = UserStorage::normalizeKartu(uid);
+        if (uid.length() > 0) {
+            _storage.setUser(uid, {1, 2, 3, 4}); // Beri akses ke semua pintu (1-4)
+            Serial.printf("[SYS] BERHASIL mendaftarkan kartu: %s (Akses: Semua Pintu)\n", uid.c_str());
+        }
+        _state = WAIT_CARD;
+        _printCardPrompt();
+        return;
+    }
+
+    if (upper.startsWith("DEL ")) {
+        String uid = upper.substring(4);
+        uid.trim();
+        uid = UserStorage::normalizeKartu(uid);
+        if (_storage.deleteUser(uid)) {
+            Serial.printf("[SYS] Kartu %s berhasil DIHAPUS.\n", uid.c_str());
+        } else {
+            Serial.printf("[SYS] Kartu %s tidak ditemukan.\n", uid.c_str());
+        }
+        _state = WAIT_CARD;
+        _printCardPrompt();
+        return;
+    }
+
     if (upper == "STATUS") {
         _printStatus();
         if (_state == WAIT_DOOR) {
@@ -172,6 +201,7 @@ void SerialSim::_printBanner() {
     Serial.println("╚══════════════════════════════════════════╝");
     Serial.println();
     Serial.println("Commands: LIST | STATUS | RESTART");
+    Serial.println("Cheat Commands: ADD <uid> | DEL <uid>");
     Serial.println();
 
     // Tampilkan nama pintu

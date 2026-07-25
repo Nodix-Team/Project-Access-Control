@@ -7,6 +7,7 @@
 
 #include "access/AccessControl.h"
 #include "access/WiegandReader.h"
+#include "access/DoorController.h"
 #include "config/ConfigManager.h"
 #include "mqtt/MqttManager.h"
 #include "serial/SerialSim.h"
@@ -49,6 +50,7 @@ WebConfigServer  webConfigServer(configManager, userStorage);
 PowerSensor      powerSensor;
 SystemClock      systemClock;
 WiegandReader    wiegand1(PIN_WIEGAND_D0, PIN_WIEGAND_D1);
+DoorController   door1(PIN_RELAY_1, PIN_REX_1);
 
 // ─── setup() ─────────────────────────────────────────────────
 void setup() {
@@ -87,8 +89,11 @@ void setup() {
   // 4.5. Inisialisasi Jam RTC (Fase 2 Prototipe)
   systemClock.begin();
 
-  // 5. Setup SerialSim + callback untuk MQTT log
+  // 5. Setup SerialSim + callback untuk MQTT log & Door unlock
   serialSim.setLogCallback([](const String& kartu, int door, bool granted, const String& reason) {
+    if (granted && door == 1) {
+      door1.unlock(3000);
+    }
     mqttManager.publishLog(kartu, door, granted, reason);
   });
   serialSim.begin();
@@ -102,6 +107,13 @@ void setup() {
 
   // 6.6. Inisialisasi Wiegand Reader (Fase 3 Prototipe)
   wiegand1.begin();
+
+  // 6.7. Inisialisasi Door Controller (Fase 4 Prototipe)
+  door1.begin();
+  door1.setRexCallback([]() {
+      // Saat REX ditekan, catat log sebagai MANUAL_EXIT
+      mqttManager.publishLog("REX_BTN", 1, true, "MANUAL_EXIT");
+  });
 
   // 7. Pengujian Koneksi & Mekanisme Rollback (Anti-Brick)
   if (configManager.isPending()) {
@@ -152,12 +164,16 @@ void loop() {
     AccessResult result = accessControl.checkAccess(uid, 1); // Asumsi Pintu 1
     
     if (result.granted) {
-      Serial.println("[DOOR 1] Akses DIBERIKAN. (Simulasi Relay Terbuka)");
+      Serial.println("[DOOR 1] Akses DIBERIKAN.");
+      door1.unlock(3000); // Buka pintu 3 detik
     } else {
-      Serial.println("[DOOR 1] Akses DITOLAK. (Simulasi Buzzer Menolak)");
+      Serial.println("[DOOR 1] Akses DITOLAK.");
     }
     
     // Publikasikan log secara fisik ke server (atau simpan ke NVS jika offline)
     mqttManager.publishLog(uid, 1, result.granted, result.reason);
   }
+  
+  // Loop untuk mengecek status relay dan REX
+  door1.loop();
 }
