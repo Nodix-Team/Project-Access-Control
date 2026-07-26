@@ -1,8 +1,15 @@
 # 🏗️ Arsitektur Access Control System — Proposal v0.3 (Revisi 2)
 
-> [!NOTE]
-> Dokumen ini adalah proposal spesifikasi arsitektur terintegrasi untuk rilis versi 0.3. 
-> Proposal ini menyatukan spesifikasi hardware baru, firmware, MQTT, dan database MySQL.
+> [!WARNING]
+> **DOKUMEN PROPOSAL HISTORIS — sebagian sudah diperbaiki 25 Jul 2026 agar tidak berkontradiksi dengan
+> keputusan final.** Titik yang diperbaiki ditandai `[DIPERBAIKI 25 Jul]` di teks. Perbaikan mencakup:
+> alokasi pin (§1, konflik `GPIO34` & relay sudah dipindah), format payload MQTT (§3, sekarang v0.3.1
+> dengan `seq` & angka `reason`, bukan lagi kalimat Inggris), penyimpanan waktu (§4B, UTC — bukan GMT+7),
+> dan jumlah tabel database (§4A, 11 — bukan 8).
+>
+> **Acuan keputusan final yang mengikat adalah [`docs/KEPUTUSAN_ARSITEKTUR_v0.3.md`](KEPUTUSAN_ARSITEKTUR_v0.3.md).**
+> Kalau dokumen ini dan KEPUTUSAN berbeda di titik yang **belum** ditandai `[DIPERBAIKI]`, KEPUTUSAN
+> yang berlaku — laporkan sebagai temuan baru.
 
 ---
 
@@ -76,20 +83,29 @@ Digunakan untuk jalur komunikasi cepat, interupsi hardware (Wiegand & REX), dan 
 | **`GPIO10`** | SPI CS | W5500 Ethernet Chip Select| Kendali Bus SPI |
 | **`GPIO8`** | I2C SDA | Data Bus I2C | Terhubung ke MCP23017 & RTC DS3231 |
 | **`GPIO9`** | I2C SCL | Clock Bus I2C | Terhubung ke MCP23017 & RTC DS3231 |
-| **`GPIO1` - `GPIO4`**| Output | Lock Relay 1–4 | Drive ULN2003ADR (Wet/Dry via Jumper) |
+| **`GPIO33`, `GPIO40`**| Output | Lock Relay 1–2 | `[DIPERBAIKI 25 Jul]` Dipindah dari `GPIO1`/`GPIO2` — konflik dengan ADC sensing daya (§1.1 KEPUTUSAN). Drive ULN2003ADR (Wet/Dry via Jumper) |
+| **`GPIO3`, `GPIO4`**| Output | Lock Relay 3–4 | Drive ULN2003ADR (Wet/Dry via Jumper) — tidak berubah |
 | **`GPIO5` - `GPIO7`, `GPIO14`**| Input (Interrupt)| REX Input 1–4 | Tombol keluar (Optocoupler TLP291-4) |
 | **`GPIO15`, `GPIO16`** | Input (Interrupt)| Wiegand Rdr 1 D0 & D1 | Reader Pintu 1 (Native Interrupt) |
 | **`GPIO17`, `GPIO18`** | Input (Interrupt)| Wiegand Rdr 2 D0 & D1 | Reader Pintu 2 (Native Interrupt) |
 | **`GPIO38`, `GPIO39`** | Input (Interrupt)| Wiegand Rdr 3 D0 & D1 | Reader Pintu 3 (Dipindah dari GPIO19/20 - Bebas Konflik USB) |
-| **`GPIO21`, `GPIO22`** | Input (Interrupt)| Wiegand Rdr 4 D0 & D1 | Reader Pintu 4 (Native Interrupt) |
-| **`GPIO1`** | Analog Input (ADC)| Sensing Tegangan PLN 12V| Pembagi Tegangan R1=100k/R2=10k |
-| **`GPIO2`** | Analog Input (ADC)| Sensing Tegangan Aki 12V| Deteksi Low Battery & Missing Battery |
+| **`GPIO21`, `GPIO48`** | Input (Interrupt)| Wiegand Rdr 4 D0 & D1 | `[DIPERBAIKI 25 Jul]` D1 dipindah dari `GPIO22` ke `GPIO48` — `GPIO22` **tidak ada** di ESP32-S3 (§1.1 KEPUTUSAN) |
+| **`GPIO1`** | **Digital Input** | Sensing PLN (`MAINS_LOST`) | `[DIPERBAIKI 25 Jul]` Diubah dari ADC pembagi tegangan menjadi Digital Input — kabel dari AC Fail Relay Smart PSU/relay AC eksternal. **Bukan lagi** ADC (§1.1 KEPUTUSAN) |
+| **`GPIO2`** | Analog Input (ADC)| Sensing Tegangan Aki 12V (`POWER_LOW`) | Tidak berubah — pembagi tegangan R1=100k/R2=10k, murni sensing baterai |
 | **`GPIO35`** | Input | Tamper Box Input | Sakelar Limit Box (Optocoupler EL817) |
 | **`GPIO36`** | Input | Fire Alarm Input | Input Failsafe (Optocoupler EL817) |
 | **`GPIO37`** | Input | Tombol Fungsi Lokal | Uji coba manual lapangan / AP toggle |
+| **`GPIO47`** | Watchdog | External Watchdog WDI | `[DIPERBAIKI 25 Jul]` Dipindah dari `GPIO34` — bentrok dengan MCP23017 `INTA` yang juga memakai `GPIO34` (§1.1 KEPUTUSAN) |
+| **`EN`** | Watchdog | External Watchdog RESET | `[DIPERBAIKI 25 Jul]` Pin `EN` (Chip Enable), bukan GPIO biasa (§1.1 KEPUTUSAN) |
 
 > [!NOTE]
-> Pemindahan pin Reader 3 dari `GPIO19/20` ke `GPIO38/39` dilakukan agar modul USB Native JTAG/OTG internal ESP32-S3 tetap dapat digunakan secara aman untuk flashing program kecepatan tinggi dan debugging serial tanpa memicu benturan elektrikal dengan sinyal Wiegand. `GPIO2` (ADC) membaca masukan daya 12V dari External PSU untuk mengategorikan 2 status sederhana: `POWER_NORMAL` (≥ 11.5V) dan `POWER_LOW` (< 11.5V).
+> Pemindahan pin Reader 3 dari `GPIO19/20` ke `GPIO38/39` dilakukan agar modul USB Native JTAG/OTG internal ESP32-S3 tetap dapat digunakan secara aman untuk flashing program kecepatan tinggi dan debugging serial tanpa memicu benturan elektrikal dengan sinyal Wiegand.
+>
+> **`[DIPERBAIKI 25 Jul]`** `GPIO2` (ADC) **hanya** membaca tegangan aki/PSU 12V untuk `POWER_LOW`
+> (< 11.5V) / `POWER_NORMAL`. Sensing PLN (`MAINS_LOST`/`MAINS_OK`) **dipindahkan ke `GPIO1` sebagai
+> Digital Input** (bukan lagi ADC pembagi tegangan seperti draft awal) — dua sinyal daya yang berbeda
+> makna kini dibaca dari dua mekanisme yang berbeda pula. Lihat §1.1 & §5.10 (B2) KEPUTUSAN untuk
+> alasan lengkap.
 
 ---
 
@@ -110,11 +126,13 @@ board_build.partitions = default_16MB.csv
 ### B. Format Penanda Waktu Log Offline (Unix Epoch)
 Saat status offline, logger tidak lagi membubuhkan uptime relative `millis()`. Chip **DS3231** akan memasok waktu Unix Epoch UTC secara instan.
 
-**Struktur format log offline di `/logs/offline_buffer.csv`**:
+**Struktur format log offline di `/logs/offline_buffer.csv`** — `[DIPERBAIKI 25 Jul]` cermin format
+final v0.3.1 (§3A), bukan lagi kalimat/kata seperti draft awal:
 ```
-{timestamp_epoch},{card_id},{door_number},{status},{reason}
+{seq},{card_id},{door_number},{status},{reason},{timestamp_epoch}
 ```
-*Contoh*: `1784567890,0000123456,1,GRANTED,Valid Access`
+*Contoh*: `1024,0000123456,1,1,1,1784567890` — `seq=1024`, kartu valid, pintu 1, `status=1`(GRANTED),
+`reason=1`(VALID_ACCESS). Saat dikirim ulang lewat MQTT, ditambah suffix `,REPLAYED`.
 
 ### F. Fitur Web Serial Monitor, Test Output, & Dual-Network OTA Update
 
@@ -145,14 +163,16 @@ Saat status offline, logger tidak lagi membubuhkan uptime relative `millis()`. C
    * **Perlindungan Safe Rollback**: Jika firmware baru gagal booting atau memicu reset watchdog dalam 30 detik pasca-update, ESP32-S3 akan otomatis melakukan *rollback* ke partisi firmware sebelumnya yang aman.
 
 ---
-Untuk mendeteksi apakah pintu benar-benar dimasuki atau tidak, controller menerapkan logika waktu tunggu sensor magnet:
+Untuk mendeteksi apakah pintu benar-benar dimasuki atau tidak, controller menerapkan logika waktu tunggu sensor magnet. `[DIPERBAIKI 25 Jul]` Nama reason di bawah ini adalah **kode DB** (angka di kabel,
+lihat [`CONTRACT-CODES-V0.3.md`](CONTRACT-CODES-V0.3.md)), bukan lagi kalimat bebas seperti draft awal:
 1. **Otorisasi valid (Card Tap / REX)**:
-   * Ketika otorisasi disetujui (`GRANTED`), controller mengaktifkan relay lock dan memulai timer **`door_open_timeout_s`** (default 10 detik).
-   * **Kasus Pintu Dibuka**: Jika door sensor mendeteksi pintu dibuka sebelum timer habis, controller mengirimkan log dengan alasan **`Valid Access`** (untuk tap kartu) atau **`Exit via REX`** (untuk REX).
-   * **Kasus Pintu Tetap Tertutup**: Jika timer habis dan pintu tetap tertutup rapat, controller menonaktifkan relay lock dan mengirimkan log alasan **`Valid Access - Unopened`** (untuk tap kartu) atau **`Exit REX - Unopened`** (untuk REX).
-2. **Kejadian Alarm (Sensor Aktif Tanpa Otorisasi)**:
-   * **Pintu Dibuka Paksa (Door Forced Open)**: Jika door sensor berubah menjadi terbuka tanpa dipicu tap kartu sukses atau tombol REX, controller mengirim log status `ALARM` dengan alasan **`Door Forced Open`**.
-   * **Pintu Terbuka Terlalu Lama (Door Held Open)**: Jika pintu telah terbuka secara sah tetapi tidak tertutup kembali setelah batas waktu **`door_held_timeout_s`** terlampaui, controller mengirim log status `ALARM` dengan alasan **`Door Held Open`** dan membunyikan alarm fisik di sisi reader (default selama 30 detik).
+   * Ketika otorisasi disetujui (`status=1` GRANTED), controller mengaktifkan relay lock dan memulai timer **`door_open_timeout_s`** (default 10 detik).
+   * **Kasus Pintu Dibuka**: Jika door sensor mendeteksi pintu dibuka sebelum timer habis, controller mengirimkan `reason=1` (`VALID_ACCESS`, tap kartu) atau `reason=3` (`VALID_EXIT`, REX).
+   * **Kasus Pintu Tetap Tertutup**: Jika timer habis dan pintu tetap tertutup rapat, controller menonaktifkan relay lock dan mengirimkan `reason=2` (`VALID_ACCESS_UNOPENED`) atau `reason=4` (`VALID_EXIT_UNOPENED`).
+2. **Kejadian Alarm (Sensor Aktif Tanpa Otorisasi)** — juga dicatat via topic `access/{device_id}/events` (lihat §3A):
+   * **Pintu Dibuka Paksa**: Jika door sensor berubah menjadi terbuka tanpa dipicu tap kartu sukses atau tombol REX, controller mengirim log `status=3` (`ALARM`) dengan `reason=5` (`DOOR_FORCED_OPEN`).
+   * **Pintu Terbuka Terlalu Lama**: Jika pintu telah terbuka secara sah tetapi tidak tertutup kembali setelah batas waktu **`door_held_timeout_s`** terlampaui, controller mengirim log `status=3` (`ALARM`) dengan `reason=6` (`DOOR_HELD_OPEN`) dan membunyikan alarm fisik di sisi reader (default selama 30 detik).
+   * **Catatan fire lokal**: saat `FIRE_ACTIVE`, backend menekan pembuatan alarm baru dari `DOOR_FORCED_OPEN` beruntun (interlock hardware melepas semua maglock sekaligus) — tetap dicatat sebagai log, tidak melahirkan alarm duplikat (§5.7 KEPUTUSAN).
 
 ### D. Parameter Konfigurasi Baru (Konfigurasi per Pintu)
 Untuk fleksibilitas operasional di lapangan, parameter waktu sensor pintu **diatur secara spesifik per-pintu (1–4)**, bukan bersifat global. Struktur data `SystemConfig` ditambahkan parameter array berikut:
@@ -187,29 +207,42 @@ Untuk menjamin integritas data tanpa intervensi manual, sistem menerapkan logika
 
 Topik MQTT diamankan secara ketat menggunakan otentikasi per-kredensial perangkat dan validasi TLS.
 
-### A. Payload Log Transaksi Akses (`access/{device_id}/logs`)
-Log dikirimkan secara sekuensial (QoS 1).
+### A. Payload Log Transaksi Akses (`access/{device_id}/logs`) — `[DIPERBAIKI 25 Jul]`
+Log dikirimkan secara sekuensial (QoS 1). **Format final v0.3.1** (bukan lagi kalimat Inggris seperti
+draft awal di bawah ini) — satu-satunya sumber kebenaran adalah
+[`CONTRACT-CODES-V0.3.md`](CONTRACT-CODES-V0.3.md):
 ```
-<card_id>,<door_number>,<status>,<reason>,<timestamp_epoch>[,REPLAYED]
+<seq>,<card_id>,<door_number>,<status>,<reason>,<timestamp_epoch>[,REPLAYED]
 ```
-*   `<card_id>`: String numerik 10-digit (padding nol di depan). Kolom ini **dikosongkan** jika kejadian tidak dipicu kartu RFID (seperti REX atau alarm sensor). Contoh: `,1,GRANTED,Exit via REX,1784567890`.
+*   `<seq>`: Nomor urut 32-bit unsigned per controller, **wajib persist di NVS** (tidak reset saat
+    reboot) — dipakai backend untuk dedup 100% terhadap duplikat MQTT QoS 1.
+*   `<card_id>`: String numerik 10-digit (padding nol di depan, format `%010lu`). Kolom ini
+    **dikosongkan** jika kejadian tidak dipicu kartu RFID (REX/alarm sensor).
 *   `<door_number>`: Angka pintu lokal (1–4).
-*   `<status>`: `GRANTED`, `DENIED`, atau `ALARM`.
-*   `<reason>`: Alasan status akses (dalam bahasa Inggris standar industri). Nilai yang didukung meliputi:
-    *   `Valid Access`: Tap kartu disetujui dan pintu berhasil dibuka sebelum timeout.
-    *   `Valid Access - Unopened`: Tap kartu disetujui, tetapi pintu tidak dibuka hingga timeout habis.
-    *   `Exit via REX`: Tombol REX ditekan dan pintu berhasil dibuka sebelum timeout.
-    *   `Exit REX - Unopened`: Tombol REX ditekan, tetapi pintu tidak dibuka hingga timeout habis.
-    *   `Door Forced Open`: Sensor mendeteksi pintu dibuka paksa secara fisik tanpa otorisasi.
-    *   `Door Held Open`: Sensor mendeteksi pintu dibiarkan terbuka melewati durasi toleransi (Held Open).
-    *   `Unauthorized Door`: Kartu terdaftar tetapi tidak memiliki hak akses untuk pintu lokal tersebut (status `DENIED`).
-    *   `Unknown Card`: Kartu tidak terdaftar dalam memori internal controller (status `DENIED`).
-    *   `Invalid Door Number`: Permintaan akses pintu di luar jangkauan lokal 1–4 (status `DENIED`).
+*   `<status>`: **Angka** — `1`=GRANTED, `2`=DENIED, `3`=ALARM (bukan lagi kata `GRANTED`/`DENIED`/`ALARM`).
+*   `<reason>`: **Angka 1–9** yang diterjemahkan backend → kode DB → teks UI (3 lapis). Daftar
+    lengkap ada di [`CONTRACT-CODES-V0.3.md`](CONTRACT-CODES-V0.3.md) — draft kalimat Inggris di
+    bawah ini **hanya untuk memahami maksud tiap kejadian**, bukan nilai yang benar-benar dikirim:
+    *   Tap kartu disetujui, pintu dibuka sebelum timeout → `VALID_ACCESS`
+    *   Tap kartu disetujui, pintu tidak dibuka hingga timeout → `VALID_ACCESS_UNOPENED`
+    *   REX ditekan, pintu dibuka sebelum timeout → `VALID_EXIT`
+    *   REX ditekan, pintu tidak dibuka hingga timeout → `VALID_EXIT_UNOPENED`
+    *   Pintu dibuka paksa tanpa otorisasi → `DOOR_FORCED_OPEN` (status `ALARM`)
+    *   Pintu dibiarkan terbuka melewati toleransi → `DOOR_HELD_OPEN` (status `ALARM`)
+    *   Kartu terdaftar tapi tak berhak ke pintu ini → `UNAUTHORIZED_DOOR` (status `DENIED`)
+    *   Kartu tak terdaftar → `UNKNOWN_CARD` (status `DENIED`)
+    *   Nomor pintu di luar jangkauan 1–4 → `INVALID_DOOR_NUMBER` (status `DENIED`)
 *   `<timestamp_epoch>`: Epoch timestamp UTC (10 digit).
 *   `[,REPLAYED]`: Ditambahkan jika log diambil dari buffer offline.
 
+**Event non-akses** (tamper/fire/power/aux) dikirim lewat topic **terpisah** `access/{device_id}/events`
+(bukan numpang `logs`), format `<seq>,<event_code>,<door_number>,<timestamp_epoch>[,REPLAYED]` — lihat
+Contract Codes untuk tabel angka event 0–10.
+
 > [!IMPORTANT]
-> Karakter string pada kolom `<reason>` **sama sekali tidak boleh mengandung karakter koma (`,`)** agar tidak merusak struktur penulisan kolom pada berkas CSV saat parsing payload.
+> Alasan angka (bukan kalimat) sudah dibahas & diputuskan di Contract Codes: kalimat berspasi/koma
+> berisiko merusak parsing CSV, dan hardcode bahasa Inggris di payload menyulitkan penyesuaian bahasa
+> UI di masa depan. Format angka jauh lebih hemat RAM untuk firmware ESP32.
 
 
 ### B. Last Will and Testament (LWT)
@@ -222,30 +255,48 @@ Topik LWT didaftarkan oleh controller saat terhubung ke broker:
 
 ## 4. Skema Database & Sinkronisasi Waktu
 
-### A. Skema Dasar Database (MySQL)
-Database MySQL melayani 8 tabel utama yang telah dioptimalkan dengan indeks pencarian log:
-*   **`controllers`**: device_id, ip_address, status, last_heartbeat.
-*   **`doors`**: door_number (1-4 lokal), controller_id, location.
+### A. Skema Dasar Database (MySQL) — `[DIPERBAIKI 25 Jul]`
+Database MySQL melayani **11 tabel** (bukan 8 seperti draft awal) — 8 tabel v0.2 ditambah 3 tabel baru
+v0.3. ERD lengkap ada di [`ERD_v0.3.mermaid`](ERD_v0.3.mermaid), DDL di
+[`../database/migrations/001_v0.3_schema_delta.sql`](../database/migrations/001_v0.3_schema_delta.sql).
+
+*   **`controllers`**: device_id, ip_address, `sync_state`, `link_state`, `config_version`, snapshot
+    telemetry & health (tamper/fire/power).
+*   **`doors`**: door_number (1-4 lokal), controller_id, location, **+4 kolom config per-pintu**
+    (`is_active`, `open_timeout_s`, `held_timeout_s`, `alarm_duration_s`).
 *   **`users`**: name, card_id (10-digit), department_id, status.
 *   **`user_access`**: mapping user_id ke door_id.
 *   **`departments`**: departemen user.
 *   **`department_access`**: mapping department_id ke door_id.
-*   **`access_logs`**: card_id, door_id, status, is_replayed, timestamp (GMT+7).
-*   **`admins`**: login dashboard.
+*   **`access_logs`**: card_id (**nullable** — REX/alarm tanpa kartu), door_id, `door_number`,
+    `device_id`, `device_seq`, status, is_replayed, `server_ts` (**UTC**), `device_ts` (UTC, epoch RTC).
+*   **`admins`**: login dashboard, role `admin`/`viewer` (RBAC).
+*   **`controller_events`** *(baru)*: kejadian non-akses (tamper/fire/power/aux/sync/system).
+*   **`alarms`** *(baru)*: antrian butuh-perhatian-admin, `raised_at`/`cleared_at`/`acked_at` terpisah.
+*   **`admin_logs`** *(baru)*: jejak audit aksi admin (relay test, config update, sync trigger, alarm ack).
 
-### B. Penanganan Waktu Lokal (GMT+7)
-Log akses yang dikirim controller disamakan menjadi format GMT+7 sebelum disimpan ke database:
+### B. Penanganan Waktu — UTC Murni `[DIPERBAIKI 25 Jul]`
+**Semua kolom waktu di database disimpan UTC, bukan GMT+7.** Konversi ke waktu lokal terjadi
+**hanya saat tampil** (di browser, mengikuti zona waktu perangkat), bukan saat disimpan — supaya
+filter tanggal dan urutan log tetap benar lintas zona waktu server/klien mana pun.
+
 ```python
-# backend/app/services/log_service.py
-from datetime import datetime, timezone, timedelta
+# backend/app/mqtt/handlers.py — pola nyata yang dipakai
+from datetime import datetime, timezone
 
-# Standardisasi zona waktu ke GMT+7 (WIB)
-gmt_plus_7 = timezone(timedelta(hours=7))
-
-def save_log(card_id: str, door_id: int, status: str, epoch: int):
-    log_time = datetime.fromtimestamp(epoch, tz=gmt_plus_7)
-    # Simpan log_time ke kolom timestamp MySQL (GMT+7)
+def handle_log(...):
+    # LIVE: waktu otoritatif = backend saat menerima
+    server_ts = datetime.now(timezone.utc)
+    # REPLAYED: waktu otoritatif = device_ts dari RTC controller (juga UTC)
+    # server_ts = device_ts  (lihat aturan R3, KEPUTUSAN §4.3)
 ```
+
+Server MySQL **wajib** dipaksa `time_zone='+00:00'` (aturan R2) — kalau tidak, kolom
+`DEFAULT CURRENT_TIMESTAMP` (mengikuti zona sesi MySQL) bisa beda beberapa jam dari `server_ts`
+yang ditulis backend dalam UTC eksplisit, walau di baris yang sama.
+
+> Contoh kode `gmt_plus_7 = timezone(timedelta(hours=7))` di draft awal dokumen ini **tidak dipakai**
+> — itu jebakan yang sudah diperbaiki. Lihat §4.3 KEPUTUSAN untuk 6 aturan waktu lengkap (R1–R6).
 
 ---
 

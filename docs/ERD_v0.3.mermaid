@@ -1,5 +1,5 @@
 %% ERD Access Control System — v0.3 (USULAN, menunggu ACK @danskiv)
-%% Turunan dari ERD_v0.2.mermaid + delta v0.3 (lihat KEPUTUSAN_ARSITEKTUR_v0.3.md §4)
+%% Turunan dari v0.2/ERD_v0.2.mermaid + delta v0.3 (lihat KEPUTUSAN_ARSITEKTUR_v0.3.md §4)
 %%
 %% Perubahan v0.2 -> v0.3:
 %%   [UBAH]  doors            : + 4 kolom config per-pintu (dX_ di MQTT)
@@ -115,6 +115,7 @@ erDiagram
         varchar door_nama "SNAPSHOT saat kejadian"
         int controller_id "bukan FK - log tetap ada walau controller dihapus"
         varchar device_id "BARU - SNAPSHOT ctrl-A"
+        int device_seq "BARU - nomor urut dedup dari firmware"
         enum result "GRANTED / DENIED / ALARM"
         varchar reason "Kode DB: VALID_ACCESS / DOOR_FORCED_OPEN / ..."
         datetime server_ts "OTORITATIF - waktu KEJADIAN (UTC)"
@@ -128,6 +129,7 @@ erDiagram
         bigint id PK "BARU - kejadian NON-akses, tanpa kartu & (biasanya) tanpa pintu"
         int controller_id "bukan FK - konsisten dgn access_logs"
         varchar device_id "SNAPSHOT"
+        int device_seq "BARU - nomor urut dedup dari firmware"
         enum event_type "TAMPER / FIRE / POWER / AUX / SYNC / SYSTEM"
         varchar event_code "TAMPER_OPEN / FIRE_ACTIVE / POWER_LOW / BOOT / OTA_ROLLBACK"
         enum severity "INFO / WARNING / ALARM"

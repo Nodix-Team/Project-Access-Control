@@ -13,11 +13,11 @@ _(belum ada perubahan baru sejak v0.2.0 — lihat [ROADMAP_v0.3.md](docs/ROADMAP
 
 ## [v0.2.0] - 2026-07-21
 
-> Rilis resmi pertama sistem access control multi-controller lengkap (database, backend REST+MQTT, firmware ESP32, frontend React). Realisasi penuh dibandingkan roadmap ada di [`docs/V0.2_CLOSURE_REPORT.md`](docs/V0.2_CLOSURE_REPORT.md) — termasuk gap yang ditemukan di luar scope roadmap awal (keamanan, testing otomatis, hardware fisik), yang jadi dasar [`docs/ROADMAP_v0.3.md`](docs/ROADMAP_v0.3.md).
+> Rilis resmi pertama sistem access control multi-controller lengkap (database, backend REST+MQTT, firmware ESP32, frontend React). Realisasi penuh dibandingkan roadmap ada di [`docs/v0.2/V0.2_CLOSURE_REPORT.md`](docs/v0.2/V0.2_CLOSURE_REPORT.md) — termasuk gap yang ditemukan di luar scope roadmap awal (keamanan, testing otomatis, hardware fisik), yang jadi dasar [`docs/ROADMAP_v0.3.md`](docs/ROADMAP_v0.3.md).
 
 ### Backend Core API — Sprint 2 (`feature/backend-core`)
 
-Implementasi REST API v0.2 (FastAPI) sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.md) Sprint 2. Belum termasuk MQTT client/publisher/subscriber dan protokol sync atomik — ditunda ke Sprint 3, ditandai TODO eksplisit di kode.
+Implementasi REST API v0.2 (FastAPI) sesuai [ROADMAP_v0.2.md](docs/v0.2/ROADMAP_v0.2.md) Sprint 2. Belum termasuk MQTT client/publisher/subscriber dan protokol sync atomik — ditunda ke Sprint 3, ditandai TODO eksplisit di kode.
 
 ### Added
 - Struktur project FastAPI (`backend/app/`): `config.py` (pydantic-settings), `database.py` (SQLAlchemy engine/session), `main.py`
@@ -43,7 +43,7 @@ Implementasi REST API v0.2 (FastAPI) sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.
 
 ### Backend MQTT + Sync Protocol — Sprint 3 (`feature/backend-mqtt`)
 
-Integrasi MQTT penuh sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.md) Sprint 3: koneksi broker, subscribe log/status/sync-result, publish perubahan user & config, protokol sync atomik, WebSocket live feed, dan penanganan log `REPLAYED` dari buffer offline controller.
+Integrasi MQTT penuh sesuai [ROADMAP_v0.2.md](docs/v0.2/ROADMAP_v0.2.md) Sprint 3: koneksi broker, subscribe log/status/sync-result, publish perubahan user & config, protokol sync atomik, WebSocket live feed, dan penanganan log `REPLAYED` dari buffer offline controller.
 
 ### Added
 - `backend/app/mqtt/client.py` — koneksi paho-mqtt (`CallbackAPIVersion.VERSION2`) ke EMQX, `connect_async` + `loop_start()` non-blocking di thread background, auto-reconnect (`reconnect_delay_set`), status hidup lewat `is_connected()`. **Pakai `paho-mqtt`, bukan `aiomqtt`** — app ini sync (PyMySQL), paho jalan di thread sendiri, bukan asyncio
@@ -70,7 +70,7 @@ Integrasi MQTT penuh sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.md) Sprint 3: ko
 
 ### Firmware v0.2 (ESP32 Update) — Sprint 4 (`feature/firmware-adjustment`)
 
-Implementasi penyesuaian firmware ESP32 (simulasi) dan perbaikan protokol sinkronisasi backend sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.md) Sprint 4.
+Implementasi penyesuaian firmware ESP32 (simulasi) dan perbaikan protokol sinkronisasi backend sesuai [ROADMAP_v0.2.md](docs/v0.2/ROADMAP_v0.2.md) Sprint 4.
 
 ### Added
 - `OfflineLogBuffer`: Kapasitas buffer log dinaikkan secara drastis dari 500 menjadi 5.000 entri untuk mengakomodasi beban lalu lintas pintu yang lebih tinggi tanpa risiko hilangnya data saat MQTT offline.
@@ -87,7 +87,7 @@ Implementasi penyesuaian firmware ESP32 (simulasi) dan perbaikan protokol sinkro
 
 ### Frontend Mockup — Sprint 5 (`feature/frontend-mockup`)
 
-Fase A (mockup) dari Sprint 5 sesuai [ROADMAP_v0.2.md](docs/ROADMAP_v0.2.md) Sprint 5 dan `docs/frontend_proposal.md`. **Seluruh data di fase ini masih dummy** (`src/mock/data.ts`) — belum ada panggilan API/WebSocket sama sekali. Integrasi ke backend nyata (React Query + native WebSocket) menyusul di Fase B (`feature/frontend-app`), setelah mockup ini di-approve.
+Fase A (mockup) dari Sprint 5 sesuai [ROADMAP_v0.2.md](docs/v0.2/ROADMAP_v0.2.md) Sprint 5 dan `docs/frontend_proposal.md`. **Seluruh data di fase ini masih dummy** (`src/mock/data.ts`) — belum ada panggilan API/WebSocket sama sekali. Integrasi ke backend nyata (React Query + native WebSocket) menyusul di Fase B (`feature/frontend-app`), setelah mockup ini di-approve.
 
 ### Added
 - Scaffold `frontend/`: Vite + React 19 + **TypeScript**, **Tailwind CSS v4**, `react-router-dom` v6, `zustand` (state UI: filter, modal, tab) — sesuai tech stack final di `docs/frontend_proposal.md`

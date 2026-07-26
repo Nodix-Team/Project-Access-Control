@@ -1,4 +1,9 @@
 # Proposal Rancangan Board Access Control 4-Pintu (Grade Industri)
+
+> [!WARNING]
+> **DOKUMEN PROPOSAL OUTDATED:** Dokumen ini bersifat historis/proposal awal. Beberapa alokasi pin GPIO (seperti Relay 1-2, Watchdog, dan Reader 4) telah dipindahkan demi keandalan sirkuit.
+> Skema hardware final siap cetak wajib merujuk ke dokumen **[`docs/KEPUTUSAN_ARSITEKTUR_v0.3.md`](KEPUTUSAN_ARSITEKTUR_v0.3.md) §1 & §2**.
+
 **Ditujukan Untuk: Bapak Rizal**  
 **Penyusun: Tim Technical Engineering**  
 **Tanggal Dokumen: 21 Juli 2026 (Revisi Final: 22 Juli 2026 - Production Grade)**  

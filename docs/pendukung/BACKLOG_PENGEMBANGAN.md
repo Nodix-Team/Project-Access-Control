@@ -5,7 +5,7 @@
 > sprint/PR yang sedang jalan). Jangan buru-buru menilai prioritas satu-satu — kumpulkan dulu.
 >
 > Kalau daftar sudah cukup banyak, baru lakukan **sesi triase**: baca semua entri, beri label
-> prioritas (P0/P1/P2/Nice-to-have), lalu pindahkan yang disepakati ke `ROADMAP_v0.2.md` (atau
+> prioritas (P0/P1/P2/Nice-to-have), lalu pindahkan yang disepakati ke `v0.2/ROADMAP_v0.2.md` (atau
 > roadmap versi berikutnya) sebagai sprint/checklist baru.
 
 ---
@@ -40,7 +40,7 @@ Kalau kategori yang cocok belum ada, buat section `##` baru.
   - MQTT/Sync (Sprint 3): diklaim tanpa perubahan protokol, karena EMQX auth via MySQL — controller baru langsung dikenali begitu connect
   - Firmware (Sprint 4): diklaim nol dampak
   - Frontend (Sprint 5): tombol + modal CRUD saja
-  - **Belum diverifikasi independen** — klaim "tanpa perubahan protokol" dan "nol dampak firmware" di atas berasal dari draf pengusul, belum dicek sendiri terhadap `architecture_proposal_v0.2.md` (mis. apakah EMQX ACL per-controller butuh provisioning manual atau benar-benar otomatis via MySQL auth).
+  - **Belum diverifikasi independen** — klaim "tanpa perubahan protokol" dan "nol dampak firmware" di atas berasal dari draf pengusul, belum dicek sendiri terhadap `v0.2/architecture_proposal_v0.2.md` (mis. apakah EMQX ACL per-controller butuh provisioning manual atau benar-benar otomatis via MySQL auth).
 - **Keputusan terbuka (ditanyakan pengusul ke Rizal):** kejar masuk v0.2 sekarang (di tengah Sprint 3), atau tunda jadi minor release v0.2.1 setelah v0.2 core multi-controller rilis dulu?
 - **Prioritas:** _(belum dinilai — juga belum ada keputusan scope v0.2 vs v0.2.1)_
 
@@ -61,7 +61,7 @@ Kalau kategori yang cocok belum ada, buat section `##` baru.
   Usulan @Danas: kalau nama department di CSV belum ada, sistem otomatis membuat department baru (default tanpa hak akses pintu / `department_access` kosong); user tetap terimpor & terikat ke department baru itu; admin baru mengatur akses pintunya manual lewat menu Department Management.
 
   **Kenapa ditunda, bukan langsung dikerjakan:**
-  1. Tidak tercantum di scope v0.2 manapun (bukan di `architecture_proposal_v0.2.md`, bukan di aturan validasi CSV yang sudah disepakati) — kalau dimasukkan sekarang jadi scope creep tanpa approval bersama.
+  1. Tidak tercantum di scope v0.2 manapun (bukan di `v0.2/architecture_proposal_v0.2.md`, bukan di aturan validasi CSV yang sudah disepakati) — kalau dimasukkan sekarang jadi scope creep tanpa approval bersama.
   2. Perubahan ini secara teknis masuk wilayah Sprint 2 (`csv_service.py`) yang sudah lama merged, sementara progress sekarang sudah Sprint 4 menuju 5 — mundur ke sprint yang sudah closed berisiko bikin siklus kerja tidak pernah benar-benar tuntas.
   3. Butuh desain lebih matang dulu: pencocokan nama department **saat ini exact-match, case-sensitive, tanpa normalisasi** (beda dengan kartu yang sudah dinormalisasi via `normalize_kartu`; dikonfirmasi di kode — key dict `departments_by_nama` pakai `dept.nama` mentah). Kalau auto-create dinyalakan tanpa normalisasi nama dulu, typo kecil ("IT" vs "I.T" vs "it ") bisa menghasilkan department duplikat berantakan di DB — kelas bug yang mirip persis dengan kasus normalisasi kartu Jane Smith yang baru ditemukan & diperbaiki di Sprint 3.
 - **Prioritas:** _(belum dinilai — kandidat v0.3; sengaja tidak masuk v0.2 untuk hindari scope creep & mundur ke sprint yang sudah closed)_

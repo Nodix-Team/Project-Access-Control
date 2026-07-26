@@ -1,6 +1,6 @@
 # 🗺️ Roadmap Pengembangan v0.2
 
-> Roadmap ini berdasarkan [Architecture Proposal v0.2 Rev3](docs/architecture_proposal_v0.2.md) dan [CONTRIBUTING.md](CONTRIBUTING.md).
+> Roadmap ini berdasarkan [Architecture Proposal v0.2 Rev3](architecture_proposal_v0.2.md) dan [CONTRIBUTING.md](../../CONTRIBUTING.md).
 > Setiap milestone = 1 feature branch dari `dev`. Setelah selesai, merge via PR ke `dev`.
 
 ---
@@ -295,7 +295,7 @@
 - [x] Tabel log (nama dari snapshot, bukan dari JOIN!)
 - [x] Filter: by tanggal, kartu, controller, door, result (GRANTED/DENIED), is_replayed
 - [x] Badge `REPLAYED` untuk log dari buffer offline
-- [x] Export CSV (⚠️ baru mengekspor halaman aktif, bukan seluruh rentang — lihat [ROADMAP_v0.3.md](ROADMAP_v0.3.md) Sprint 5)
+- [x] Export CSV (⚠️ baru mengekspor halaman aktif, bukan seluruh rentang — lihat [ROADMAP_v0.3.md](../ROADMAP_v0.3.md) Sprint 5)
 
 ### Deliverable
 ✅ Web app React bisa diakses di browser

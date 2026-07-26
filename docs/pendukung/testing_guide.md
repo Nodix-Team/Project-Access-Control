@@ -26,16 +26,16 @@ Menambahkan atau memperbarui hak akses kartu.
 * **Topic**: `access/{device_id}/users/set`
 * **Payload CSV**:
   ```csv
-  AABBCCDD,1|2|3
+  0000123456,1,1,1,0
   ```
-  *(Artinya: Kartu `AABBCCDD` dapat mengakses Pintu 1, 2, dan 3 local)*
+  *(Artinya: Kartu 10-digit `0000123456` dapat mengakses Pintu 1, 2, dan 3 local, namun pintu 4 tidak)*
 
 #### 2. Hapus User
 Menghapus hak akses kartu berdasarkan UID kartunya.
 * **Topic**: `access/{device_id}/users/delete`
 * **Payload CSV**:
   ```csv
-  AABBCCDD
+  0000123456
   ```
 
 #### 3. Sinkronisasi Atomik (Bulk Sync)
@@ -45,25 +45,27 @@ Gunakan urutan publish berikut untuk melakukan sinkronisasi aman:
    * **Payload**: `sync_session_123`
 2. **Set User Data (Kirim satu per satu):**
    * **Topic**: `access/{device_id}/users/set`
-   * **Payload 1**: `AABBCCDD,1|2`
-   * **Payload 2**: `11223344,2`
+   * **Payload 1**: `0000123456,1,1,0,0`
+   * **Payload 2**: `0011223344,0,1,0,0`
 3. **End Sync (Kirim jumlah data yang diekspektasi):**
    * **Topic**: `access/{device_id}/users/sync/end`
    * **Payload**: `sync_session_123,2`
 4. **Verifikasi Hasil:**
    * Amati topic `access/{device_id}/sync/result`. ESP32 akan merespon dengan `sync_session_123,OK,2` jika jumlah data cocok, atau `sync_session_123,MISMATCH,x` jika ada data yang hilang di jalan.
 
-#### 4. Mengubah Config via MQTT
-Mengubah setingan sistem pada ESP32.
-* **Topic**: `access/{device_id}/config/set`
+#### 4. Mengubah Config via MQTT (Bulk Sync)
+Mengubah setingan pintu pada ESP32 secara sekaligus per pintu.
+* **Topic**: `access/{device_id}/config/sync`
 * **Payload CSV**:
-  - `heartbeat_s,10` (Safe: langsung disimpan)
-  - `wifi_ssid,SSID_Baru` (Dangerous: memicu backup config, setting baru, reboot, dan uji koneksi 60 detik)
+  ```csv
+  d1,1,10,30,30
+  ```
+  *(Format: `<door_number>,<is_active>,<open_timeout_s>,<held_timeout_s>,<alarm_duration_s>`)*
 
 #### 5. Membaca Config Aktif
 * **Topic**: `access/{device_id}/config/request`
 * **Payload**: *(kosong)*
-* Amati tanggapan ESP32 di topic `access/{device_id}/config/response`. Format balasan CSV berisi semua key-value config aktif (tanpa wifi/mqtt password demi keamanan).
+* Amati tanggapan ESP32 di topic `access/{device_id}/config/response`. Format balasan CSV berisi semua key-value config aktif (berpasangan `key,value`, tanpa wifi/mqtt password demi keamanan).
 
 ---
 
@@ -119,7 +121,7 @@ Mekanisme ini menjaga agar log tap kartu tidak hilang saat jaringan internet put
 4. **Nyalakan Kembali Jaringan:** Hubungkan kembali MQTT Broker / WiFi router Anda.
 5. Setelah ESP32 mendeteksi koneksi MQTT aktif kembali:
    - ESP32 akan langsung membaca file `/logs/offline_buffer.csv`.
-   - Mengirim semua log tertunda ke topic `access/{device_id}/logs` dengan payload format CSV: `kartu,door_number,status,uptime_ms,REPLAYED`.
+   - Mengirim semua log tertunda ke topic `access/{device_id}/logs` dengan payload format CSV: `<seq>,<card_id>,<door_number>,<status>,<reason>,<timestamp_epoch>,REPLAYED`.
    - Setelah sukses terkirim, file buffer offline dibersihkan otomatis.
 
 ---

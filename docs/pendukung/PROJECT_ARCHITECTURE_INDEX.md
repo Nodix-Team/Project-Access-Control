@@ -38,42 +38,40 @@
 *`{device_id}` default: `esp32-ac-001`*
 
 1. **Log Akses & Kejadian Pintu**: `access/{device_id}/logs`
-   * Format: `<card_id>,<door_number>,<GRANTED|DENIED|ALARM>,<reason>,<timestamp_epoch>[,REPLAYED]`
+   * Format: `<seq>,<card_id>,<door_number>,<status>,<reason>,<timestamp_epoch>[,REPLAYED]`
    * *Catatan: `<card_id>` dikosongkan jika dipicu tombol REX atau alarm door sensor.*
-
-2. **Upsert Hak Akses User**: `access/{device_id}/users/set`
-   * Format: `<card_id>,<door1|door2|door3>` (contoh: `0000123456,1|2|3`)
-
-3. **Hapus User**: `access/{device_id}/users/delete`
+2. **Log Event Non-Akses**: `access/{device_id}/events`
+   * Format: `<seq>,<event_code>,<door_number>,<timestamp_epoch>[,REPLAYED]` (Tamper, Fire, Power, Aux, dll).
+3. **Upsert Hak Akses User**: `access/{device_id}/users/set`
+   * Format: `<card_id>,<d1>,<d2>,<d3>,<d4>` (1 = boleh, 0 = tidak)
+4. **Hapus User**: `access/{device_id}/users/delete`
    * Format: `<card_id>`
-
-4. **Protokol Sinkronisasi Atomik**:
-   * Start: `access/{device_id}/users/sync/start` → `<session_id>`
-   * Item Data: `access/{device_id}/users/set` → `<card_id>,<doors>`
-   * End: `access/{device_id}/users/sync/end` → `<session_id>,<expected_count>`
-   * Respon ESP32: `access/{device_id}/sync/result` → `<session_id>,<OK|MISMATCH>,<count>`
-
-5. **Heartbeat ESP32**: `access/{device_id}/heartbeat`
+5. **Protokol Sinkronisasi Atomik**:
+   * Start: `access/{device_id}/users/sync/start` → `<sync_id>`
+   * End: `access/{device_id}/users/sync/end` → `<sync_id>,<count>`
+6. **Heartbeat ESP32**: `access/{device_id}/heartbeat`
    * Format: `<uptime_s>,<rssi>,<free_heap>,<total_users>`
-
-6. **Config via MQTT**:
-   * Set: `access/{device_id}/config/set` → `key,value`
+7. **Config via MQTT**:
    * Request: `access/{device_id}/config/request`
-   * Response: `access/{device_id}/config/response`
-   * Bulk Sync: `access/{device_id}/config/sync` → `key1:value1|key2:value2|...` (Untuk force sync konfigurasi per pintu `dX_` dan network saat online).
+   * Response: `access/{device_id}/config/response` → `key,value` pairs CSV format (TANPA `wifi_pass`)
+8. **Uji Relay**: `access/{device_id}/relay/test`
+   * Format: `<door_number>,<duration_ms>`
 
 ---
 
-## 4. 🗄️ Skema Database & Entitas Utama (8 Tabel)
+## 4. 🗄️ Skema Database & Entitas Utama (12 Tabel v0.3)
 
 * **`admins`**: Pengelola web dashboard (username, hashed password, role).
 * **`users`**: Data pemegang kartu (name, card_id 10-digit, department_id, status).
 * **`departments`**: Departemen/Kelompok user.
-* **`controllers`**: Unit ESP32 (device_id, ip_address, status, last_heartbeat).
-* **`doors`**: Pintu fisik (door_number 1-4, controller_id, location).
+* **`controllers`**: Unit ESP32 (device_id, ip_address, status, last_seen, telemetry).
+* **`doors`**: Pintu fisik (door_number 1-4, controller_id, location, config).
 * **`user_access`**: Pemetaan `user_id` ↔ `door_id` (akses individual).
 * **`department_access`**: Pemetaan `department_id` ↔ `door_id` (akses kelompok).
-* **`access_logs`**: Catatan riwayat tap kartu (card_id, door_id, status, is_replayed, timestamp).
+* **`access_logs`**: Catatan riwayat tap kartu & REX (device_seq, card_id, door_number, status, reason, device_ts, server_ts).
+* **`controller_events`**: Kejadian non-akses seperti tamper, fire alarm, power drop, dll.
+* **`alarms`**: Antrean alarm aktif yang membutuhkan perhatian/ack admin.
+* **`admin_logs`**: Jejak audit aktivitas admin (relay test, ubah config, dll).
 
 ---
 
@@ -105,11 +103,21 @@ Project-Access_control/
 │   │   ├── pages/                  ← Page Views (Dashboard, Users, Doors, Logs, Controllers)
 │   │   └── ws/liveFeed.ts          ← Real-time WebSocket listener
 │   └── package.json
-└── docs/                           ← Archive & Detailed Specifications
-    ├── ARCHITECTURE-PROPOSAL-V0.3.md ← Spesifikasi proposal arsitektur v0.3
+└── docs/                           ← Dokumentasi (3 lapis, lihat docs/README.md)
+    ├── KEPUTUSAN_ARSITEKTUR_v0.3.md ← DOKUMEN KERJA UTAMA v0.3 (kontrak semua layer)
+    ├── CONTRACT-CODES-V0.3.md      ← Kontrak kode 3 lapis v0.3.1 (FINAL/APPROVED)
+    ├── ERD_v0.3.mermaid            ← ERD v0.3 (11 tabel)
+    ├── ARCHITECTURE-PROPOSAL-V0.3.md ← Proposal arsitektur v0.3 (sebagian digantikan, lihat banner)
     ├── PROPOSAL-RANCANGAN-HARDWARE-V0.3.md ← Proposal rancangan hardware v0.3
-    ├── ROADMAP_v0.3.md             ← Draft proposal roadmap v0.3
-    └── PROJECT_ARCHITECTURE_INDEX.md← Dokumen acuan ringkas arsitektur ini
+    ├── HARDWARE-AUDIT-REVIEW-V0.3.md ← Evaluasi review hardware
+    ├── ROADMAP_v0.3.md             ← Draft roadmap v0.3
+    ├── pendukung/                  ← Lintas versi, masih dipakai di v0.3
+    │   ├── VM_TESTING_PLAN.md      ← Dasar lingkungan staging
+    │   ├── testing_guide.md        ← Panduan uji & simulator
+    │   ├── BACKLOG_PENGEMBANGAN.md ← Item yang ditunda
+    │   ├── OFFLINE_BUFFER_CAPACITY_ANALYSIS.md
+    │   └── PROJECT_ARCHITECTURE_INDEX.md ← Dokumen acuan ringkas ini
+    └── v0.2/                       ← ARSIP rilis v0.2 (historis, jangan diedit)
 ```
 
 ---
@@ -130,7 +138,7 @@ Project-Access_control/
 
 * **2026-07-21**:
   - **Synchronization**: Melakukan `git pull origin main` (fast-forward 87 commit) dari repositori GitHub.
-  - **Verification**: Memeriksa dan memastikan keselarasan aturan pada `CONTRIBUTING.md` dan `docs/testing_guide.md`.
+  - **Verification**: Memeriksa dan memastikan keselarasan aturan pada `CONTRIBUTING.md` dan `docs/pendukung/testing_guide.md`.
   - **Token Efficiency Setup**: Membuat file indeks arsitektur [`docs/PROJECT_ARCHITECTURE_INDEX.md`](file:///C:/Users/tech/Documents/GitHub/Project-Access_control/docs/PROJECT_ARCHITECTURE_INDEX.md).
   - **Hardware Verification**: ESP32 terdeteksi di `COM13` (CH9102, MAC: `ec:64:c9:87:1c:74`).
   - **Firmware Flashing**: Berhasil kompilasi & flash Firmware v0.2.0 ke ESP32 pada `COM13` (Success 100%).
