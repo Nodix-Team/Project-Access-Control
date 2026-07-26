@@ -66,7 +66,7 @@ void setup() {
   Serial.begin(115200);
   delay(500);
 
-  Serial.println("\n[SYS] Booting ESP32 Access Control v0.3.0...");
+  Serial.println("\n[SYS] Booting ESP32 Access Control v0.3.0 - OTA BERHASIL!...");
 
   // 0. Inisialisasi NVS Storage & Watchdog Manager (Fase 4 & 5 Prototipe)
   nvsManager.begin();

@@ -5,6 +5,10 @@
 #include "WebConfigServer.h"
 #include <LittleFS.h>
 #include <Update.h>
+#include "../sensing/WatchdogManager.h" // Feed WDT during OTA
+
+extern WatchdogManager watchdogManager;
+
 
 WebConfigServer::WebConfigServer(ConfigManager& config, UserStorage& storage)
     : _config(config),
@@ -149,6 +153,9 @@ void WebConfigServer::_handleUpdateUpload() {
         if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
             Update.printError(Serial);
         }
+        delay(1); // Feed internal Task WDT
+        watchdogManager.loop(); // Feed external hardware WDT
+
     } else if (upload.status == UPLOAD_FILE_END) {
         if (Update.end(true)) {
             Serial.printf("[OTA] Update Selesai: %u bytes\n", upload.totalSize);
