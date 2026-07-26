@@ -61,6 +61,93 @@ WatchdogManager  watchdogManager(PIN_WDT_WDI);
 WiegandReader    wiegand1(PIN_WIEGAND_D0, PIN_WIEGAND_D1);
 DoorController   door1(PIN_RELAY_1, PIN_REX_1);
 
+// ─── Feedback State Machine ──────────────────────────────────
+enum FeedbackState { FB_IDLE, FB_GRANTED, FB_DENIED };
+FeedbackState currentFbState = FB_IDLE;
+unsigned long fbStartTime = 0;
+
+// Variabel terpisah agar ritme Buzzer dan LED tidak saling mengganggu
+unsigned long fbBuzzerNext = 0;
+int fbBuzzerStep = 0;
+unsigned long fbLedNext = 0;
+int fbLedStep = 0;
+
+void startFeedback(FeedbackState state) {
+    currentFbState = state;
+    fbStartTime = millis();
+    
+    // Memberi jeda (200ms) agar "beep" bawaan pabrik dari reader selesai dulu,
+    // sehingga ritme tambahannya tidak bertabrakan / nyambung.
+    fbBuzzerNext = millis() + 200; 
+    fbBuzzerStep = 0;
+    
+    fbLedNext = millis();
+    fbLedStep = 0;
+    
+    digitalWrite(PIN_LED_GREEN, HIGH);
+    digitalWrite(PIN_LED_RED, HIGH);
+}
+
+void loopFeedback() {
+    if (currentFbState == FB_IDLE) return;
+    
+    unsigned long now = millis();
+    
+    if (currentFbState == FB_GRANTED) {
+        // --- LED Hijau --- (Menyala solid selama 3 detik)
+        if (now < fbStartTime + 3000) digitalWrite(PIN_LED_GREEN, LOW);
+        else digitalWrite(PIN_LED_GREEN, HIGH);
+        
+        // --- Buzzer --- (Tambah 2 beep berirama agar total menjadi 3 dengan native beep)
+        if (now >= fbBuzzerNext && fbBuzzerStep < 4) {
+            fbBuzzerStep++;
+            if (fbBuzzerStep == 1 || fbBuzzerStep == 3) {
+                digitalWrite(PIN_LED_RED, LOW); // ON
+                fbBuzzerNext = now + 200;       // Durasi nyala (diperlambat jadi 200ms)
+            } else if (fbBuzzerStep == 2 || fbBuzzerStep == 4) {
+                digitalWrite(PIN_LED_RED, HIGH); // OFF
+                fbBuzzerNext = now + 200;        // Durasi mati (diperlambat jadi 200ms)
+            }
+        }
+        
+        if (now >= fbStartTime + 3000) {
+            currentFbState = FB_IDLE;
+            digitalWrite(PIN_LED_RED, HIGH);
+            digitalWrite(PIN_LED_GREEN, HIGH);
+        }
+    } 
+    else if (currentFbState == FB_DENIED) {
+        // --- Buzzer --- (Tambah 1 beep panjang setelah native beep selesai)
+        if (now >= fbBuzzerNext && fbBuzzerStep < 2) {
+            fbBuzzerStep++;
+            if (fbBuzzerStep == 1) {
+                digitalWrite(PIN_LED_RED, LOW); // ON
+                fbBuzzerNext = now + 1000;      // Durasi nyala dikurangi jadi 1 detik
+            } else if (fbBuzzerStep == 2) {
+                digitalWrite(PIN_LED_RED, HIGH); // OFF
+            }
+        }
+        
+        // --- LED Hijau --- (Berangsur kedip selama 3 detik sebagai peringatan visual)
+        if (now < fbStartTime + 3000) {
+            if (now >= fbLedNext) {
+                fbLedStep++;
+                // fbLedStep ganjil = LOW (Nyala), genap = HIGH (Mati)
+                digitalWrite(PIN_LED_GREEN, (fbLedStep % 2 != 0) ? LOW : HIGH); 
+                fbLedNext = now + 150; // Kecepatan kedip 150ms
+            }
+        } else {
+            digitalWrite(PIN_LED_GREEN, HIGH);
+        }
+        
+        if (now >= fbStartTime + 3000) {
+            currentFbState = FB_IDLE;
+            digitalWrite(PIN_LED_RED, HIGH);
+            digitalWrite(PIN_LED_GREEN, HIGH);
+        }
+    }
+}
+
 // ─── setup() ─────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
@@ -121,6 +208,10 @@ void setup() {
 
   // 6.6. Inisialisasi Wiegand Reader (Fase 3 Prototipe)
   wiegand1.begin();
+  pinMode(PIN_LED_GREEN, OUTPUT);
+  pinMode(PIN_LED_RED, OUTPUT);
+  digitalWrite(PIN_LED_GREEN, HIGH);
+  digitalWrite(PIN_LED_RED, HIGH);
 
   // 6.7. Inisialisasi Door Controller (Fase 4 Prototipe)
   door1.begin();
@@ -194,8 +285,10 @@ void loop() {
     if (result.granted) {
       Serial.println("[DOOR 1] Akses DIBERIKAN.");
       door1.unlock(3000); // Buka pintu 3 detik
+      startFeedback(FB_GRANTED);
     } else {
       Serial.println("[DOOR 1] Akses DITOLAK.");
+      startFeedback(FB_DENIED);
     }
     
     // Publikasikan log secara fisik ke server (atau simpan ke NVS jika offline)
@@ -204,4 +297,7 @@ void loop() {
   
   // Loop untuk mengecek status relay dan REX
   door1.loop();
+
+  // Jalankan animasi LED dan Buzzer
+  loopFeedback();
 }

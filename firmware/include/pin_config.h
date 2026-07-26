@@ -26,8 +26,8 @@
 
   #define PIN_REX_1          13  // Request to Exit Button untuk Pintu 1
 
-  #define PIN_LED_GREEN      12  // Granted Status LED
-  #define PIN_LED_RED        14  // Denied/Alarm Status LED
+  #define PIN_LED_GREEN      25  // Dipindah dari 12 (Strapping Pin) ke 25
+  #define PIN_LED_RED        26  // Dipindah dari 14 ke 26
 
   #define PIN_SENS_MAINS_LOST 27  // (Dipindah dari 1/TX0) Digital Input PLN Fail
   #define PIN_SENS_POWER_LOW  34  // (Dipindah dari 2/Strapping) ADC1 Battery Drop
