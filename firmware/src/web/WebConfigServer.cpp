@@ -4,6 +4,11 @@
 // ============================================================
 #include "WebConfigServer.h"
 #include <LittleFS.h>
+#include <Update.h>
+#include "../sensing/WatchdogManager.h" // Feed WDT during OTA
+
+extern WatchdogManager watchdogManager;
+
 
 WebConfigServer::WebConfigServer(ConfigManager& config, UserStorage& storage)
     : _config(config),
@@ -14,6 +19,7 @@ WebConfigServer::WebConfigServer(ConfigManager& config, UserStorage& storage)
 void WebConfigServer::begin() {
     _server.on("/", HTTP_GET, std::bind(&WebConfigServer::_handleRoot, this));
     _server.on("/save", HTTP_POST, std::bind(&WebConfigServer::_handleSave, this));
+    _server.on("/update", HTTP_POST, std::bind(&WebConfigServer::_handleUpdateSuccess, this), std::bind(&WebConfigServer::_handleUpdateUpload, this));
     _server.onNotFound(std::bind(&WebConfigServer::_handleNotFound, this));
     
     _server.begin();
@@ -125,6 +131,38 @@ void WebConfigServer::_handleSave() {
     }
 
     ESP.restart();
+}
+
+void WebConfigServer::_handleUpdateSuccess() {
+    if (!_server.authenticate("admin", "p@ssw0rd")) return _server.requestAuthentication();
+    _server.sendHeader("Connection", "close");
+    _server.send(200, "text/plain", (Update.hasError()) ? "Update Gagal" : "Update Sukses! Alat akan direstart...");
+    delay(1000);
+    ESP.restart();
+}
+
+void WebConfigServer::_handleUpdateUpload() {
+    if (!_server.authenticate("admin", "p@ssw0rd")) return _server.requestAuthentication();
+    HTTPUpload& upload = _server.upload();
+    if (upload.status == UPLOAD_FILE_START) {
+        Serial.printf("[OTA] Memulai Update: %s\n", upload.filename.c_str());
+        if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
+            Update.printError(Serial);
+        }
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+            Update.printError(Serial);
+        }
+        delay(1); // Feed internal Task WDT
+        watchdogManager.loop(); // Feed external hardware WDT
+
+    } else if (upload.status == UPLOAD_FILE_END) {
+        if (Update.end(true)) {
+            Serial.printf("[OTA] Update Selesai: %u bytes\n", upload.totalSize);
+        } else {
+            Update.printError(Serial);
+        }
+    }
 }
 
 void WebConfigServer::_handleNotFound() {
@@ -257,6 +295,16 @@ String WebConfigServer::_generateHtml() {
     
     html += "<button type='submit' class='btn'>Simpan & Terapkan Konfigurasi</button>";
     html += "</form>";
+    
+    // OTA Update Section
+    html += "<div class='form-section' style='margin-top: 16px;'>";
+    html += "<div class='section-title'>Firmware Update (OTA)</div>";
+    html += "<p style='font-size: 11px; color: #9ca3af; margin-bottom: 10px;'>Upload file firmware.bin untuk melakukan update via OTA. Sistem otomatis me-rollback jika gagal boot (Partisi A/B).</p>";
+    html += "<form method='POST' action='/update' enctype='multipart/form-data' style='display: flex; flex-direction: row; gap: 10px; height: auto;'>";
+    html += "<input type='file' name='update' accept='.bin' style='margin-bottom: 0;' required>";
+    html += "<button type='submit' class='btn' style='width: auto; padding: 10px 20px; background: linear-gradient(135deg, #10b981, #059669);'>Upload Firmware</button>";
+    html += "</form>";
+    html += "</div>";
     
     html += "</div>"; // End main-content
     

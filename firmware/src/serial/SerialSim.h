@@ -22,6 +22,7 @@
 #include "../access/AccessControl.h"
 #include "../storage/UserStorage.h"
 #include "../config/ConfigManager.h"
+#include "../time/SystemClock.h"
 
 // Callback type untuk mengirim log ke MQTT (format ringkas v0.2)
 using LogCallback = std::function<void(
@@ -33,7 +34,7 @@ using LogCallback = std::function<void(
 // ============================================================
 class SerialSim {
 public:
-    SerialSim(AccessControl& ac, UserStorage& storage, ConfigManager& config);
+    SerialSim(AccessControl& ac, UserStorage& storage, ConfigManager& config, SystemClock& clock);
 
     /**
      * Inisialisasi: tampilkan banner dan prompt pertama.
@@ -56,6 +57,7 @@ private:
     AccessControl& _ac;
     UserStorage&   _storage;
     ConfigManager& _config;
+    SystemClock&   _clock;
     LogCallback    _logCb;
 
     // State machine untuk input dua tahap

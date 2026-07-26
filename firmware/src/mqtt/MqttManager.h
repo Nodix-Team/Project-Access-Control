@@ -3,7 +3,7 @@
 //  Mengelola koneksi WiFi + MQTT (EMQX local) dengan autentikasi
 //  Subscribe: user management & config topics (per-device)
 //  Publish:   access logs + status heartbeat (per-device)
-//  ESP32 Access Control System — v0.2.0
+//  ESP32 Access Control System — v0.3.0
 // ============================================================
 #pragma once
 
@@ -14,6 +14,7 @@
 #include "../config/ConfigManager.h"
 #include "../storage/UserStorage.h"
 #include "../storage/OfflineLogBuffer.h"
+#include "../storage/NVSManager.h"
 
 // ─── Interval ────────────────────────────────────────────────
 #define MQTT_RECONNECT_INTERVAL_MS  5000
@@ -24,7 +25,7 @@
 // ============================================================
 class MqttManager {
 public:
-    MqttManager(ConfigManager& config, UserStorage& storage, OfflineLogBuffer& offlineLog);
+    MqttManager(ConfigManager& config, UserStorage& storage, OfflineLogBuffer& offlineLog, NVSManager& nvs);
 
     /**
      * Inisialisasi: connect WiFi lalu MQTT dengan credentials.
@@ -45,6 +46,7 @@ public:
 
     /**
      * Publish log transaksi ke topic access/{device_id}/logs (QoS 1).
+     * Memasukkan uint32_t Sequence ID persisten dari NVSManager.
      * Jika MQTT terputus, log disimpan otomatis ke OfflineLogBuffer.
      */
     void publishLog(const String& kartu, int door, bool granted, const String& resultReason);
@@ -58,6 +60,7 @@ private:
     ConfigManager&     _config;
     UserStorage&       _storage;
     OfflineLogBuffer&  _offlineLog;
+    NVSManager&        _nvs;
     WiFiClient         _wifiClient;
     PubSubClient       _mqtt;
 

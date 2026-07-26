@@ -5,8 +5,8 @@
 #include "SerialSim.h"
 
 // ─── Constructor ─────────────────────────────────────────────
-SerialSim::SerialSim(AccessControl& ac, UserStorage& storage, ConfigManager& config)
-    : _ac(ac), _storage(storage), _config(config),
+SerialSim::SerialSim(AccessControl& ac, UserStorage& storage, ConfigManager& config, SystemClock& clock)
+    : _ac(ac), _storage(storage), _config(config), _clock(clock),
       _state(WAIT_CARD)
 {}
 
@@ -57,6 +57,56 @@ void SerialSim::_processLine(const String& line) {
         _printCardPrompt();
         return;
     }
+    
+    // Fitur Cheat / Bantuan Prototyping
+    if (upper.startsWith("ADD ")) {
+        String uid = upper.substring(4);
+        uid.trim();
+        uid = UserStorage::normalizeKartu(uid);
+        if (uid.length() > 0) {
+            _storage.setUser(uid, {1, 2, 3, 4}); // Beri akses ke semua pintu (1-4)
+            Serial.printf("[SYS] BERHASIL mendaftarkan kartu: %s (Akses: Semua Pintu)\n", uid.c_str());
+        }
+        _state = WAIT_CARD;
+        _printCardPrompt();
+        return;
+    }
+
+    if (upper.startsWith("DEL ")) {
+        String uid = upper.substring(4);
+        uid.trim();
+        uid = UserStorage::normalizeKartu(uid);
+        if (_storage.deleteUser(uid)) {
+            Serial.printf("[SYS] Kartu %s berhasil DIHAPUS.\n", uid.c_str());
+        } else {
+            Serial.printf("[SYS] Kartu %s tidak ditemukan.\n", uid.c_str());
+        }
+        _state = WAIT_CARD;
+        _printCardPrompt();
+        return;
+    }
+
+    // Cheat Command untuk Uji Coba Scheduled Auto-Reboot
+    if (upper.startsWith("SETTIME")) {
+        String args = upper.substring(7);
+        args.trim();
+
+        uint8_t h = 2, m = 59, s = 55; // Default 5 detik sebelum jam 03:00 AM
+        if (args.length() > 0) {
+            int parsedH, parsedM, parsedS;
+            if (sscanf(args.c_str(), "%d %d %d", &parsedH, &parsedM, &parsedS) == 3) {
+                h = parsedH; m = parsedM; s = parsedS;
+            }
+        }
+
+        DateTime currentNow = _clock.now();
+        _clock.setTime(currentNow.year(), currentNow.month(), currentNow.day(), h, m, s);
+        Serial.printf("[CHEAT] Jam RTC diset ke %02d:%02d:%02d AM (Siap menguji Auto-Reboot!)\n", h, m, s);
+        _state = WAIT_CARD;
+        _printCardPrompt();
+        return;
+    }
+
     if (upper == "STATUS") {
         _printStatus();
         if (_state == WAIT_DOOR) {
@@ -172,6 +222,7 @@ void SerialSim::_printBanner() {
     Serial.println("╚══════════════════════════════════════════╝");
     Serial.println();
     Serial.println("Commands: LIST | STATUS | RESTART");
+    Serial.println("Cheat Commands: ADD <uid> | DEL <uid>");
     Serial.println();
 
     // Tampilkan nama pintu

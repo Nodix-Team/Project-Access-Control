@@ -117,6 +117,11 @@
 * **Status Persetujuan**: **DISENTUJUAN (APPROVED)**.
 * **Keputusan Teknis Final**: Pin `INTA` MCP23017 dihubungkan ke **`GPIO34`** ESP32-S3 untuk instant hardware interrupt.
 
+### 📌 Poin 19: Jebakan Strapping Pin (GPIO 12 MTDI) pada ESP32
+* **Insiden Lapangan (26 Jul 2026)**: Saat pengujian prototipe ESP32-WROOM, pin `GPIO 12` sempat dialokasikan untuk mengontrol LED Reader (via Level Shifter). Arus parasit/pull-up dari perangkat luar menyebabkan pin 12 terbaca `HIGH` saat booting, yang secara fatal memaksa voltase memori Flash internal menjadi 1.8V (seharusnya 3.3V). Akibatnya, ESP32 mengalami *bootloop* "Invalid Header" dan mati total, serta gagal di-flash.
+* **Keputusan Teknis Final**: **DIHINDARI SEPENUHNYA (BANNED)**. `GPIO 12` sama sekali tidak boleh menerima rangkaian eksternal (terutama yang berpotensi *pull-up*) sebelum proses *boot* selesai. Alokasi pin LED Wiegand prototipe dipindah paksa ke pin aman (`GPIO 25` dan `26`).
+
+
 ---
 
 ## 📊 MATRIKS KESIMPULAN REVISI AUDIT
@@ -145,7 +150,8 @@
 | **16**| EMC Filtering & Ground Plane | APPROVED | ✅ Tetap berlaku | Ferrite Bead BLM18PG121SN1D & PCB 4-Layer |
 | **17**| Test Point Jig Pogo-Pin | APPROVED | ✅ Tetap berlaku | 6-Pin Pogo-Pin Pad di Bottom Layer PCB |
 | **18**| MCP23017 Hardware Interrupt | APPROVED | ✅ Tetap berlaku | Pin INTA MCP23017 tetap di `GPIO34` (kini sendirian, tidak berbagi dengan WDI) |
+| **19**| Jebakan Strapping Pin GPIO 12 | ADDED (26 Jul)| ✅ Diimplementasikan | `GPIO 12` (MTDI) dilarang keras untuk wiring eksternal (dipindah ke 25/26) |
 
-**Ringkas:** 17/19 poin tetap berlaku persis seperti evaluasi 22 Juli. Poin 3 dan 10 tetap **disetujui
+**Ringkas:** 18/20 poin tetap berlaku persis seperti evaluasi 22 Juli. Poin 3 dan 10 tetap **disetujui
 secara konsep** (watchdog IC tetap dipakai, sensing 2-dimensi tetap dipakai) — yang berubah murni
 **alokasi pin fisiknya**, mengikuti keputusan resolusi konflik di §1.1 KEPUTUSAN.

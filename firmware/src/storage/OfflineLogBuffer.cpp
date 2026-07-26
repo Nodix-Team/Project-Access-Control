@@ -1,13 +1,13 @@
 // ============================================================
 //  OfflineLogBuffer.cpp
-//  ESP32 Access Control System — v0.2.0
+//  ESP32 Access Control System — v0.3.0
 // ============================================================
 #include "OfflineLogBuffer.h"
 #include <LittleFS.h>
 
 #define OFFLINE_LOG_FILE "/logs/offline_buffer.csv"
 #define OFFLINE_LOG_TEMP "/logs/offline_temp.csv"
-#define MAX_LOG_LINES 5000
+#define MAX_LOG_LINES 500
 
 OfflineLogBuffer::OfflineLogBuffer() {}
 
@@ -18,8 +18,8 @@ bool OfflineLogBuffer::begin() {
     return true;
 }
 
-void OfflineLogBuffer::appendLog(unsigned long uptimeMs, const String& kartu, int door, const String& status, const String& reason) {
-    // 1. Batasi ukuran ring buffer
+void OfflineLogBuffer::appendLog(uint32_t seqId, const String& timestamp, const String& kartu, int door, const String& status, const String& reason) {
+    // 1. Batasi ukuran ring buffer FIFO (Maks 500 log)
     _enforceRingBufferLimit();
 
     // 2. Tulis log baru ke akhir file (append)
@@ -28,9 +28,12 @@ void OfflineLogBuffer::appendLog(unsigned long uptimeMs, const String& kartu, in
         Serial.println("[OfflineLog] Gagal membuka file log untuk append");
         return;
     }
-    // Format: uptime_ms,kartu,door_number,status,reason
-    f.printf("%lu,%s,%d,%s,%s\n", uptimeMs, kartu.c_str(), door, status.c_str(), reason.c_str());
+    // Format: seq_id,timestamp,kartu,door_number,status,reason
+    f.printf("%u,%s,%s,%d,%s,%s\n", seqId, timestamp.c_str(), kartu.c_str(), door, status.c_str(), reason.c_str());
     f.close();
+
+    Serial.printf("[OfflineLog] Log terpanah ke LittleFS — [Seq: %u] Kartu: %s, Door: %d, Status: %s\n",
+                  seqId, kartu.c_str(), door, status.c_str());
 }
 
 bool OfflineLogBuffer::hasLogs() {
@@ -78,7 +81,7 @@ void OfflineLogBuffer::_enforceRingBufferLimit() {
 
     LittleFS.remove(OFFLINE_LOG_FILE);
     LittleFS.rename(OFFLINE_LOG_TEMP, OFFLINE_LOG_FILE);
-    Serial.printf("[OfflineLog] Ring buffer terlimitasi: menghapus %d log terlama\n", linesToRemove);
+    Serial.printf("[OfflineLog] Ring buffer terlimitasi: menghapus %d log terlama (FIFO)\n", linesToRemove);
 }
 
 void OfflineLogBuffer::replayLogs(std::function<bool(const String&)> sendCallback) {

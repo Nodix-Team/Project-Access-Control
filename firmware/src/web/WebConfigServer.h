@@ -32,6 +32,8 @@ private:
     // Routing Handlers
     void _handleRoot();
     void _handleSave();
+    void _handleUpdateSuccess();
+    void _handleUpdateUpload();
     void _handleNotFound();
 
     // Helper untuk membuat HTML Dashboard & Form
