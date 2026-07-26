@@ -141,9 +141,9 @@ Karena *Keputusan Arsitektur* v0.3 tidak mendefinisikan secara spesifik irama fi
 ## 🗺️ 4. Roadmap Pengujian 7 Tahap (Hasil Verifikasi Log & Hardware)
 
 ```text
-TAHAP 1 ──► TAHAP 2 ──► TAHAP 3 ──► TAHAP 4 ──► TAHAP 5 ──► TAHAP 6 ──► TAHAP 7 ──► TAHAP 8
- Power 2D   RTC & NVS   Wiegand &   Relay, REX  Offline Log  Fire Alarm  Web Config & Door Sensor
-Sensing     Sequence   Door Logic  & Watchdog   NVS Buffer  Override    Reboot       & Alarms
+TAHAP 1 ──► TAHAP 2 ──► TAHAP 3 ──► TAHAP 4 ──► TAHAP 5 ──► TAHAP 6 ──► TAHAP 7 ──► TAHAP 8 ──► TAHAP 9
+ Power 2D   RTC & NVS   Wiegand &   Relay, REX  Offline Log  Fire Alarm  Web Config & Door Sensor  W5500 LAN
+Sensing     Sequence   Door Logic  & Watchdog   NVS Buffer  Override    Reboot       & Alarms      Ethernet
 ```
 
 ### 🟢 FASE 1: Power Supply & 2D Sensing (§1.1, §1.2) — ✅ PASS
@@ -186,6 +186,11 @@ Sensing     Sequence   Door Logic  & Watchdog   NVS Buffer  Override    Reboot  
 - [x] **Door Sensor Setup**: Penggunaan GPIO 14 (`Active LOW`) untuk simulasi pintu tertutup.
 - [x] **Pengujian DFO (Door Forced Open)**: Cabut kabel dari GND tanpa tap kartu ➔ Alarm DFO berbunyi 10s (500ms ON/200ms OFF) & Log One-Shot terkirim.
 - [x] **Pengujian DOTL (Door Open Too Long)**: Tap kartu sah ➔ Cabut kabel dari GND ➔ Tunggu toleransi `held_timeout_s` (30s) ➔ Alarm DOTL menjerit.
+
+### 🟡 FASE 9: W5500 LAN Ethernet Integration — ⏳ PENDING
+- [ ] **SPI Pinout Mapping**: Verifikasi jalur SPI (MISO, MOSI, SCK, CS) antara modul W5500 dan board ESP32-WROOM-32D.
+- [ ] **LwIP Network Stack**: Migrasi dari `WiFi.h` ke `ETH.h` / Pustaka Ethernet khusus LwIP.
+- [ ] **Uji Stabilitas**: MQTT Publish/Subscribe via LAN RJ45, tes cabut-colok kabel LAN, dan uji OTA HTTP via kabel LAN.
 
 ---
 
