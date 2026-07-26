@@ -18,6 +18,9 @@ public:
     // Membuka pintu selama durasi tertentu (default 3 detik)
     void unlock(unsigned long durationMs = 3000);
     
+    // Paksa mode darurat kebakaran (Relay terbuka permanen jika active=true)
+    void setFireOverride(bool active);
+
     // Mengecek apakah pintu saat ini sedang dalam keadaan terbuka
     bool isUnlocked();
 
@@ -29,6 +32,7 @@ private:
     uint8_t _rexPin;
     
     bool _isUnlocked;
+    bool _isFireOverride;
     unsigned long _unlockTime;
     unsigned long _duration;
     

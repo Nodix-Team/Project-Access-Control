@@ -16,6 +16,7 @@
 #include "storage/NVSManager.h"
 #include "web/WebConfigServer.h"
 #include "sensing/PowerSensor.h"
+#include "sensing/FireAlarmSensor.h"
 #include "time/SystemClock.h"
 #include <WiFi.h>
 
@@ -50,6 +51,7 @@ MqttManager      mqttManager(configManager, userStorage, offlineLogBuffer, nvsMa
 SerialSim        serialSim(accessControl, userStorage, configManager);
 WebConfigServer  webConfigServer(configManager, userStorage);
 PowerSensor      powerSensor;
+FireAlarmSensor  fireAlarm(PIN_SENS_FIRE_ALARM);
 SystemClock      systemClock;
 WiegandReader    wiegand1(PIN_WIEGAND_D0, PIN_WIEGAND_D1);
 DoorController   door1(PIN_RELAY_1, PIN_REX_1);
@@ -120,6 +122,14 @@ void setup() {
       mqttManager.publishLog("REX_BTN", 1, true, "MANUAL_EXIT");
   });
 
+  // 6.8. Inisialisasi Fire Alarm Safety Interlock (Fase 6 Prototipe)
+  fireAlarm.begin();
+  fireAlarm.setFireCallback([](bool active) {
+      // Buka seluruh relay pintu jika alarm kebakaran aktif
+      door1.setFireOverride(active);
+      mqttManager.publishLog("FIRE_ALARM", 0, true, active ? "FIRE_EMERGENCY_ACTIVE" : "FIRE_EMERGENCY_CLEARED");
+  });
+
   // 7. Pengujian Koneksi & Mekanisme Rollback (Anti-Brick)
   if (configManager.isPending()) {
     Serial.println("[SYS] DETEKSI CONFIG PENDING! Menjalankan uji koneksi selama 60 detik...");
@@ -160,6 +170,7 @@ void loop() {
   serialSim.loop();
   webConfigServer.handleClient();
   powerSensor.loop();
+  fireAlarm.loop();
   
   // Deteksi Tap Kartu Fisik
   if (wiegand1.available()) {

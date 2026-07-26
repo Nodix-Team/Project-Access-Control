@@ -32,6 +32,7 @@
   #define PIN_SENS_MAINS_LOST 27  // (Dipindah dari 1/TX0) Digital Input PLN Fail
   #define PIN_SENS_POWER_LOW  34  // (Dipindah dari 2/Strapping) ADC1 Battery Drop
   #define PIN_BTN_WEB_AP     32  // Hotspot Portal Button
+  #define PIN_SENS_FIRE_ALARM 33 // Digital Input Fire Alarm Override (Active LOW via INPUT_PULLUP)
 
 #elif defined(BOARD_TARGET_PRODUCTION_ESP32S3_N16)
   // === MAPPING PIN PCB PRODUKSI FINAL (ESP32-S3 REF: KEPUTUSAN_ARSITEKTUR_v0.3.md §1.1) ===
