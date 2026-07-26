@@ -5,8 +5,8 @@
 #include "SerialSim.h"
 
 // ─── Constructor ─────────────────────────────────────────────
-SerialSim::SerialSim(AccessControl& ac, UserStorage& storage, ConfigManager& config)
-    : _ac(ac), _storage(storage), _config(config),
+SerialSim::SerialSim(AccessControl& ac, UserStorage& storage, ConfigManager& config, SystemClock& clock)
+    : _ac(ac), _storage(storage), _config(config), _clock(clock),
       _state(WAIT_CARD)
 {}
 
@@ -81,6 +81,27 @@ void SerialSim::_processLine(const String& line) {
         } else {
             Serial.printf("[SYS] Kartu %s tidak ditemukan.\n", uid.c_str());
         }
+        _state = WAIT_CARD;
+        _printCardPrompt();
+        return;
+    }
+
+    // Cheat Command untuk Uji Coba Scheduled Auto-Reboot
+    if (upper.startsWith("SETTIME")) {
+        String args = upper.substring(7);
+        args.trim();
+
+        uint8_t h = 2, m = 59, s = 55; // Default 5 detik sebelum jam 03:00 AM
+        if (args.length() > 0) {
+            int parsedH, parsedM, parsedS;
+            if (sscanf(args.c_str(), "%d %d %d", &parsedH, &parsedM, &parsedS) == 3) {
+                h = parsedH; m = parsedM; s = parsedS;
+            }
+        }
+
+        DateTime currentNow = _clock.now();
+        _clock.setTime(currentNow.year(), currentNow.month(), currentNow.day(), h, m, s);
+        Serial.printf("[CHEAT] Jam RTC diset ke %02d:%02d:%02d AM (Siap menguji Auto-Reboot!)\n", h, m, s);
         _state = WAIT_CARD;
         _printCardPrompt();
         return;

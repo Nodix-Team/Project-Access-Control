@@ -19,6 +19,7 @@
 #include "sensing/FireAlarmSensor.h"
 #include "sensing/WatchdogManager.h"
 #include "time/SystemClock.h"
+#include "time/AutoRebootManager.h"
 #include <WiFi.h>
 
 // ============================================================
@@ -48,13 +49,14 @@ UserStorage      userStorage;
 OfflineLogBuffer offlineLogBuffer;
 NVSManager       nvsManager;
 AccessControl    accessControl(userStorage);
+SystemClock      systemClock;
+AutoRebootManager autoReboot(systemClock);
 MqttManager      mqttManager(configManager, userStorage, offlineLogBuffer, nvsManager);
-SerialSim        serialSim(accessControl, userStorage, configManager);
+SerialSim        serialSim(accessControl, userStorage, configManager, systemClock);
 WebConfigServer  webConfigServer(configManager, userStorage);
 PowerSensor      powerSensor;
 FireAlarmSensor  fireAlarm(PIN_SENS_FIRE_ALARM);
 WatchdogManager  watchdogManager(PIN_WDT_WDI);
-SystemClock      systemClock;
 WiegandReader    wiegand1(PIN_WIEGAND_D0, PIN_WIEGAND_D1);
 DoorController   door1(PIN_RELAY_1, PIN_REX_1);
 
@@ -96,8 +98,9 @@ void setup() {
   }
   Serial.printf("[SYS] User terdaftar: %d\n", userStorage.getUserCount());
 
-  // 4.5. Inisialisasi Jam RTC (Fase 2 Prototipe)
+  // 4.5. Inisialisasi Jam RTC & AutoReboot Manager (Fase 2 Prototipe)
   systemClock.begin();
+  autoReboot.begin(3, 0); // Scheduled Maintenance Reboot Pukul 03:00 AM Harian
 
   // 5. Setup SerialSim + callback untuk MQTT log & Door unlock
   serialSim.setLogCallback([](const String& kartu, int door, bool granted, const String& reason) {
@@ -170,6 +173,7 @@ void setup() {
 // ─── loop() ──────────────────────────────────────────────────
 void loop() {
   watchdogManager.loop();
+  autoReboot.loop();
   mqttManager.loop();
   serialSim.loop();
   webConfigServer.handleClient();

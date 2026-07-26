@@ -12,8 +12,9 @@ public:
     bool begin();
     String getTimestamp();
     DateTime now();
+    bool setTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second);
 private:
-    RTC_DS1307 _rtc; // Sementara menggunakan RTC_DS1307 khusus untuk hardware prototype Anda
+    RTC_DS1307 _rtc;
     bool _isRtcAvailable;
 };
 
