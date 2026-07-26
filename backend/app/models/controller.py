@@ -1,9 +1,8 @@
 # Model tabel `controllers` — data unit ESP32 (kredensial MQTT, config, status via last_seen).
-# is_online sengaja tidak disimpan sebagai kolom — dihitung saat query dari last_seen + MQTT LWT.
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import DateTime, Enum, Integer, String, func, text
+from sqlalchemy import DateTime, Enum, Integer, SmallInteger, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -31,11 +30,47 @@ class Controller(Base):
     ip_address: Mapped[Optional[str]] = mapped_column(String(15))
     web_port: Mapped[Optional[int]] = mapped_column(Integer, server_default=text("8081"))
     last_seen: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    # v0.3.0 Sync & State Snapshot Fields
+    sync_state: Mapped[str] = mapped_column(
+        Enum("UNKNOWN", "IN_SYNC", "SYNC_PENDING", "SYNCING", "SYNC_ERROR_ATTENTION_REQUIRED", name="sync_state_enum"),
+        nullable=False,
+        default="UNKNOWN"
+    )
+    sync_fail_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_sync_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    last_sync_error: Mapped[Optional[str]] = mapped_column(String(100))
+    config_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    link_state: Mapped[str] = mapped_column(
+        Enum("ONLINE", "OFFLINE", "UNKNOWN", name="link_state_enum"),
+        nullable=False,
+        default="UNKNOWN"
+    )
+    link_changed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    fw_version: Mapped[Optional[str]] = mapped_column(String(20))
+    uptime_s: Mapped[Optional[int]] = mapped_column(Integer)
+    rssi: Mapped[Optional[int]] = mapped_column(SmallInteger)
+    free_heap: Mapped[Optional[int]] = mapped_column(Integer)
+    total_users_reported: Mapped[Optional[int]] = mapped_column(Integer)
+    tamper_state: Mapped[str] = mapped_column(
+        Enum("OK", "TAMPER", "UNKNOWN", name="tamper_state_enum"),
+        nullable=False,
+        default="UNKNOWN"
+    )
+    fire_state: Mapped[str] = mapped_column(
+        Enum("OK", "FIRE", "UNKNOWN", name="fire_state_enum"),
+        nullable=False,
+        default="UNKNOWN"
+    )
+    power_state: Mapped[str] = mapped_column(
+        Enum("POWER_NORMAL", "POWER_LOW", "UNKNOWN", name="power_state_enum"),
+        nullable=False,
+        default="UNKNOWN"
+    )
+
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
 
-    # controllers -> doors (1:N). Tanpa ON DELETE eksplisit di schema.sql -> default RESTRICT
-    # (controller tidak bisa dihapus selama masih punya doors terdaftar).
     doors: Mapped[List["Door"]] = relationship(back_populates="controller")

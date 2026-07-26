@@ -92,7 +92,9 @@ ALTER TABLE access_logs
     ADD COLUMN device_id   VARCHAR(50)      NULL AFTER controller_id,
     -- Waktu apa adanya dari RTC DS3231 (UTC). server_ts tetap kolom otoritatif untuk
     -- urutan/tampilan; device_ts dipakai mendeteksi RTC ngaco (§4.3 R4).
-    ADD COLUMN device_ts   DATETIME(3)      NULL AFTER server_ts;
+    ADD COLUMN device_ts   DATETIME(3)      NULL AFTER server_ts,
+    -- Monotonic 32-bit Sequence Counter dari firmware (v0.3.0 §5.6).
+    ADD COLUMN seq_id      INT UNSIGNED     NULL AFTER device_ts;
 
 -- Filter "tampilkan hanya ALARM" di dashboard & halaman log.
 ALTER TABLE access_logs
