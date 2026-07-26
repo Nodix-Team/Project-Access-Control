@@ -4,6 +4,7 @@
 // ============================================================
 #include <Arduino.h>
 #include <LittleFS.h>
+#include <esp_ota_ops.h>
 
 #include "access/AccessControl.h"
 #include "access/WiegandReader.h"
@@ -166,6 +167,9 @@ void setup() {
     // Boot normal tanpa perubahan config berbahaya
     mqttManager.begin();
   }
+
+  // Konfirmasi Firmware Sehat ke Bootloader (Mencegah OTA Rollback)
+  esp_ota_mark_app_valid_cancel_rollback();
 
   Serial.println("[SYS] System ready!\n");
 }

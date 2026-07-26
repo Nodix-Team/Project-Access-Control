@@ -111,10 +111,12 @@ void MqttManager::publishLog(const String& kartu, int door, bool granted, const 
     }
 
     // Format: seq_id,timestamp,kartu,door_number,status,reason
-    String payload = String(seqId) + "," + timestamp + "," + kartu + "," + String(door) + "," + statusStr + "," + resultReason;
+    char payload[256];
+    snprintf(payload, sizeof(payload), "%u,%s,%s,%d,%s,%s", 
+             seqId, timestamp.c_str(), kartu.c_str(), door, statusStr.c_str(), resultReason.c_str());
     String topic = _getTopic("logs");
 
-    bool ok = _mqtt.publish(topic.c_str(), payload.c_str(), true); // QoS 1 simulation
+    bool ok = _mqtt.publish(topic.c_str(), payload, true); // QoS 1 simulation
     if (!ok) {
         Serial.printf("[MQTT] Gagal publish log, menyimpan (Seq: %u) ke buffer offline\n", seqId);
         _offlineLog.appendLog(seqId, timestamp, kartu, door, statusStr, resultReason);
@@ -126,14 +128,16 @@ void MqttManager::publishStatus() {
     if (!_mqtt.connected()) return;
 
     // Format CSV: total_doors,user_count,free_heap,uptime_ms,last_seq_id
-    String payload = String(_config.getConfig().total_doors) + "," +
-                     String(_storage.getUserCount()) + "," +
-                     String(ESP.getFreeHeap()) + "," +
-                     String(millis()) + "," +
-                     String(_nvs.getCurrentSequenceId());
+    char payload[128];
+    snprintf(payload, sizeof(payload), "%d,%d,%u,%lu,%u",
+             _config.getConfig().total_doors,
+             _storage.getUserCount(),
+             (unsigned int)ESP.getFreeHeap(),
+             (unsigned long)millis(),
+             (unsigned int)_nvs.getCurrentSequenceId());
 
     String topic = _getTopic("status");
-    _mqtt.publish(topic.c_str(), payload.c_str(), false);
+    _mqtt.publish(topic.c_str(), payload, false);
     Serial.printf("[MQTT] Status published -> %d users, Heap: %d, LastSeq: %u\n",
                   _storage.getUserCount(), (int)ESP.getFreeHeap(), _nvs.getCurrentSequenceId());
 }
@@ -326,12 +330,13 @@ void MqttManager::_handleSyncEnd(const String& payload) {
     int count = countStr.toInt();
 
     String resultTopic = _getTopic("sync/result");
+    char resPayload[128];
     if (_storage.endSync(syncId, count)) {
-        String resPayload = syncId + ",OK," + String(count);
-        _mqtt.publish(resultTopic.c_str(), resPayload.c_str(), true); // QoS 1
+        snprintf(resPayload, sizeof(resPayload), "%s,OK,%d", syncId.c_str(), count);
+        _mqtt.publish(resultTopic.c_str(), resPayload, true); // QoS 1
     } else {
-        String resPayload = syncId + ",MISMATCH," + String(_storage.getUserCount());
-        _mqtt.publish(resultTopic.c_str(), resPayload.c_str(), true); // QoS 1
+        snprintf(resPayload, sizeof(resPayload), "%s,MISMATCH,%d", syncId.c_str(), _storage.getUserCount());
+        _mqtt.publish(resultTopic.c_str(), resPayload, true); // QoS 1
     }
 }
 
@@ -400,26 +405,22 @@ void MqttManager::_handleConfigSet(const String& payload) {
 void MqttManager::_handleConfigRequest(const String& payload) {
     const SystemConfig& cfg = _config.getConfig();
 
-    String response = "wifi_ssid," + cfg.wifi_ssid +
-                      ",mqtt_broker," + cfg.mqtt_broker +
-                      ",mqtt_port," + String(cfg.mqtt_port) +
-                      ",mqtt_user," + cfg.mqtt_user +
-                      ",heartbeat_s," + String(cfg.heartbeat_s) +
-                      ",total_doors," + String(cfg.total_doors) +
-                      ",ip_mode," + cfg.ip_mode +
-                      ",ip_address," + cfg.ip_address +
-                      ",subnet_mask," + cfg.subnet_mask +
-                      ",gateway," + cfg.gateway;
+    char response[512];
+    snprintf(response, sizeof(response), "wifi_ssid,%s,mqtt_broker,%s,mqtt_port,%d,mqtt_user,%s,heartbeat_s,%d,total_doors,%d,ip_mode,%s,ip_address,%s,subnet_mask,%s,gateway,%s",
+             cfg.wifi_ssid.c_str(), cfg.mqtt_broker.c_str(), cfg.mqtt_port, cfg.mqtt_user.c_str(),
+             cfg.heartbeat_s, cfg.total_doors, cfg.ip_mode.c_str(), cfg.ip_address.c_str(),
+             cfg.subnet_mask.c_str(), cfg.gateway.c_str());
 
     String responseTopic = _getTopic("config/response");
-    _mqtt.publish(responseTopic.c_str(), response.c_str(), true); // QoS 1
+    _mqtt.publish(responseTopic.c_str(), response, true); // QoS 1
 }
 
 // ─── Helper: Replay Offline Log ──────────────────────────────
 bool MqttManager::_sendOfflineLog(const String& csvLine) {
     // Format csvLine dari OfflineLogBuffer: seq_id,timestamp,kartu,door,status,reason
-    String payload = csvLine + ",REPLAYED";
+    char payload[300];
+    snprintf(payload, sizeof(payload), "%s,REPLAYED", csvLine.c_str());
     String topic = _getTopic("logs");
 
-    return _mqtt.publish(topic.c_str(), payload.c_str(), true);
+    return _mqtt.publish(topic.c_str(), payload, true);
 }
