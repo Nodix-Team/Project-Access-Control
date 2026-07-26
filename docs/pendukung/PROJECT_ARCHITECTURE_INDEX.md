@@ -188,6 +188,15 @@ Project-Access_control/
   - **Roadmap Prototyping Hardware Fisik v0.3 ([`docs/HARDWARE_PROTOTYPING_ROADMAP_v0.3.md`](file:///C:/Users/tech/Documents/GitHub/Project-Access_control/docs/HARDWARE_PROTOTYPING_ROADMAP_v0.3.md))**:
     - Menerbitkan panduan pengujian fisik 7 Fase di breadboard untuk board **ESP32-WROOM-32D (38-Pin)** (Silicon Rev 3).
     - Menambahkan **Hardware Abstraction Layer (HAL)** `pin_config.h` untuk migrasi seamless ke target produksi ESP32-S3 (§1.1).
+  - **Fase 8 (Advanced Door Alarms & Sensor Integration)**:
+    - Mengintegrasikan Sensor Pintu (`PIN_DOOR_SENSOR_1` di GPIO 14).
+    - Mengimplementasikan State Machine Alarm DFO (Door Forced Open) dan DOTL (Door Open Too Long) di dalam `DoorController.cpp`.
+    - Menerapkan parameter batas waktu `open_timeout_s` (10s), `held_timeout_s` (30s), dan `alarm_duration_s` (10s).
+    - Menambahkan proteksi *One-Shot Log* MQTT untuk DFO/DOTL agar tidak membanjiri server (*spam*) saat alarm aktif.
+    - Menetapkan Hirarki Kasta Feedback di `main.cpp`: FIRE > DFO > DOTL > GRANTED/DENIED.
+  - **Penyempurnaan Hardware & Feedback (Breadboard v0.3)**:
+    - **Bugfix Bootloop**: Memindahkan pin LED dari *Strapping Pins* (GPIO 12 & 15) ke GPIO 25 & 26 (tercatat di Poin 19 *Hardware Audit*).
+    - **Rombak UI/UX Audio Visual**: Merancang ritme *Buzzer* dan LED *non-blocking* (Granted: 3 beep cepat + LED solid; Denied: 1 beep panjang + LED kedip 3 detik).
 
 
 

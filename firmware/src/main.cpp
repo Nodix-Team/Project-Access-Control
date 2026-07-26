@@ -59,7 +59,10 @@ PowerSensor      powerSensor;
 FireAlarmSensor  fireAlarm(PIN_SENS_FIRE_ALARM);
 WatchdogManager  watchdogManager(PIN_WDT_WDI);
 WiegandReader    wiegand1(PIN_WIEGAND_D0, PIN_WIEGAND_D1);
-DoorController   door1(PIN_RELAY_1, PIN_REX_1);
+DoorController   door1(PIN_RELAY_1, PIN_REX_1, PIN_DOOR_SENSOR_1);
+
+bool isFireEmergency = false;
+DoorController::AlarmState lastAlarmState = DoorController::ALARM_IDLE;
 
 // ─── Feedback State Machine ──────────────────────────────────
 enum FeedbackState { FB_IDLE, FB_GRANTED, FB_DENIED };
@@ -89,9 +92,52 @@ void startFeedback(FeedbackState state) {
 }
 
 void loopFeedback() {
-    if (currentFbState == FB_IDLE) return;
-    
     unsigned long now = millis();
+    DoorController::AlarmState alarm = door1.getAlarmState();
+
+    // 1. KASTA TERTINGGI: FIRE ALARM
+    if (isFireEmergency) {
+        if (now >= fbBuzzerNext) {
+            fbBuzzerStep++;
+            if (fbBuzzerStep % 2 != 0) { // ON (Panjang 500ms)
+                digitalWrite(PIN_LED_RED, LOW);
+                digitalWrite(PIN_LED_GREEN, LOW);
+                fbBuzzerNext = now + 500;
+            } else { // OFF (Jeda sebentar 200ms)
+                digitalWrite(PIN_LED_RED, HIGH);
+                digitalWrite(PIN_LED_GREEN, HIGH);
+                fbBuzzerNext = now + 200;
+            }
+        }
+        currentFbState = FB_IDLE; // Batalkan feedback normal
+        return; 
+    }
+
+    // 2. KASTA KEDUA: DFO (Pembobolan) & DOTL (Lupa Tutup)
+    if (alarm == DoorController::ALARM_DFO || alarm == DoorController::ALARM_DOTL) {
+        if (now >= fbBuzzerNext) {
+            fbBuzzerStep++;
+            if (fbBuzzerStep % 2 != 0) { // ON (Panjang 500ms)
+                digitalWrite(PIN_LED_RED, LOW);
+                digitalWrite(PIN_LED_GREEN, LOW);
+                fbBuzzerNext = now + 500;
+            } else { // OFF (Jeda sebentar 200ms)
+                digitalWrite(PIN_LED_RED, HIGH);
+                digitalWrite(PIN_LED_GREEN, HIGH);
+                fbBuzzerNext = now + 200;
+            }
+        }
+        currentFbState = FB_IDLE; // Batalkan feedback normal
+        return;
+    }
+
+    // 3. KASTA KETIGA: GRANTED / DENIED (Normal Feedback)
+    if (currentFbState == FB_IDLE) {
+        // Jika tidak ada alarm dan idle, matikan semua
+        digitalWrite(PIN_LED_RED, HIGH);
+        digitalWrite(PIN_LED_GREEN, HIGH);
+        return;
+    }
     
     if (currentFbState == FB_GRANTED) {
         // --- LED Hijau --- (Menyala solid selama 3 detik)
@@ -112,8 +158,6 @@ void loopFeedback() {
         
         if (now >= fbStartTime + 3000) {
             currentFbState = FB_IDLE;
-            digitalWrite(PIN_LED_RED, HIGH);
-            digitalWrite(PIN_LED_GREEN, HIGH);
         }
     } 
     else if (currentFbState == FB_DENIED) {
@@ -142,8 +186,6 @@ void loopFeedback() {
         
         if (now >= fbStartTime + 3000) {
             currentFbState = FB_IDLE;
-            digitalWrite(PIN_LED_RED, HIGH);
-            digitalWrite(PIN_LED_GREEN, HIGH);
         }
     }
 }
@@ -224,6 +266,7 @@ void setup() {
   fireAlarm.begin();
   fireAlarm.setFireCallback([](bool active) {
       // Buka seluruh relay pintu jika alarm kebakaran aktif
+      isFireEmergency = active;
       door1.setFireOverride(active);
       mqttManager.publishLog("FIRE_ALARM", 0, true, active ? "FIRE_EMERGENCY_ACTIVE" : "FIRE_EMERGENCY_CLEARED");
   });
@@ -293,6 +336,17 @@ void loop() {
     
     // Publikasikan log secara fisik ke server (atau simpan ke NVS jika offline)
     mqttManager.publishLog(uid, 1, result.granted, result.reason);
+  }
+  
+  // Cek One-Shot Log MQTT untuk Alarm Pintu
+  DoorController::AlarmState currentAlarm = door1.getAlarmState();
+  if (currentAlarm != lastAlarmState) {
+    if (currentAlarm == DoorController::ALARM_DFO) {
+      mqttManager.publishLog("DOOR_SENSOR", 1, false, "DOOR_FORCED_OPEN");
+    } else if (currentAlarm == DoorController::ALARM_DOTL) {
+      mqttManager.publishLog("DOOR_SENSOR", 1, false, "DOOR_HELD_OPEN");
+    }
+    lastAlarmState = currentAlarm;
   }
   
   // Loop untuk mengecek status relay dan REX

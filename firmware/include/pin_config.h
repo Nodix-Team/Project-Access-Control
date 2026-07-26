@@ -25,6 +25,7 @@
   #define PIN_RELAY_4        26
 
   #define PIN_REX_1          13  // Request to Exit Button untuk Pintu 1
+  #define PIN_DOOR_SENSOR_1  14  // Magnetic Door Contact (Active LOW = Tertutup)
 
   #define PIN_LED_GREEN      25  // Dipindah dari 12 (Strapping Pin) ke 25
   #define PIN_LED_RED        26  // Dipindah dari 14 ke 26
