@@ -17,6 +17,7 @@
 #include "web/WebConfigServer.h"
 #include "sensing/PowerSensor.h"
 #include "sensing/FireAlarmSensor.h"
+#include "sensing/WatchdogManager.h"
 #include "time/SystemClock.h"
 #include <WiFi.h>
 
@@ -52,6 +53,7 @@ SerialSim        serialSim(accessControl, userStorage, configManager);
 WebConfigServer  webConfigServer(configManager, userStorage);
 PowerSensor      powerSensor;
 FireAlarmSensor  fireAlarm(PIN_SENS_FIRE_ALARM);
+WatchdogManager  watchdogManager(PIN_WDT_WDI);
 SystemClock      systemClock;
 WiegandReader    wiegand1(PIN_WIEGAND_D0, PIN_WIEGAND_D1);
 DoorController   door1(PIN_RELAY_1, PIN_REX_1);
@@ -63,8 +65,9 @@ void setup() {
 
   Serial.println("\n[SYS] Booting ESP32 Access Control v0.3.0...");
 
-  // 0. Inisialisasi NVS Storage (Fase 5 Prototipe)
+  // 0. Inisialisasi NVS Storage & Watchdog Manager (Fase 4 & 5 Prototipe)
   nvsManager.begin();
+  watchdogManager.begin(10); // 10 Detik WDT Timeout
 
   // 1. Inisialisasi LittleFS
   if (!LittleFS.begin(true)) {
@@ -166,6 +169,7 @@ void setup() {
 
 // ─── loop() ──────────────────────────────────────────────────
 void loop() {
+  watchdogManager.loop();
   mqttManager.loop();
   serialSim.loop();
   webConfigServer.handleClient();
