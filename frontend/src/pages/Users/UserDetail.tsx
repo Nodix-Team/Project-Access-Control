@@ -6,27 +6,7 @@ import { useDepartments } from "../../api/departments";
 import { useDoors } from "../../api/doors";
 import { useUpdateUser, useUser } from "../../api/users";
 import { useUiStore } from "../../store/uiStore";
-import type { Controller, Door } from "../../types";
-
-// access nyata dari backend: Dict[device_id string, door_number[]] (lihat api/users.ts ApiUser.access)
-// - KUNCINYA device_id, BUKAN controller_id angka. Konversi ke daftar door_id (buat seed checkbox
-// custom) harus lewat controller.device_id, beda dari versi mock lama yang keliru asumsi controller_id.
-function accessToDoorIds(
-  access: Record<string, number[]>,
-  controllers: Controller[],
-  doors: Door[],
-): number[] {
-  const ids: number[] = [];
-  for (const [deviceId, doorNumbers] of Object.entries(access)) {
-    const controller = controllers.find((c) => c.device_id === deviceId);
-    if (!controller) continue;
-    for (const doorNumber of doorNumbers) {
-      const door = doors.find((d) => d.controller_id === controller.id && d.door_number === doorNumber);
-      if (door) ids.push(door.id);
-    }
-  }
-  return ids;
-}
+import { accessToDoorIds } from "../../utils/access";
 
 export default function UserDetail() {
   const { id } = useParams();

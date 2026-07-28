@@ -3,7 +3,7 @@
 # request FastAPI - dijembatani dengan threading.Event per sync_id (bukan asyncio, app ini sync).
 import threading
 import uuid
-from typing import Dict, Optional
+from typing import Dict
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session

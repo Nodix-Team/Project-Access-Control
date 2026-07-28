@@ -1,0 +1,97 @@
+# Database CI — gerbang merge (KEPUTUSAN §7.1 W4 / §7.2d). BARU di v0.3.
+#
+# Kenapa ada: test backend membangun skema dari MODEL (Base.metadata), bukan dari schema.sql, dan
+# di SQLite CHECK/ENUM tidak ditegakkan (temuan C-a). Workflow ini menjalankan DDL SUNGGUHAN di
+# MySQL 8.0 dan MEMBUKTIKAN:
+#   1. schema.sql (v0.2) load bersih.
+#   2. migrasi 001 (v0.2 -> v0.3) bisa diterapkan di atasnya.
+#   3. seed.sql load bersih di skema hasil migrasi (kolom baru pakai DEFAULT).
+#   4. CHECK constraint config pintu BENAR-BENAR MENOLAK nilai terlarang (held < open, dst).
+#   5. Server timezone UTC (aturan R2) aktif.
+name: db-ci
+
+on:
+  pull_request:
+    paths:
+      - "database/**"
+      - "backend/app/models/**"
+      - ".github/workflows/db-ci.yml"
+  push:
+    branches: [dev, main]
+    paths:
+      - "database/**"
+      - "backend/app/models/**"
+      - ".github/workflows/db-ci.yml"
+
+jobs:
+  schema:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: access_control
+          TZ: UTC
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Force server timezone UTC (aturan R2)
+        run: mysql -h 127.0.0.1 -uroot -proot -e "SET GLOBAL time_zone = '+00:00';"
+
+      - name: 1. Load schema.sql (v0.2)
+        run: mysql -h 127.0.0.1 -uroot -proot access_control < database/schema.sql
+
+      - name: 2. Apply migration 001 (v0.2 -> v0.3)
+        run: mysql -h 127.0.0.1 -uroot -proot access_control < database/migrations/001_v0.3_schema_delta.sql
+
+      - name: 3. Load seed.sql (kolom baru pakai DEFAULT)
+        run: mysql -h 127.0.0.1 -uroot -proot access_control < database/seed.sql
+
+      - name: 4a. Verifikasi 11 tabel v0.3 ada
+        run: |
+          COUNT=$(mysql -h 127.0.0.1 -uroot -proot -N -B access_control \
+            -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='access_control';")
+          echo "Jumlah tabel: $COUNT (harap 11)"
+          test "$COUNT" -eq 11
+
+      - name: 4b. CHECK ditegakkan — held < open HARUS ditolak
+        run: |
+          set +e
+          mysql -h 127.0.0.1 -uroot -proot access_control -e \
+            "INSERT INTO doors (controller_id, door_number, nama, open_timeout_s, held_timeout_s) \
+             VALUES (1, 99, 'CI-bad-held', 100, 10);"
+          RC=$?
+          set -e
+          if [ "$RC" -eq 0 ]; then
+            echo "BUG: DB menerima held(10) < open(100) — CHECK ck_door_held_ge_open tidak jalan!"
+            exit 1
+          fi
+          echo "OK: held < open ditolak DB seperti seharusnya (rc=$RC)"
+
+      - name: 4c. CHECK ditegakkan — open_timeout di luar 1..120 HARUS ditolak
+        run: |
+          set +e
+          mysql -h 127.0.0.1 -uroot -proot access_control -e \
+            "INSERT INTO doors (controller_id, door_number, nama, open_timeout_s, held_timeout_s) \
+             VALUES (1, 98, 'CI-bad-open', 999, 999);"
+          RC=$?
+          set -e
+          if [ "$RC" -eq 0 ]; then
+            echo "BUG: DB menerima open_timeout_s=999 (>120) — CHECK ck_door_open_timeout tidak jalan!"
+            exit 1
+          fi
+          echo "OK: open_timeout_s di luar rentang ditolak DB (rc=$RC)"
+
+      - name: 5. Verifikasi timezone server UTC
+        run: |
+          TZ=$(mysql -h 127.0.0.1 -uroot -proot -N -B -e "SELECT @@global.time_zone;")
+          echo "global.time_zone = $TZ"
+          test "$TZ" = "+00:00"

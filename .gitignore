@@ -48,3 +48,16 @@ Thumbs.db
 # Database
 # ═══════════════════════════════════════════
 *.sql.bak
+
+# SQLite DB test lokal (conftest.py fallback saat TEST_DATABASE_URL tidak di-set)
+test.db
+*.sqlite
+*.sqlite3
+
+# ═══════════════════════════════════════════
+# Test & lint cache
+# ═══════════════════════════════════════════
+.pytest_cache/
+.ruff_cache/
+coverage/
+.coverage

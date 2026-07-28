@@ -1,0 +1,38 @@
+# Contract CI — gerbang merge (KEPUTUSAN §7.1 W5 / §7.2c).
+# Membandingkan tabel kode STATUS/REASON (nanti EVENT) antara dokumen sumber kebenaran
+# CONTRACT-CODES-V0.3.md dengan implementasi backend (codes.py) & frontend (codes.ts).
+#
+# Sprint 1: codes.py & codes.ts belum ada (lahir di Sprint 3/5). Script sengaja TOLERANT —
+# layer yang filenya belum ada ditandai PENDING dan tidak menggagalkan CI, tapi begitu file itu
+# dibuat, ketidakcocokan angka LANGSUNG memerahkan gerbang ini.
+name: contract-ci
+
+on:
+  pull_request:
+    paths:
+      - "docs/CONTRACT-CODES-V0.3.md"
+      - "backend/app/mqtt/**"
+      - "frontend/src/constants/**"
+      - "tools/check_contract_codes.py"
+      - ".github/workflows/contract-ci.yml"
+  push:
+    branches: [dev, main]
+    paths:
+      - "docs/CONTRACT-CODES-V0.3.md"
+      - "backend/app/mqtt/**"
+      - "frontend/src/constants/**"
+      - "tools/check_contract_codes.py"
+      - ".github/workflows/contract-ci.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Cek konsistensi kode kontrak lintas-layer
+        run: python tools/check_contract_codes.py

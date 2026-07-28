@@ -1,0 +1,20 @@
+# Konfigurasi ruff untuk backend-ci.yml.
+#
+# Sengaja KONSERVATIF di Sprint 1: gerbang lint hanya menangkap BUG NYATA (pyflakes) dan error
+# sintaks/struktur (pycodestyle error), bukan gaya. Tujuannya supaya CI langsung hijau di atas
+# kode yang sudah ada, lalu aturan bisa diperketat bertahap di sprint berikutnya tanpa membuat
+# PR pertama merah oleh ratusan nitpick gaya.
+line-length = 120
+target-version = "py313"
+
+[lint]
+# E,W = pycodestyle (error/warning), F = pyflakes (import tak terpakai, nama tak terdefinisi, dst).
+# Belum mengaktifkan I (isort), UP (pyupgrade), B (bugbear) — ditunda ke sprint hardening.
+select = ["E", "W", "F"]
+
+# E501 (baris kepanjangan) ditangani line-length di atas; sisanya dibiarkan default.
+ignore = []
+
+[lint.per-file-ignores]
+# File test & conftest boleh punya import di dalam fungsi (seed lazy) dan pola lain yang wajar.
+"tests/*" = ["E402"]
